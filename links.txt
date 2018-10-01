@@ -1,0 +1,24 @@
+
+ https://github.com/RandyGaul/C-Hotloading
+
+ some cool shader effects
+ https://twitter.com/minionsart/status/964257071423283200
+
+ https://www.youtube.com/watch?v=FxCC9Ces1Yg&list=PLSPw4ASQYyymu3PfG9gxywSPghnSMiOAW&index=1
+ 
+ https://www.reddit.com/r/gamedev/comments/7ylvt9/pixelator_a_gamedev_tool_i_wrote_to_convert_any/
+ 
+ https://github.com/SSYGEN/blog/issues/30
+ 
+ http://www.emanueleferonato.com/2018/02/16/how-to-scale-your-html5-games-if-your-framework-does-not-feature-a-scale-manager-or-if-you-do-not-use-any-framework/?utm_source=gamedevjsweekly&utm_medium=email
+ 
+ 
+ https://gist.github.com/koute/7391344
+ 
+ https://github.com/Geheim8/CardGame/blob/e455f629c77ac82ff8c94408e2458f5174eb54ca/source/game.cpp
+ 
+ https://github.com/dandev237/AirFighters/blob/280366b3ef77796df268173944b3f9f563643a95/Air%20Fighters/Game.cpp
+ 
+ https://github.com/koniin/Space-Trader/blob/master/SpaceTrader/Game.cpp
+ 
+ 

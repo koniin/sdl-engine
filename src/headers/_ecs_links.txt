@@ -1,0 +1,16 @@
+https://forum.unity.com/threads/ecs-memory-layout.532028/
+https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/master/Documentation/content/ecs_in_detail.md
+https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/master/Documentation/content/two_stick_shooter.md
+https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/master/Samples/Assets/TwoStickShooter/Pure/Scripts/ShotDamageSystem.cs
+
+http://bitsquid.blogspot.com/2014/08/building-data-oriented-entity-system.html
+http://bitsquid.blogspot.com/2014/09/building-data-oriented-entity-system.html
+http://bitsquid.blogspot.com/2014/10/building-data-oriented-entity-system.html
+http://bitsquid.blogspot.com/2014/10/building-data-oriented-entity-system_10.html
+
+https://github.com/sevanspowell/DraygonTensor/tree/e59864f1e2e91356dcc96d547fba4c576ea6248d/src/engine
+
+https://github.com/TiredDeveloper/DrunkenSailorEngine/blob/f657aa8448ead4e1a6dfe8dafc9abe4ff7aaff98/src/engine/entity/ComponentManager.hpp
+
+https://github.com/lordhippo/DiceInvaders/blob/master/source/engine/core/component_system.cpp
+https://github.com/lordhippo/DiceInvaders/tree/master/source/engine/core

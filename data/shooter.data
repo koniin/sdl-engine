@@ -1,0 +1,12 @@
+shooter.png
+10
+00 top_left 0 0 16 16
+01 top 16 0 16 16
+02 top_right 32 0 16 16
+03 left 0 16 16 16
+04 middle 16 16 16 16
+05 right 32 16 16 16
+06 bottom_left 0 32 16 16
+07 bottom 16 32 16 16
+08 bottom_right 32 32 16 16
+09 player 48 0 16 16
