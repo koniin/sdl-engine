@@ -501,11 +501,13 @@ void game_state_inactivate() {
 	game_state.inactive_timer = game_state.pause_time;
 }
 
+static SpriteSheet the_sheet;
 void asteroids_load() {
     Engine::set_base_data_folder("data");
 	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
+	Resources::sprite_sheet_load("shooter.data", the_sheet);
 	game_state_reset();
 }
 

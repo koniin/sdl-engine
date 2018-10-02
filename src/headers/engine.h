@@ -194,21 +194,49 @@ struct Rectangle {
 	int y;
 	int w;
 	int h;
+
 	Rectangle() {
 		x = y = w = h = 0;
 	}
+
 	Rectangle(int xx, int yy, int ww, int hh) {
 		x = xx;
 		y = yy;
 		w = ww;
 		h = hh;
 	}
+
 	bool contains(int xi, int yi) {
 		return ((((x <= xi) && (xi < (x + w))) && (y <= yi)) && (yi < (y + h)));
 	}
+
 	bool contains(Point &p) {
 		return contains(p.x, p.y);
 	}
+
+	int left() {
+        return x;
+    }
+
+	int right() {
+        return x + w;
+    }
+
+	int top() {
+        return y;
+    }
+
+	int bottom() {
+        return y + h;
+    }
+
+	bool intersects(Rectangle &r2) {
+        return !(r2.left() > right()
+                 || r2.right() < left()
+                 || r2.top() > bottom()
+                 || r2.bottom() < top()
+                );
+    }
 };
 
 namespace Time {
@@ -252,14 +280,44 @@ namespace Math {
     	return x;
 	}
 
-	inline float max(float a, float b) {
+	inline int max(int a, int b) {
+		return std::max(a, b);
+	}
+
+	inline float max_f(float a, float b) {
 		return std::fmax(a, b);
 	}
 
-	inline float min(float a, float b) {
+	inline int min(int a, int b) {
+		return std::min(a, b);
+	}
+
+	inline float min_f(float a, float b) {
 		return std::fmin(a, b);
 	}
+
+	inline float ceiling(float f) {
+		return std::ceilf(f);
+	}
+
+	inline int abs(int i) {
+		return std::abs(i);
+	}
+
+	inline float abs_f(float f) {
+		return std::abs(f);
+	}
 	
+	inline float round(float f) {
+		return std::round(f);
+	}
+
+	inline float round_bankers(float f) {
+		if(f == 0.5f)
+			return 0.0f;
+		return std::round(f);
+	}
+
 	inline float lerp(float from, float to, float t) {
     	return from + (to - from) * t;
 	}
@@ -312,6 +370,39 @@ namespace Math {
 		float magnitudeSquared = distanceX * distanceX + distanceY * distanceY;
 		return magnitudeSquared < (c1Radius + c2Radius) * (c1Radius + c2Radius);
 	}
+
+	struct AABB {
+		int left;
+		int right;
+		int bottom;
+		int top;
+	};
+
+	inline bool intersect_AABB(const Rectangle &a, const Rectangle &b) {
+		AABB aa = { a.x, a.x + a.w, a.y, a.y + a.h };
+		AABB bb = { b.x, b.x + b.w, b.y, b.y + b.h };
+  		return (aa.left <= bb.right && aa.right >= bb.left) 
+			&& (aa.bottom <= bb.top && aa.top >= bb.bottom);
+	}
+
+	// 	inline bool intersect_AABB(Rectangle &a, Rectangle &b) {
+	//   		return (a.minX <= b.maxX && a.maxX >= b.minX) 
+	// 			&& (a.minY <= b.maxY && a.maxY >= b.minY);
+	// 	}
+
+	// 	public static intersect(r1:Rectangle, r2:Rectangle):boolean {
+	//         return !(r2.left > r1.right || 
+	//            r2.right < r1.left || 
+	//            r2.top > r1.bottom ||
+	//            r2.bottom < r1.top);
+	//     }
+
+	//     public static intersectXY(x1:number, y1:number, width1:number, height1:number, x2:number, y2:number, width2:number, height2:number):boolean {
+	//         return !(x2 > x1 + width1 || 
+	//            x2 + width2 < x1 || 
+	//            y2 > y1 + height1 ||
+	//            y2 + height2 < y1);
+	// }
 
 	// call repeatedly to move to target 
 	// returns true when at target

@@ -50,7 +50,7 @@ void input() {
 
 
 int main(int argc, char* argv[]) {
-	if(!renderer_init("TITLE", 640, 360, 2)) {
+	if(!renderer_init("TITLE", 640, 360, 1)) {
 		printf("init renderer failed");
 		return 1;
 	}
