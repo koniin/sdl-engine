@@ -27,7 +27,6 @@ unsigned overlapped_tiles_n = 0;
 Tile overlapped_tiles[24];
 void collision_set_overlapped_tiles(const TileMap &map, const float x, const float y, const unsigned w, const unsigned h) {
     overlapped_tiles_n = 0;
-    debug_overlapped.clear();
     unsigned layer = 0;
 
     float left = x;
@@ -36,6 +35,10 @@ void collision_set_overlapped_tiles(const TileMap &map, const float x, const flo
     float bottom = top + w;
 
     ASSERT_WITH_MSG(left >= 0 && top >= 0, "Left or right is less than zero when finding overlapped tiles!");
+
+    if(left < 0 || top < 0) {
+        int a = 2;
+    }
 
     unsigned leftTile = (unsigned)(left / map.tile_size);
     unsigned topTile = (unsigned)(top / map.tile_size);
@@ -85,8 +88,6 @@ float tile_check_x(CollisionData &data, Tile &tile, Rectangle &tile_r);
 float tile_check_y(CollisionData &data, Tile &tile, Rectangle &tile_r);
 
 void resolve_collided_tiles(CollisionData &data) {
-    debug_collided_tiles.clear();
-
     for(unsigned i = 0; i < overlapped_tiles_n; i++) {
         Rectangle tile_r = { overlapped_tiles[i].x * TILE_WIDTH, 
             overlapped_tiles[i].y * TILE_WIDTH, TILE_WIDTH, TILE_WIDTH };
@@ -211,9 +212,14 @@ struct BoxMan {
 };
 
 struct Settings {
-    float player_move_speed = 0.2f;
+    // With drag
+    //float player_move_speed = 0.5f;
+    float movement_drag = 0.90f;
+
+    // Without
+    float player_move_speed = 5.0f;
     float player_max_speed = 1.0f;
-    float movement_drag = 0.95f;
+    
 } settings;
 
 unsigned box_n = 0;
@@ -279,7 +285,7 @@ void system_velocity() {
     for(unsigned i = 0; i < box_n; i++) {
         PlayerInput &pi = boxes[i].input;
         Velocity &v = boxes[i].velocity;
-        v.v += pi.move * settings.player_move_speed;
+        v.v = pi.move * settings.player_move_speed;
     }
 }
 
@@ -291,6 +297,9 @@ void system_physics(TileMap &t) {
         p.p += v.v;
         // get the tiles
         
+        debug_overlapped.clear();
+        debug_collided_tiles.clear();
+
         collision_set_overlapped_tiles(t, 
             boxes[0].position.p.x + boxes[0].collision_shape.r.x, 
             boxes[0].position.p.y + boxes[0].collision_shape.r.y,
@@ -312,15 +321,11 @@ void system_physics(TileMap &t) {
 
             resolve_collided_tiles(d);
 
-            Engine::logn("\nold pos x: %f, y: %f", p.p.x, p.p.y);
-            Engine::logn("old velocity x: %f, y: %f", v.v.x, v.v.y);
-            Engine::logn("new pos x: %f, y: %f", d.position.x, d.position.y);
-            Engine::logn("new velocity x: %f, y: %f \n", d.velocity.x, d.velocity.y);
             p.p = d.position;
             v.v = d.velocity;
         }
         
-        v.v *= settings.movement_drag;
+        //v.v *= settings.movement_drag;
     }
 }
 
