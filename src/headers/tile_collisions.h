@@ -23,10 +23,10 @@ struct CollisionData {
 };
 
 std::vector<Tile> debug_overlapped;
-unsigned overlapped_tiles_n = 0;
-Tile overlapped_tiles[24];
-void collision_set_overlapped_tiles(const TileMap &map, const float x, const float y, const unsigned w, const unsigned h) {
-    overlapped_tiles_n = 0;
+unsigned overlapped_solid_tiles_n = 0;
+Tile overlapped_solid_tiles[24];
+void collision_set_overlapped_solid_tiles(const TileMap &map, const float x, const float y, const unsigned w, const unsigned h) {
+    overlapped_solid_tiles_n = 0;
     unsigned layer = 0;
 
     float left = x;
@@ -56,26 +56,26 @@ void collision_set_overlapped_tiles(const TileMap &map, const float x, const flo
 
             // ZERO IS SOLID TILE
             if(tile == 0) {
-                overlapped_tiles[overlapped_tiles_n] = t;
+                overlapped_solid_tiles[overlapped_solid_tiles_n] = t;
                 
                 // SET FACES HERE ( TOP , LEFT, ... )
                 if (tile_x - 1 > 0 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x - 1, tile_y)] != 0) {
-                    overlapped_tiles[overlapped_tiles_n].face_left = true;
+                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_left = true;
                 }
                 if (tile_x + 1 < map.columns 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x + 1, tile_y)] != 0) {
-                    overlapped_tiles[overlapped_tiles_n].face_right = true;
+                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_right = true;
                 }
                 if (tile_y - 1 > 0 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x, tile_y - 1)] != 0) {
-                    overlapped_tiles[overlapped_tiles_n].face_top = true;
+                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_top = true;
                 }
                 if (tile_y + 1 < map.rows 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x, tile_y + 1)] != 0) {
-                    overlapped_tiles[overlapped_tiles_n].face_bottom = true;
+                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_bottom = true;
                 }
-                ++overlapped_tiles_n;
+                ++overlapped_solid_tiles_n;
             }
         }
     }
@@ -88,16 +88,16 @@ float tile_check_x(CollisionData &data, Tile &tile, Rectangle &tile_r);
 float tile_check_y(CollisionData &data, Tile &tile, Rectangle &tile_r);
 
 void resolve_collided_tiles(CollisionData &data) {
-    for(unsigned i = 0; i < overlapped_tiles_n; i++) {
-        Rectangle tile_r = { overlapped_tiles[i].x * TILE_WIDTH, 
-            overlapped_tiles[i].y * TILE_WIDTH, TILE_WIDTH, TILE_WIDTH };
+    for(unsigned i = 0; i < overlapped_solid_tiles_n; i++) {
+        Rectangle tile_r = { overlapped_solid_tiles[i].x * TILE_WIDTH, 
+            overlapped_solid_tiles[i].y * TILE_WIDTH, TILE_WIDTH, TILE_WIDTH };
 
         if(tile_r.intersects(data.box)) {
-            debug_collided_tiles.push_back(overlapped_tiles[i]);
+            debug_collided_tiles.push_back(overlapped_solid_tiles[i]);
 
             float minX = 0;
             float minY = 1;
-            Tile tile = overlapped_tiles[i];
+            Tile tile = overlapped_solid_tiles[i];
 
             if (Math::abs_f(data.velocity.x) > Math::abs_f(data.velocity.y)){
                 //  Moving faster horizontally, check X axis first
@@ -295,18 +295,17 @@ void system_physics(TileMap &t) {
         Velocity &v = boxes[i].velocity;
 
         p.p += v.v;
-        // get the tiles
         
         debug_overlapped.clear();
         debug_collided_tiles.clear();
 
-        collision_set_overlapped_tiles(t, 
+        collision_set_overlapped_solid_tiles(t, 
             boxes[0].position.p.x + boxes[0].collision_shape.r.x, 
             boxes[0].position.p.y + boxes[0].collision_shape.r.y,
             boxes[0].collision_shape.r.w, 
             boxes[0].collision_shape.r.h);
 
-        if(overlapped_tiles_n > 0) {
+        if(overlapped_solid_tiles_n > 0) {
             Rectangle box_rect = {
                 (int)(boxes[0].position.p.x + boxes[0].collision_shape.r.x), 
                 (int)(boxes[0].position.p.y + boxes[0].collision_shape.r.y),
