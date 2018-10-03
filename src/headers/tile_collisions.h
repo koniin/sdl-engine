@@ -8,96 +8,124 @@
 /////////////////////////////////
 /////////////////////////////////
 
-struct Tile {
+struct CollisionShape {
+    Rectangle r;
+};
+
+struct CollisionSolidBody {
     int x, y;
     bool face_left = false;
     bool face_right = false;
     bool face_top = false;
     bool face_bottom = false;
-};
-
-struct CollisionData {
-    Vector2 position;
-    Vector2 velocity;
     Rectangle box;
 };
 
-std::vector<Tile> debug_overlapped;
-unsigned overlapped_solid_tiles_n = 0;
-Tile overlapped_solid_tiles[24];
-void collision_set_overlapped_solid_tiles(const TileMap &map, const float x, const float y, const unsigned w, const unsigned h) {
-    overlapped_solid_tiles_n = 0;
-    unsigned layer = 0;
+struct CollisionMovingBody {
+    Vector2 position;
+    Vector2 velocity;
+    CollisionShape shape;
+    Rectangle box;
+};
 
-    float left = x;
-    float top = y;
-    float right = left + w;
-    float bottom = top + w;
+struct CollisionPhaseData {
+    CollisionSolidBody overlapped_solids[64];
+    unsigned overlapped_solid_n = 0;
+};
+
+std::vector<CollisionSolidBody> debug_overlapped;
+std::vector<CollisionSolidBody> debug_collided_solids;
+
+void collision_tilemap_broad_phase(CollisionPhaseData &phase_data, CollisionMovingBody &data, const TileMap &map, const unsigned layer, const unsigned solid);
+void collision_tilemap_resolution(CollisionPhaseData &phase_data, CollisionMovingBody &data);
+float collision_resolve_x(CollisionMovingBody &data, CollisionSolidBody &solid_body);
+float collision_resolve_y(CollisionMovingBody &data, CollisionSolidBody &solid_body);
+
+void collision_init_body(CollisionMovingBody &data, Vector2 velocity, Vector2 position, CollisionShape shape) {
+    data.velocity = velocity;
+    data.position = position;
+    data.shape = shape;
+}
+
+void collision_tile_map(CollisionMovingBody &data, const TileMap &map, const unsigned layer, const unsigned solid) {
+    CollisionPhaseData phase_data;
+    collision_tilemap_broad_phase(phase_data, data, map, layer, solid);
+
+    if(phase_data.overlapped_solid_n > 0) {
+        collision_tilemap_resolution(phase_data, data);
+    }
+}
+
+void collision_tilemap_broad_phase(CollisionPhaseData &phase_data, CollisionMovingBody &data, const TileMap &map, const unsigned layer, const unsigned solid) {
+    float left = data.position.x + data.shape.r.x;
+    float top = data.position.y + data.shape.r.y;
+    float right = left + data.shape.r.w;
+    float bottom = top + data.shape.r.h;
 
     ASSERT_WITH_MSG(left >= 0 && top >= 0, "Left or right is less than zero when finding overlapped tiles!");
-
-    if(left < 0 || top < 0) {
-        int a = 2;
-    }
 
     unsigned leftTile = (unsigned)(left / map.tile_size);
     unsigned topTile = (unsigned)(top / map.tile_size);
     unsigned rightTile = (unsigned) Math::ceiling(right / map.tile_size) - 1;
     unsigned bottomTile = (unsigned) Math::ceiling((bottom / map.tile_size)) - 1;
-
+    
     for (unsigned tile_y = topTile; tile_y <= bottomTile; ++tile_y){
         for (unsigned tile_x = leftTile; tile_x <= rightTile; ++tile_x){
             unsigned tile = map.tiles[Tiling::tilemap_index(map, layer, tile_x, tile_y)];
 
-            Tile t;
+            CollisionSolidBody t;
             t.x = tile_x;
             t.y = tile_y;
             debug_overlapped.push_back(t);
 
-            // ZERO IS SOLID TILE
-            if(tile == 0) {
-                overlapped_solid_tiles[overlapped_solid_tiles_n] = t;
+            if(tile == solid) {
+                t.box = { 
+                    (int)(tile_x * map.tile_size), 
+                    (int)(tile_y * map.tile_size), 
+                    (int)map.tile_size, 
+                    (int)map.tile_size 
+                };
                 
-                // SET FACES HERE ( TOP , LEFT, ... )
+                // SET FACES ( TOP , LEFT, ... )
                 if (tile_x - 1 > 0 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x - 1, tile_y)] != 0) {
-                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_left = true;
+                    t.face_left = true;
                 }
                 if (tile_x + 1 < map.columns 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x + 1, tile_y)] != 0) {
-                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_right = true;
+                    t.face_right = true;
                 }
                 if (tile_y - 1 > 0 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x, tile_y - 1)] != 0) {
-                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_top = true;
+                    t.face_top = true;
                 }
                 if (tile_y + 1 < map.rows 
                     && map.tiles[Tiling::tilemap_index(map, layer, tile_x, tile_y + 1)] != 0) {
-                    overlapped_solid_tiles[overlapped_solid_tiles_n].face_bottom = true;
+                    t.face_bottom = true;
                 }
-                ++overlapped_solid_tiles_n;
+                phase_data.overlapped_solids[phase_data.overlapped_solid_n] = t;
+                ++phase_data.overlapped_solid_n;
             }
         }
     }
 }
 
-std::vector<Tile> debug_collided_tiles;
-const int TILE_WIDTH = 16;
+void collision_tilemap_resolution(CollisionPhaseData &phase_data, CollisionMovingBody &data) {
+    data.box = {
+        (int)(data.position.x + data.shape.r.x), 
+        (int)(data.position.y + data.shape.r.y),
+        (int)(data.shape.r.w), 
+        (int)(data.shape.r.h)
+    };
 
-float tile_check_x(CollisionData &data, Tile &tile, Rectangle &tile_r);
-float tile_check_y(CollisionData &data, Tile &tile, Rectangle &tile_r);
-
-void resolve_collided_tiles(CollisionData &data) {
-    for(unsigned i = 0; i < overlapped_solid_tiles_n; i++) {
-        Rectangle tile_r = { overlapped_solid_tiles[i].x * TILE_WIDTH, 
-            overlapped_solid_tiles[i].y * TILE_WIDTH, TILE_WIDTH, TILE_WIDTH };
-
-        if(tile_r.intersects(data.box)) {
-            debug_collided_tiles.push_back(overlapped_solid_tiles[i]);
+    for(unsigned i = 0; i < phase_data.overlapped_solid_n; i++) {
+        CollisionSolidBody solid_body = phase_data.overlapped_solids[i];
+        
+        if(solid_body.box.intersects(data.box)) {
+            debug_collided_solids.push_back(solid_body);
 
             float minX = 0;
             float minY = 1;
-            Tile tile = overlapped_solid_tiles[i];
 
             if (Math::abs_f(data.velocity.x) > Math::abs_f(data.velocity.y)){
                 //  Moving faster horizontally, check X axis first
@@ -109,48 +137,48 @@ void resolve_collided_tiles(CollisionData &data) {
             }
 
             if (data.velocity.x != 0 && data.velocity.y != 0 
-                && (tile.face_left || tile.face_right) && (tile.face_bottom || tile.face_top)) {
-                minX = (float)Math::min(Math::abs(data.box.x - tile_r.right()), Math::abs(data.box.right() - tile_r.left()));
-                minY = (float)Math::min(Math::abs(data.box.y - tile_r.bottom()), Math::abs(data.box.bottom() - tile_r.top()));
+                && (solid_body.face_left || solid_body.face_right) && (solid_body.face_bottom || solid_body.face_top)) {
+                minX = (float)Math::min(Math::abs(data.box.x - solid_body.box.right()), Math::abs(data.box.right() - solid_body.box.left()));
+                minY = (float)Math::min(Math::abs(data.box.y - solid_body.box.bottom()), Math::abs(data.box.bottom() - solid_body.box.top()));
             }
             
             float ox = 0;
             float oy = 0;
             if (minX < minY) {
-                if (tile.face_left || tile.face_right) {
-                    ox = tile_check_x(data, tile, tile_r);
+                if (solid_body.face_left || solid_body.face_right) {
+                    ox = collision_resolve_x(data, solid_body);
                     //  That's horizontal done, check if we still intersects? If not then we can return now
-                    if (ox != 0 && !tile_r.intersects(data.box)) {
+                    if (ox != 0 && !solid_body.box.intersects(data.box)) {
                         continue;
                     }
                 }
 
-                if (tile.face_top || tile.face_bottom) {
-                    oy = tile_check_y(data, tile, tile_r);
+                if (solid_body.face_top || solid_body.face_bottom) {
+                    oy = collision_resolve_y(data, solid_body);
                 }
             } else {
-                if (tile.face_top || tile.face_bottom) {
-                    oy = tile_check_y(data, tile, tile_r);
+                if (solid_body.face_top || solid_body.face_bottom) {
+                    oy = collision_resolve_y(data, solid_body);
                     //  That's vertical done, check if we still intersects? If not then we can return now
-                    if (oy != 0 && !tile_r.intersects(data.box)){
+                    if (oy != 0 && !solid_body.box.intersects(data.box)){
                         continue;
                     }
                 }
 
-                if (tile.face_left || tile.face_right) {
-                    ox = tile_check_x(data, tile, tile_r);
+                if (solid_body.face_left || solid_body.face_right) {
+                    ox = collision_resolve_x(data, solid_body);
                 }
             }
         }
     }
 }
 
-float tile_check_y(CollisionData &data, Tile &tile, Rectangle &tile_r) {
+float collision_resolve_y(CollisionMovingBody &data, CollisionSolidBody &solid_body) {
     float oy = 0.0f;
-    if (data.velocity.y < 0 && tile.face_bottom && data.box.y < tile_r.bottom()){
-        oy = (float)data.box.y - tile_r.bottom();
-    } else if (data.velocity.y > 0 && tile.face_top && data.box.bottom() > tile_r.top()){
-        oy = (float)data.box.bottom() - tile_r.top();
+    if (data.velocity.y < 0 && solid_body.face_bottom && data.box.y < solid_body.box.bottom()){
+        oy = (float)data.box.y - solid_body.box.bottom();
+    } else if (data.velocity.y > 0 && solid_body.face_top && data.box.bottom() > solid_body.box.top()){
+        oy = (float)data.box.bottom() - solid_body.box.top();
     }
     if (oy != 0){
         data.position = Vector2(data.position.x, data.position.y - oy);
@@ -159,12 +187,12 @@ float tile_check_y(CollisionData &data, Tile &tile, Rectangle &tile_r) {
     return oy;
 }
 
-float tile_check_x(CollisionData &data, Tile &tile, Rectangle &tile_r) {
+float collision_resolve_x(CollisionMovingBody &data, CollisionSolidBody &solid_body) {
     float ox = 0.0f;
-    if (data.velocity.x < 0 && tile.face_right && data.box.x < tile_r.right()){
-        ox = (float)data.position.x - tile_r.right();
-    } else if (data.velocity.x > 0 &&  data.box.right() > tile_r.left()) {
-        ox = (float)data.box.right() - tile_r.left();
+    if (data.velocity.x < 0 && solid_body.face_right && data.box.x < solid_body.box.right()){
+        ox = (float)data.position.x - solid_body.box.right();
+    } else if (data.velocity.x > 0 && solid_body.face_left && data.box.right() > solid_body.box.left()) {
+        ox = (float)data.box.right() - solid_body.box.left();
     }
     if (ox != 0){
         data.position = Vector2(data.position.x - ox, data.position.y);
@@ -172,6 +200,7 @@ float tile_check_x(CollisionData &data, Tile &tile, Rectangle &tile_r) {
     }
     return ox;
 }
+
 /////////////////////////////////
 /////////////////////////////////
 
@@ -198,10 +227,6 @@ struct Velocity {
 
 struct Position {
     Vector2 p;
-};
-
-struct CollisionShape {
-    Rectangle r;
 };
 
 struct BoxMan {
@@ -289,7 +314,7 @@ void system_velocity() {
     }
 }
 
-void system_physics(TileMap &t) {
+void system_physics(TileMap &tile_map) {
     for(unsigned i = 0; i < box_n; i++) {
         Position &p = boxes[i].position;
         Velocity &v = boxes[i].velocity;
@@ -297,32 +322,16 @@ void system_physics(TileMap &t) {
         p.p += v.v;
         
         debug_overlapped.clear();
-        debug_collided_tiles.clear();
-
-        collision_set_overlapped_solid_tiles(t, 
-            boxes[0].position.p.x + boxes[0].collision_shape.r.x, 
-            boxes[0].position.p.y + boxes[0].collision_shape.r.y,
-            boxes[0].collision_shape.r.w, 
-            boxes[0].collision_shape.r.h);
-
-        if(overlapped_solid_tiles_n > 0) {
-            Rectangle box_rect = {
-                (int)(boxes[0].position.p.x + boxes[0].collision_shape.r.x), 
-                (int)(boxes[0].position.p.y + boxes[0].collision_shape.r.y),
-                (int)(boxes[0].collision_shape.r.w), 
-                (int)(boxes[0].collision_shape.r.h)
-            };
-
-            CollisionData d;
-            d.box = box_rect;
-            d.velocity = v.v;
-            d.position = p.p;
-
-            resolve_collided_tiles(d);
-
-            p.p = d.position;
-            v.v = d.velocity;
-        }
+        debug_collided_solids.clear();
+        
+        CollisionMovingBody d;
+        collision_init_body(d, v.v, p.p, boxes[i].collision_shape);
+        const unsigned collision_layer = 0;
+        const unsigned solid = 0;
+        collision_tile_map(d, tile_map, collision_layer, solid);
+        
+        p.p = d.position;
+        v.v = d.velocity;
         
         //v.v *= settings.movement_drag;
     }
@@ -366,23 +375,23 @@ void tile_collisions_render() {
                 0, 0, 255, 255);
     }
 
-    for(unsigned i = 0; i < debug_collided_tiles.size(); i++) {
-        draw_g_rectangle_filled_RGBA(debug_collided_tiles[i].x * tile_map.tile_size, 
-                debug_collided_tiles[i].y * tile_map.tile_size, 
+    for(unsigned i = 0; i < debug_collided_solids.size(); i++) {
+        draw_g_rectangle_filled_RGBA(debug_collided_solids[i].x * tile_map.tile_size, 
+                debug_collided_solids[i].y * tile_map.tile_size, 
                 tile_map.tile_size, tile_map.tile_size, 
                 120, 120, 120, 255);
         
-        if(debug_overlapped[i].face_bottom) {
-            draw_g_horizontal_line_RGBA(debug_overlapped[i].x * tile_map.tile_size,
-            debug_overlapped[i].x * tile_map.tile_size + tile_map.tile_size,
-            debug_overlapped[i].y * tile_map.tile_size,
-            255, 0, 0, 255);
-        }
+        // if(debug_overlapped[i].face_bottom) {
+        //     draw_g_horizontal_line_RGBA(debug_overlapped[i].x * tile_map.tile_size,
+        //     debug_overlapped[i].x * tile_map.tile_size + tile_map.tile_size,
+        //     debug_overlapped[i].y * tile_map.tile_size,
+        //     255, 0, 0, 255);
+        // }
     }
 
     for(unsigned i = 0; i < box_n; i++) {
-        draw_g_rectangle_filled_RGBA(boxes[i].position.p.x + boxes[i].collision_shape.r.x, 
-            boxes[i].position.p.y + boxes[i].collision_shape.r.y,
+        draw_g_rectangle_filled_RGBA((int)boxes[i].position.p.x + boxes[i].collision_shape.r.x, 
+            (int)boxes[i].position.p.y + boxes[i].collision_shape.r.y,
             boxes[i].collision_shape.r.w, boxes[i].collision_shape.r.h, 
             255, 255, 255, 255);
     }
