@@ -303,6 +303,11 @@ void system_input() {
         } else if(Input::key_down(key_map.right)) {
             pi.move.x = 1;
         }
+
+        pi.fire_cooldown = Math::max(0.0f, pi.fire_cooldown - Time::deltaTime);
+	    if(Input::key_down(key_map.fire)) {
+		    pi.fire_x = pi.fire_y = 1;
+	    }
     }
 }
 
@@ -311,6 +316,24 @@ void system_velocity() {
         PlayerInput &pi = boxes[i].input;
         Velocity &v = boxes[i].velocity;
         v.v = pi.move * settings.player_move_speed;
+    }
+}
+
+void system_player_shoot() {
+    for(unsigned i = 0; i < box_n; i++) {
+        PlayerInput &pi = boxes[i].input;
+        if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
+            Event e = { Event::FireBullet };
+            ShotSpawnData *d = new ShotSpawnData;
+            d->position = position;
+            d->rotation.x = direction_x;
+            d->rotation.y = direction_y;
+            d->time_to_live = config.bullet_time_to_live;
+            d->faction = sdata.faction;
+            e.data = d;
+            queue_event(e);
+            pi.fire_cooldown = config.fire_cooldown;
+        }
     }
 }
 
@@ -346,6 +369,7 @@ void tile_collisions_load() {
 
 void tile_collisions_update() {
     system_input();
+    system_player_shoot();
     system_velocity();
     system_physics(tile_map);
 }

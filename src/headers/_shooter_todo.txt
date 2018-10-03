@@ -1,0 +1,11 @@
+Fire bullets in mouse direction
+Bullet collide with tilemap and get destroyed
+    Fast moving bullets? https://maryrosecook.com/blog/post/how-to-do-2d-collision-detection
+Particle system (take code from castler and make a system/engine feature)
+    Particles on weapon fire
+    Particles on wall hit
+
+
+
+https://www.youtube.com/watch?v=AJdEqssNZ-U
+Things to implement from Jan Juice:
