@@ -29,6 +29,7 @@
 
 inline void game_load() {
 	asteroids_load();
+
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
 	// Resources::sprite_sheet_load("shooter.data", the_sheet);

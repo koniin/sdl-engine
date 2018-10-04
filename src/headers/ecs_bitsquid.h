@@ -47,8 +47,6 @@ struct Entity {
 */
 const unsigned MINIMUM_FREE_INDICES = 1024;
 
-
-
 struct EntityManager {
     std::vector<unsigned char> _generation;
     std::queue<unsigned> _free_indices;

@@ -1,6 +1,77 @@
 #include "engine.h"
 #include "renderer.h"
 
+//// NEW TECH
+
+
+struct EventQueue {
+	struct Evt {
+		void *data;
+		size_t type;
+		static size_t counter;
+		template<typename T>
+		bool is() {
+			return getType<T>() == type;
+		}
+
+		template<typename T>
+		void set() {
+			type = getType<T>();
+		}
+
+		template<typename T>
+		T *get() {
+			return static_cast<T*>(data);
+		}
+
+		void destroy() {
+			delete data;
+		}
+
+		template<typename T>
+		static size_t getType() {
+			static size_t id = counter++;
+			return id;
+		}
+	};
+
+	std::vector<Evt> events;
+
+	template<typename T>
+	void queue_evt(T *data) {
+		Evt evt = { data };
+		evt.set<T>();
+		events.push_back(evt);
+	}
+
+    void clear() {
+        for(auto &e : events) {
+            e.destroy();
+        }
+        events.clear();
+    }
+};
+size_t EventQueue::Evt::counter = 1;
+
+const unsigned ENTITY_INDEX_BITS = 22;
+const unsigned ENTITY_INDEX_MASK = (1<<ENTITY_INDEX_BITS)-1;
+
+const unsigned ENTITY_GENERATION_BITS = 8;
+const unsigned ENTITY_GENERATION_MASK = (1<<ENTITY_GENERATION_BITS)-1;
+
+typedef unsigned EntityId;
+struct Entity {
+    EntityId id;
+
+    unsigned index() const { return id & ENTITY_INDEX_MASK; }
+    unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
+};
+
+///////////////////////////////////////////////
+///////////////////////////////////////////////
+///////////////////////////////////////////////
+
+
 struct GameState {
 	bool inactive = false;
 	float inactive_timer = 0.0f;
@@ -114,6 +185,17 @@ struct Bullet {
 	int faction;
 };
 
+class TypeID {
+    static size_t counter;
+public:
+    template<typename T>
+    static size_t value() {
+        static size_t id = counter++;
+        return id;
+    }
+};
+size_t TypeID::counter = 1;
+
 struct ShotSpawnData {
 	Position position;
 	Rotation rotation;
@@ -136,16 +218,12 @@ struct ShipHitData {
 	int faction;
 };
 
-struct Event {
-	enum EventType {
-		FireBullet,
-		SpawnAsteroid,
-		AsteroidDestroyed,
-		ShipHit
-	} type;
-	void *data;
-};
-void queue_event(Event e);
+// Application specific event queue wrapper
+EventQueue event_queue;
+template<typename T>
+void queue_event(T *d) {
+    event_queue.queue_evt(d);
+}
 
 unsigned ship_n = 0;
 std::vector<Ship> ships(100);
@@ -153,8 +231,6 @@ unsigned asteroid_n = 0;
 std::vector<Asteroid> asteroids(100);
 unsigned bullets_n = 0;
 std::vector<Bullet> bullets(1000);
-unsigned event_n;
-std::vector<Event> event_queue(100);
 
 void spawn_player(int faction) {
 	Ship player;
@@ -274,15 +350,13 @@ inline void update_player_movement(Ship &sdata) {
 	velocity.y = velocity.y - velocity.y * config.drag;
 
 	if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-		Event e = { Event::FireBullet };
 		ShotSpawnData *d = new ShotSpawnData;
 		d->position = position;
 		d->rotation.x = direction_x;
 		d->rotation.y = direction_y;
 		d->time_to_live = config.bullet_time_to_live;
 		d->faction = sdata.faction;
-		e.data = d;
-		queue_event(e);
+		queue_event(d);
 		pi.fire_cooldown = config.fire_cooldown;
 	}
 }
@@ -361,7 +435,7 @@ void system_collisions() {
 			Position &ap = asteroids[ai].position;
 			float ar = asteroids[ai].radius();
 			if(Math::intersect_circles(pp.x, pp.y, pr, ap.x, ap.y, ar)) {
-				queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
+				queue_event(new ShipHitData { ships[si].faction });
 			}
 		}
 	}
@@ -373,17 +447,17 @@ void system_collisions() {
 			Position &ap = asteroids[ai].position;
 			float ar = asteroids[ai].radius();
 			if(Math::intersect_circles(bp.x, bp.y, br, ap.x, ap.y, ar)) {
-				queue_event({ Event::AsteroidDestroyed, new AsteroidDestroyedData { 
+				queue_event(new AsteroidDestroyedData { 
 					asteroids[ai].size,
 					bullets[bi].faction
-				}});
+				});
 				
 				Velocity v = { asteroids[ai].velocity.x * 3, asteroids[ai].velocity.y * 3 };
 				int size = asteroids[ai].size + 1;
-				queue_event({ Event::SpawnAsteroid, new AsteroidSpawnData { ap, v, size } });
+				queue_event(new AsteroidSpawnData { ap, v, size });
 				v.x = -v.x;
 				v.y = -v.y;
-				queue_event({ Event::SpawnAsteroid, new AsteroidSpawnData { ap, v, size } });
+				queue_event(new AsteroidSpawnData { ap, v, size });
 				
 				// TODO: This should be an destroy entity event and just send the ID
 				bullets[bi].time_to_live = 0.0f;
@@ -415,78 +489,61 @@ inline void bullet_cleanup() {
 	}
 }
 
-void queue_event(Event e) {
-	ASSERT_WITH_MSG(event_n < event_queue.size(), "Too many events!");
-	event_queue[event_n++] = e;
-}
-
 void handle_events() {
-	for(unsigned i = 0; i < event_n; ++i) {
-		Event &e = event_queue[i];
-		switch(e.type) {
-			case Event::FireBullet: {
-				ShotSpawnData *d = static_cast<ShotSpawnData*>(e.data);
-				spawn_bullet(d->position, d->rotation, d->faction, d->time_to_live);
-				delete d;
-				break;
+    for(auto &e : event_queue.events) {
+		if(e.is<ShotSpawnData>()) {
+            ShotSpawnData *d = e.get<ShotSpawnData>();
+			spawn_bullet(d->position, d->rotation, d->faction, d->time_to_live);
+        } else if(e.is<AsteroidSpawnData>()) {
+            AsteroidSpawnData *d = e.get<AsteroidSpawnData>();
+			if(d->size <= 3)
+			    spawn_asteroid(d->position, d->velocity, d->size);
+        } else if(e.is<AsteroidDestroyedData>()) {
+            AsteroidDestroyedData *d = e.get<AsteroidDestroyedData>();
+			int score = 0;
+			switch(d->size) {
+				case 1: score = 10; break;
+				case 2: score = 20; break;
+				case 3: score = 50; break;
 			}
-			case Event::SpawnAsteroid: {
-				AsteroidSpawnData *d = static_cast<AsteroidSpawnData*>(e.data);
-				if(d->size <= 3)
-					spawn_asteroid(d->position, d->velocity, d->size);
-				delete d;
-				break;
-			}
-			case Event::AsteroidDestroyed: {
-				AsteroidDestroyedData *d = static_cast<AsteroidDestroyedData*>(e.data);
-				int score = 0;
-				switch(d->size) {
-					case 1: score = 10; break;
-					case 2: score = 20; break;
-					case 3: score = 50; break;
+			// TODO: I don't think we should loop here
+			// should just be get the entity from id and do to that
+			for(unsigned si = 0; si < ship_n; ++si) {
+				if(ships[si].faction == d->faction) {
+					ships[si].score += score;
 				}
-				// TODO: I don't think we should loop here
-				// should just be get the entity from id and do to that
-				for(unsigned si = 0; si < ship_n; ++si) {
-					if(ships[si].faction == d->faction) {
-						ships[si].score += score;
+			}
+        } else if(e.is<ShipHitData>()) {
+            // TODO: I don't think we should loop here
+			// should just be get the entity from id and do to that
+			ShipHitData *d = e.get<ShipHitData>();
+			for(unsigned si = 0; si < ship_n; ++si) {
+				if(ships[si].faction != d->faction || ships[si].inactive_timer > 0)
+					continue;
+
+				if(ships[si].shield.is_active()) {
+					continue;
+				}
+
+				ships[si].inactive_timer = config.player_death_inactive_time;
+				ships[si].health--;
+				ships[si].position.x = gw / 2.0f;
+				ships[si].position.y = gh / 2.0f;
+				ships[si].angle = 0;
+				ships[si].velocity.x = ships[si].velocity.y = 0;
+				if(ships[si].health <= 0) {
+					ships[si] = ships[ship_n - 1];
+					ship_n--;
+					if(ship_n <= 0) {
+						game_state_inactivate();
 					}
 				}
-				delete d;
-				break;
 			}
-			case Event::ShipHit: {
-				// TODO: I don't think we should loop here
-				// should just be get the entity from id and do to that
-				ShipHitData *d = static_cast<ShipHitData*>(e.data);
-				for(unsigned si = 0; si < ship_n; ++si) {
-					if(ships[si].faction != d->faction || ships[si].inactive_timer > 0)
-						continue;
-
-					if(ships[i].shield.is_active()) {
-						continue;
-					}
-
-					ships[si].inactive_timer = config.player_death_inactive_time;
-					ships[si].health--;
-					ships[si].position.x = gw / 2.0f;
-					ships[si].position.y = gh / 2.0f;
-					ships[si].angle = 0;
-					ships[si].velocity.x = ships[si].velocity.y = 0;
-					if(ships[si].health <= 0) {
-						ships[si] = ships[ship_n - 1];
-						ship_n--;
-						if(ship_n <= 0) {
-							game_state_inactivate();
-						}
-					}
-				}
-				delete d;
-			}
-		}
-	}
-
-	event_n = 0;
+        }
+        // e.destroy(); <- only needed if manually emptying the queue
+    }
+    
+    event_queue.clear();
 }
 
 void game_state_reset() {
@@ -515,7 +572,7 @@ void asteroids_update() {
     if(game_state.inactive) {
 		game_state.inactive_timer -= Time::deltaTime;
 		// Remove all asteroids and bullets, better do it here than special logic in event handling
-		event_n = 0;
+		event_queue.clear();
 		asteroid_n = 0;
 		bullets_n = 0;
 		if(game_state.inactive_timer <= 0.0f) {
