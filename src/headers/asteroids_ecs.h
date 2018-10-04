@@ -3,6 +3,7 @@
 
 //// NEW TECH
 
+#include <queue>
 
 struct EventQueue {
 	struct Evt {
@@ -67,11 +68,183 @@ struct Entity {
     unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
 };
 
+const unsigned MINIMUM_FREE_INDICES = 1024;
+
+struct EntityManager {
+    std::vector<unsigned char> _generation;
+    std::queue<unsigned> _free_indices;
+
+    Entity create() {
+        unsigned idx;
+        if (_free_indices.size() > MINIMUM_FREE_INDICES) {
+            idx = _free_indices.front();
+            _free_indices.pop();
+        } else {
+            _generation.push_back(0);
+            idx = _generation.size() - 1;
+            ASSERT_WITH_MSG(idx < (1 << ENTITY_INDEX_BITS), "idx is malformed, larger than 22 bits?");
+        }
+
+        return make_entity(idx, _generation[idx]);
+    }
+
+    Entity make_entity(unsigned idx, unsigned char generation) {
+        Entity e;
+        auto id = generation << ENTITY_INDEX_BITS | idx;
+        e.id = id;
+        return e;
+    }
+
+    bool alive(Entity e) const {
+        return _generation[e.index()] == e.generation();
+    }
+
+    void destroy(Entity e) {
+        if(!alive(e))
+            return;
+
+        const unsigned idx = e.index();
+        ++_generation[idx];
+        _free_indices.push(idx);
+    }
+};
+
+template<typename T>
+struct ComponentStore {
+    const int invalid_index = -1;
+    // AoS
+    struct InstanceData {
+        unsigned size;
+        unsigned n;
+        Entity* entity;
+        T* instances;
+    };
+    /* SoA
+    struct InstanceData {
+        unsigned n;
+        Entity* entity;
+        float* move_x;
+        float* move_y;
+        bool* shoot;
+    };*/
+    InstanceData data;
+
+    std::unordered_map<EntityId, unsigned> _map;
+
+    void allocate(unsigned size) {
+        data.entity = new Entity[size];
+        data.instances = new T[size];
+        data.n = 0;
+        data.size = size;
+    }
+
+    /// Handle to a component instance.
+    struct Handle {
+        int i;
+    };
+
+    /// Create an instance from an index to the data arrays.
+    Handle make_handle(int i) {
+        Handle inst = {i}; 
+        return inst;
+    }
+
+    /// Returns the component instance for the specified entity or a nil instance
+    /// if the entity doesn't have the component.
+    Handle lookup(Entity e) {
+        auto a = _map.find(e.id);
+        if(a != _map.end()) {
+            return make_handle(a->second);
+        } else {
+            return make_handle(invalid_index);
+        }
+    }
+
+    bool is_valid(Handle i) {
+        return i.i > -1;
+    }
+
+    Handle create_component(Entity e) {
+        ASSERT_WITH_MSG(data.n <= data.size, "Component storage is full, n:" + std::to_string(data.n));
+
+        auto i = lookup(e);
+        ASSERT_WITH_MSG(!is_valid(i), "Entity already has component");
+        
+        unsigned int index = data.n;
+        _map[e.id] = index;
+        data.n++;
+        return make_handle(index);
+    }
+
+    void remove_component(Handle i) {
+        const int index = i.i;
+        const unsigned lastIndex = data.n - 1;
+
+        if (is_valid(i) && lastIndex >= 0) {
+            // Get the entity at the index to destroy
+            Entity entityToDestroy = data.entity[index];
+            // Get the entity at the end of the array
+            Entity lastEntity = data.entity[lastIndex];
+
+            
+            // Move last entity's data
+            data.entity[index] = data.entity[lastIndex];
+            data.instances[index] = data.instances[lastIndex];
+
+            // Update map entry for the swapped entity
+            _map[lastEntity.id] = index;
+            // Remove the map entry for the destroyed entity
+            _map.erase(entityToDestroy.id);
+
+            // Decrease count
+            data.n--;
+        }
+    }
+
+    T get_component(Handle i) {
+        return data.instances[i.i];
+    }
+
+    void set_component(Handle i, T input) {
+        data.instances[i.i] = input;
+    }
+
+    void gc(const EntityManager &em) {
+        unsigned alive_in_row = 0;
+        Entity e;
+        while (data.n > 0 && alive_in_row < 4) {
+            unsigned i = RNG::range_i(0, data.n - 1);
+            e.id = data.entity[i];
+            if (em.alive(e)) {
+                ++alive_in_row;
+                continue;
+            }
+            alive_in_row = 0;
+            destroy(i);
+        }
+    }
+};
+
+
+
+
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
 
 
+
+struct PhysicsComponent {
+    Vector2 position;
+    Vector2 velocity;
+    float radius;
+};
+
+struct FactionComponent {
+    int faction = 0;
+};
+
+EntityManager entity_manager;
 struct GameState {
 	bool inactive = false;
 	float inactive_timer = 0.0f;
@@ -79,6 +252,11 @@ struct GameState {
 	int level = 1;
 	SDL_Color text_color = { 220, 220, 220, 255 };
 	SDL_Color asteroid_color = { 240, 240, 240, 255 };
+
+    ComponentStore<PhysicsComponent> physics;
+    ComponentStore<FactionComponent> faction;
+
+    std::vector<Entity> bullets_to_destroy;
 } game_state;
 
 void game_state_inactivate();
@@ -165,23 +343,32 @@ struct Ship {
 struct Asteroid {
 	Position position;
 	Velocity velocity;
-	int size;
+    float radius;
 
-	float radius() {
-		if(size == 1)
+    int size() {
+        if(radius == 8.0f)
+			return 1;
+		else if(radius == 6.0f)
+			return 2;
+		else 
+			return 3;
+    }
+
+    static float get_radius(int size) {
+        if(size == 1)
 			return 8.0f;
-		else if(size == 2) 
+		else if(size == 2)
 			return 6.0f;
 		else 
 			return 2.0f;
-	}
+    }
 };
 
 struct Bullet {
 	Position position;
 	Velocity velocity;
-	float time_to_live;
 	float radius;
+	float time_to_live;
 	int faction;
 };
 
@@ -218,6 +405,10 @@ struct ShipHitData {
 	int faction;
 };
 
+struct DestroyEntityData {
+    Entity entity;
+};
+
 // Application specific event queue wrapper
 EventQueue event_queue;
 template<typename T>
@@ -229,8 +420,6 @@ unsigned ship_n = 0;
 std::vector<Ship> ships(100);
 unsigned asteroid_n = 0;
 std::vector<Asteroid> asteroids(100);
-unsigned bullets_n = 0;
-std::vector<Bullet> bullets(1000);
 
 void spawn_player(int faction) {
 	Ship player;
@@ -253,21 +442,34 @@ void spawn_player(int faction) {
 }
 
 void spawn_bullet(Position position, Rotation direction, int faction, float time_to_live) {
-	Bullet b = { position };
-	b.time_to_live = time_to_live;
-	b.faction = faction;
-	if(faction == config.player_faction_1 || faction == config.player_faction_2) {
-		b.velocity.x = direction.x * config.player_bullet_speed;
-		b.velocity.y = direction.y * config.player_bullet_speed;
-		b.radius = config.player_bullet_size;
-	} 
-	bullets[bullets_n++] = b;
+    auto b = entity_manager.create();
+    auto ph = game_state.physics.create_component(b);
+    PhysicsComponent pc;
+    pc.position = Vector2(position.x, position.y);
+    if(faction == config.player_faction_1 || faction == config.player_faction_2) {
+        pc.velocity = Vector2( direction.x * config.player_bullet_speed, 
+                                direction.y * config.player_bullet_speed);
+        pc.radius = config.player_bullet_size;
+    }
+    game_state.physics.set_component(ph, pc);
+    
+    auto fh = game_state.faction.create_component(b);
+    FactionComponent fc{ faction };
+    game_state.faction.set_component(fh, fc);
+}
+
+void destroy_bullet(Entity entity) {
+    auto physicsHandle = game_state.physics.lookup(entity);
+    game_state.physics.remove_component(physicsHandle);
+    auto factionHandle = game_state.faction.lookup(entity);
+    game_state.faction.remove_component(factionHandle);
+    entity_manager.destroy(entity);
 }
 
 void spawn_asteroid(Position position, Velocity velocity, int size) {
 	asteroids[asteroid_n].position = position;
 	asteroids[asteroid_n].velocity = velocity;
-	asteroids[asteroid_n].size = size;
+	asteroids[asteroid_n].radius = Asteroid::get_radius(size);
 	asteroid_n++;
 }
 
@@ -305,7 +507,7 @@ inline void update_player_input(unsigned id, PlayerInput &pi) {
 		pi.move_x = 1;
 	}
 
-	pi.fire_cooldown = Math::max(0.0f, pi.fire_cooldown - Time::deltaTime);
+	pi.fire_cooldown = Math::max_f(0.0f, pi.fire_cooldown - Time::deltaTime);
 	if(Input::key_down(key_map.fire)) {
 		pi.fire_x = pi.fire_y = 1;
 	}
@@ -313,11 +515,6 @@ inline void update_player_input(unsigned id, PlayerInput &pi) {
 	if(Input::key_down(key_map.shield)) {
 		pi.shield = true;
 	}
-}
-
-inline void update_position(Position &position, Velocity &velocity) {
-	position.x += velocity.x;
-	position.y += velocity.y;
 }
 
 inline void keep_in_bounds(Position &p) {
@@ -332,6 +529,10 @@ inline void update_player_movement(Ship &sdata) {
 	Velocity &velocity = sdata.velocity;
 	Position &position = sdata.position;
 
+	// Use Stokes' law to apply drag to the object
+	velocity.x = velocity.x - velocity.x * config.drag;
+	velocity.y = velocity.y - velocity.y * config.drag;
+
 	// Update rotation based on rotational speed
 	// for other objects than player input once
 	sdata.angle += pi.move_x * config.rotation_speed;
@@ -342,13 +543,6 @@ inline void update_player_movement(Ship &sdata) {
 	velocity.x += direction_x * pi.move_y * config.acceleration;
 	velocity.y += direction_y * pi.move_y * config.acceleration;
 	
-	position.x += velocity.x;
-	position.y += velocity.y;
-
-	// Use Stokes' law to apply drag to the object
-	velocity.x = velocity.x - velocity.x * config.drag;
-	velocity.y = velocity.y - velocity.y * config.drag;
-
 	if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
 		ShotSpawnData *d = new ShotSpawnData;
 		d->position = position;
@@ -359,6 +553,9 @@ inline void update_player_movement(Ship &sdata) {
 		queue_event(d);
 		pi.fire_cooldown = config.fire_cooldown;
 	}
+    
+	position.x += velocity.x;
+	position.y += velocity.y;
 }
 
 void system_asteroid_spawn() {
@@ -371,8 +568,8 @@ void system_asteroid_spawn() {
 void system_shield() {
 	for(unsigned i = 0; i < ship_n; ++i) {
 		Shield &s = ships[i].shield;
-		s.active_timer = Math::max(0.0f, s.active_timer - Time::deltaTime);
-		s.inactive_timer = Math::max(0.0f, s.inactive_timer - Time::deltaTime);
+		s.active_timer = Math::max_f(0.0f, s.active_timer - Time::deltaTime);
+		s.inactive_timer = Math::max_f(0.0f, s.inactive_timer - Time::deltaTime);
 		PlayerInput &pi = ships[i].input;
 		if(pi.shield && s.inactive_timer <= 0.0f) {
 			s.active_timer = config.player_shield_time;
@@ -386,7 +583,7 @@ void system_player_input() {
 		// TODO: this should be another system or something 
 			// and when it is activated it should get a input component
 			// and a collision component or something like that 
-		ships[i].inactive_timer = Math::max(0.0f, ships[i].inactive_timer - Time::deltaTime);
+		ships[i].inactive_timer = Math::max_f(0.0f, ships[i].inactive_timer - Time::deltaTime);
 		if(ships[i].inactive_timer <= 0) {
 			update_player_input(ships[i].faction, ships[i].input);
 		}
@@ -407,15 +604,15 @@ void system_player_movement() {
 inline void system_asteroid_movement() {
 	for(unsigned i = 0; i < asteroid_n; ++i) {
 		Asteroid &s = asteroids[i];
-		update_position(s.position, s.velocity);
+        s.position.x += s.velocity.x;
+	    s.position.y += s.velocity.y;
 	}
 }
 
 inline void system_bullet_movement() {
-	for(unsigned i = 0; i < bullets_n; ++i) {
-		Bullet &s = bullets[i];
-		update_position(s.position, s.velocity);
-	}
+    for(unsigned i = 0; i < game_state.physics.data.n; i++) {
+        game_state.physics.data.instances[i].position += game_state.physics.data.instances[i].velocity;
+    }
 }
 
 void system_keep_in_bounds() {
@@ -433,35 +630,37 @@ void system_collisions() {
 			Position &pp = ships[si].position;
 			float pr = ships[si].radius;
 			Position &ap = asteroids[ai].position;
-			float ar = asteroids[ai].radius();
+			float ar = asteroids[ai].radius;
 			if(Math::intersect_circles(pp.x, pp.y, pr, ap.x, ap.y, ar)) {
 				queue_event(new ShipHitData { ships[si].faction });
 			}
 		}
 	}
 
-	for(unsigned bi = 0; bi < bullets_n; ++bi) {
+    for(unsigned i = 0; i < game_state.physics.data.n; i++) {
 		for(unsigned ai = 0; ai < asteroid_n; ++ai) {
-			Position &bp = bullets[bi].position;
-			float br = bullets[bi].radius;
+			Vector2 &bp = game_state.physics.data.instances[i].position;
+			float br = game_state.physics.data.instances[i].radius;
 			Position &ap = asteroids[ai].position;
-			float ar = asteroids[ai].radius();
+			float ar = asteroids[ai].radius;
 			if(Math::intersect_circles(bp.x, bp.y, br, ap.x, ap.y, ar)) {
-				queue_event(new AsteroidDestroyedData { 
-					asteroids[ai].size,
-					bullets[bi].faction
-				});
+                auto bullet_handle = game_state.faction.lookup(game_state.physics.data.entity[i]);
+                if(game_state.faction.is_valid(bullet_handle)) {                    
+                    queue_event(new AsteroidDestroyedData { 
+                        asteroids[ai].size(),
+                        game_state.faction.get_component(bullet_handle).faction
+                    });
+                }
 				
 				Velocity v = { asteroids[ai].velocity.x * 3, asteroids[ai].velocity.y * 3 };
-				int size = asteroids[ai].size + 1;
+				int size = asteroids[ai].size() + 1;
 				queue_event(new AsteroidSpawnData { ap, v, size });
 				v.x = -v.x;
 				v.y = -v.y;
 				queue_event(new AsteroidSpawnData { ap, v, size });
 				
-				// TODO: This should be an destroy entity event and just send the ID
-				bullets[bi].time_to_live = 0.0f;
-
+                queue_event(new DestroyEntityData { game_state.physics.data.entity[i] });
+				
 				// TODO: This should be an destroy entity event and just send the ID
 				// then some system could watch for destroyed asteroids and spawn new ones if needed
 				// probably a part of the Event::AsteroidDestroyed
@@ -473,18 +672,11 @@ void system_collisions() {
 }
 
 inline void bullet_cleanup() {
-	for(unsigned i = 0; i < bullets_n; ++i) {
-		Bullet &b = bullets[i];
-		Position &p = bullets[i].position;
-		b.time_to_live -= Time::deltaTime;
-
-		if(p.x < 0 || p.y < 0 || p.x > gw || p.y > gh 
-			|| b.time_to_live <= 0.0f 
-			|| ship_n == 0) {
-            
-			// TODO: This should be an destroy entity event and just send the ID
-			bullets[i] = bullets[bullets_n - 1];
-			bullets_n--;
+    for(unsigned i = 0; i < game_state.physics.data.n; i++) {
+        Vector2 &p = game_state.physics.data.instances[i].position;
+		
+		if(p.x < 0 || p.y < 0 || p.x > gw || p.y > gh || ship_n == 0) {
+            queue_event(new DestroyEntityData { game_state.physics.data.entity[i] });
 		}
 	}
 }
@@ -539,11 +731,18 @@ void handle_events() {
 					}
 				}
 			}
+        } else if(e.is<DestroyEntityData>()) {
+            destroy_bullet(e.get<DestroyEntityData>()->entity);
         }
         // e.destroy(); <- only needed if manually emptying the queue
     }
     
     event_queue.clear();
+}
+
+void game_state_load() {
+    game_state.physics.allocate(1024);
+    game_state.faction.allocate(1024);
 }
 
 void game_state_reset() {
@@ -565,7 +764,9 @@ void asteroids_load() {
 	set_default_font(font);
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
 	Resources::sprite_sheet_load("shooter.data", the_sheet);
-	game_state_reset();
+	
+    game_state_load();
+    game_state_reset();
 }
 
 void asteroids_update() {
@@ -574,7 +775,6 @@ void asteroids_update() {
 		// Remove all asteroids and bullets, better do it here than special logic in event handling
 		event_queue.clear();
 		asteroid_n = 0;
-		bullets_n = 0;
 		if(game_state.inactive_timer <= 0.0f) {
 			game_state_reset();
 			game_state.inactive = false;
@@ -589,10 +789,9 @@ void asteroids_update() {
 	system_bullet_movement();
 	system_keep_in_bounds();
 	system_collisions();
+	bullet_cleanup();
 
 	handle_events();
-
-	bullet_cleanup();
 }
 
 void asteroids_render() {
@@ -608,14 +807,16 @@ void asteroids_render() {
 
 	for(unsigned i = 0; i < asteroid_n; ++i) {
 		Position &p = asteroids[i].position;
-		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)asteroids[i].radius(), game_state.asteroid_color);
-	}
-	for(unsigned i = 0; i < bullets_n; ++i) {
-		Position &p = bullets[i].position;
-		SDL_Color c = { 255, 0, 0, 255 };
-		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)bullets[i].radius, c);
+		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)asteroids[i].radius, game_state.asteroid_color);
 	}
 
+    for(unsigned i = 0; i < game_state.physics.data.n; i++) {
+        Vector2 &p = game_state.physics.data.instances[i].position;
+        float radius = game_state.physics.data.instances[i].radius;
+		SDL_Color c = { 255, 0, 0, 255 };
+		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)radius, c);
+    }
+	
 	for(unsigned i = 0; i < ship_n; ++i) {
 		Ship &player = ships[i];
 

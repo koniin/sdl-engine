@@ -27,8 +27,113 @@
 // static TileMap the_map;
 // static SpriteSheet the_sheet;
 
+template<typename T>
+struct ForwardIndexer {
+	unsigned length = 0;
+	
+	struct Cache {
+		T *cache_ptr;
+		unsigned cached_begin = 0;
+		unsigned cached_end = 0;
+		int data_n = 0;
+		int data_ptr = 0;
+		T *data[1024];
+		size_t datasizes[1024];
+	} cache;
+
+	template <size_t t_n> 
+	void add(T (&data)[t_n]) {
+		if(cache.cached_end == 0) {
+			cache.cached_begin = 0;
+			cache.data_ptr = 0;
+			cache.cached_end = t_n;
+		}
+		cache.datasizes[cache.data_n] = t_n;
+		cache.data[cache.data_n++] = data;
+		cache.cache_ptr = cache.data[cache.data_ptr];
+		length += t_n;
+	}
+
+	T &index(unsigned i) {
+		ASSERT_WITH_MSG(i < length, "index out of bounds");
+		
+		if(i >= cache.cached_end) {
+			update_cache(i);
+		}
+		return static_cast<T&>(*(cache.cache_ptr + i));
+	}
+
+	void update_cache(unsigned i) {
+		auto size = cache.datasizes[cache.data_ptr];
+		cache.cached_begin += size;
+		cache.cached_end += size;
+		cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
+	}
+};
+
+struct PositionTest {
+	float x;
+	float y;
+};
+
 inline void game_load() {
 	asteroids_load();
+
+	// int ar1[5] = {1, 2, 3, 4, 5};
+	// int ar2[5] = {6, 7, 8, 9, 10};
+	// int* arp[2] = { ar1, ar2 };
+	
+	// int *ar1ptr = ar1;
+	
+	// Engine::logn("%d", ar1ptr[2]);
+	// Engine::logn("%d", *(ar1ptr + 2));
+	
+	PositionTest p1[2] = { { 1.0f, 1.0f }, { 2.0f, 2.0f } };
+	PositionTest p2[2] = { { 3.0f, 3.0f }, { 4.0f, 4.0f } };
+
+	for(unsigned i = 0; i < 2; ++i) {
+		Engine::logn("i: %d , position: %f.0, %f.0", i, p1[i].x, p1[i].y);
+
+	}
+	
+	// f.add(p2);
+	/*
+	Apa<Kuken> a;
+
+	Engine::logn("sizeof 1: %d", sizeof(Kuken));
+	Engine::logn("sizeof 2: %d", sizeof(a.data));
+*/
+	ForwardIndexer<PositionTest> f;
+	f.add(p1);
+	f.add(p2);
+	Engine::logn("items: %d", f.length);
+	for(unsigned i = 0; i < f.length; ++i) {
+		PositionTest &p = f.index(i);
+		Engine::logn("i: %d , position: %f.0, %f.0", i, p.x, p.y);
+		p.x = 100.0f + (float)i;
+	}
+
+	f = ForwardIndexer<PositionTest>();
+	f.add(p1);
+	f.add(p2);
+	Engine::logn("after");
+	for(unsigned i = 0; i < f.length; ++i) {
+		PositionTest &p = f.index(i);
+		Engine::logn("i: %d , position: %f.0, %f.0", i, p.x, p.y);
+	}
+
+
+	// AtomicSafetyHandle.CheckReadAndThrow(this.m_Safety);
+	// 		if (index >= this.m_Length)
+	// 		{
+	// 			this.FailOutOfRangeError(index);
+	// 		}
+	// 		if (index < this.m_Cache.CachedBeginIndex || index >= this.m_Cache.CachedEndIndex)
+	// 		{
+	// 			this.m_Iterator.MoveToEntityIndexAndUpdateCache(index, out this.m_Cache, false);
+	// 		}
+	// 		return UnsafeUtility.ReadArrayElement<Entity>(this.m_Cache.CachedPtr, index);
+	
 
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
