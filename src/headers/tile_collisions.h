@@ -304,10 +304,30 @@ void system_input() {
             pi.move.x = 1;
         }
 
+        
+        // Get mouse direction
+        // and mouse click
+        /*
         pi.fire_cooldown = Math::max(0.0f, pi.fire_cooldown - Time::deltaTime);
 	    if(Input::key_down(key_map.fire)) {
 		    pi.fire_x = pi.fire_y = 1;
-	    }
+
+            // DIRECTION TO MOUSE
+            // Maybe this should be in some fire system instead and just let 
+            // the input system get that we are going to fire
+
+            float distance = Math::distance_f(s.x, s.y, target.x, target.y);
+            if(distance > 30) {
+                auto rotation = Math::rads_between_f(s.x, s.y, target.x, target.y);
+                s.angle = rotation * Math::RAD_TO_DEGREE;
+                
+                float direction_x = cos(rotation);
+                float direction_y = sin(rotation);
+                s.velocity_x += direction_x * config.acceleration;
+                s.velocity_y += direction_y * config.acceleration;
+
+
+	    }*/
     }
 }
 
@@ -320,6 +340,7 @@ void system_velocity() {
 }
 
 void system_player_shoot() {
+    /*
     for(unsigned i = 0; i < box_n; i++) {
         PlayerInput &pi = boxes[i].input;
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
@@ -334,7 +355,7 @@ void system_player_shoot() {
             queue_event(e);
             pi.fire_cooldown = config.fire_cooldown;
         }
-    }
+    }*/
 }
 
 void system_physics(TileMap &tile_map) {

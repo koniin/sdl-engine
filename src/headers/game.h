@@ -3,7 +3,8 @@
 
 #include "engine.h"
 #include "renderer.h"
-#include "tile_collisions.h"
+#include "asteroids_ecs.h"
+// #include "tile_collisions.h"
 // #include "asteroids.h"
 // #include "ecs_bitsquid.h"
 // #include "ecs.h"
@@ -23,20 +24,21 @@
 	
 */
 
-static TileMap the_map;
-static SpriteSheet the_sheet;
+// static TileMap the_map;
+// static SpriteSheet the_sheet;
 
 inline void game_load() {
-	// asteroids_load();
+	asteroids_load();
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
 	// Resources::sprite_sheet_load("shooter.data", the_sheet);
-	tile_collisions_load();
+	
+	// tile_collisions_load();
 }
 
 inline void game_update() {
-	// asteroids_update();
-	tile_collisions_update();
+	asteroids_update();
+	// tile_collisions_update();
 }
 
 inline void game_render() {
@@ -49,8 +51,8 @@ inline void game_render() {
 
 	renderer_clear();
 	
-	//asteroids_render();
-	tile_collisions_render();
+	asteroids_render();
+	//tile_collisions_render();
 
 	renderer_draw_render_target();
 	renderer_flip();
