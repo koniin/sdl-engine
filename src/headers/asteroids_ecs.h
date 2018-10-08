@@ -172,6 +172,7 @@ struct ComponentStore {
         
         unsigned int index = data.n;
         _map[e.id] = index;
+		data.entity[index] = e;
         data.n++;
         return make_handle(index);
     }
@@ -281,7 +282,7 @@ struct AsteroidsConfig {
 	float acceleration = 0.2f;
 	float brake_speed = -0.05f;
 	float drag = 0.02f;
-	float fire_cooldown = 8.55f; // s
+	float fire_cooldown = 0.25f; // s
 	float player_bullet_speed = 5;
 	float player_bullet_size = 1;
 	int player_faction_1 = 0;
