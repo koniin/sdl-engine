@@ -44,25 +44,15 @@ struct EntityArchetype {
     ComponentMask mask;
 };
 
+/*
 struct BaseContainer {
     unsigned length;
     unsigned max_size;
-
     void create_component() {
         length++;
     }
-
     virtual void remove_component(unsigned index) = 0;
 };
-
-// template<typename T>
-// struct ComponentContainer : BaseContainer {
-// 	ComponentContainer() {}
-// 	ComponentContainer(const std::vector<T> data) : data(data) {}
-//     std::vector<T> data;
-// };
-
-const size_t CHUNK_SIZE = 128;
 
 template<typename T>
 struct ComponentContainer : BaseContainer {    
@@ -75,15 +65,60 @@ struct ComponentContainer : BaseContainer {
     }
 
     void remove_component(unsigned index) override {
-        static_cast<T*>(instances)[index] = instances[length - 1];
-        length--;
+        instances[index] = instances[--length];
     }
 };
+*/
+
+/*
+KomponentContainer *k = new KomponentContainer();
+k->allocate<Position>(42);
+k->create_component();
+k->create_component();
+k->create_component();
+for(unsigned i = 0; i < k->length; i++) {
+    ((Position*)k->instances)[i].value.x = 100.0f + (float)i;
+}
+for(unsigned i = 0; i < k->length; i++) {
+    Engine::logn("x: %f", ((Position*)k->instances)[i].value.x);
+}
+k->remove_component(1);
+for(unsigned i = 0; i < k->length; i++) {
+    Engine::logn("x: %f", ((Position*)k->instances)[i].value.x);
+}
+*/
+struct ComponentContainer {
+    void *instances;
+    unsigned length;
+    unsigned max_size;
+    size_t type_size;
+
+    template<typename T>
+    void allocate(unsigned size) {
+        instances = new T[size];
+        length = 0;
+        max_size = size;        
+        type_size = sizeof(T);
+    }
+
+    void create_component() {
+        length++;
+    }
+
+    void remove_component(unsigned index) {
+        std::memcpy((char*)instances + (index * type_size), 
+            (char*)instances + (--length * type_size), 
+            type_size);
+    }
+};
+
+
+const size_t CHUNK_SIZE = 128;
 
 struct Store {
     struct ArchetypeRepository {
         size_t count = 0;
-        std::unordered_map<ComponentID, BaseContainer*> components;
+        std::unordered_map<ComponentID, ComponentContainer*> components;
         
         std::vector<unsigned char> _generation;
         std::queue<unsigned> _free_indices;
@@ -188,8 +223,8 @@ struct Store {
 
     template <typename C>
     void allocate(ComponentMask mask) {
-        auto container = new ComponentContainer<C>();        
-        container->allocate(CHUNK_SIZE);
+        auto container = new ComponentContainer();
+        container->allocate<C>(CHUNK_SIZE);
         archetypes[mask].entities = new Entity[CHUNK_SIZE];
         archetypes[mask].components[TypeID::value<C>()] = container;
     }
@@ -246,8 +281,8 @@ struct EntityManager {
         auto a = archetype._map.find(entity.id);
         if(a != archetype._map.end()) {
             unsigned index = a->second;
-            auto container = static_cast<ComponentContainer<T>*>(archetype.components[TypeID::value<T>()]);
-            container->instances[index] = component;
+            auto container = static_cast<T*>(archetype.components[TypeID::value<T>()]->instances);
+            container[index] = component;
         }
     }
 };
@@ -331,8 +366,9 @@ struct World {
         ComponentMask m = entity_manager->create_mask<Components ...>();
         for(auto &c : entity_manager->storage.archetypes) {
             if((c.first & m) == m) {
-                auto container = static_cast<ComponentContainer<Component>*>(c.second.components[TypeID::value<Component>()]);
-                indexer.add(container->instances, container->length);
+                auto container = c.second.components[TypeID::value<Component>()];
+                //auto container = static_cast<ComponentContainer<Component>*>();
+                indexer.add(static_cast<Component*>(container->instances), container->length);
             }
         }
     }
