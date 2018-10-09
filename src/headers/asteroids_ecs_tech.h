@@ -123,7 +123,7 @@ struct Store {
         std::vector<unsigned char> _generation;
         std::queue<unsigned> _free_indices;
 
-        Entity *entities;
+        Entity *entities = nullptr;
         std::unordered_map<EntityId, unsigned> _map;
         
         Entity create(ComponentMask mask) {
@@ -197,6 +197,16 @@ struct Store {
             } 
             // ASSERT_WITH_MSG(0, "destroy is not implemented");
         }
+
+        template<typename T>
+        void set_data(const Entity entity, T data) {
+            auto a = _map.find(entity.id);
+            if(a != _map.end()) {
+                unsigned index = a->second;
+                auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+                container[index] = data;
+            }
+        }
     };
     
     std::unordered_map<ComponentMask, ArchetypeRepository> archetypes;
@@ -210,22 +220,15 @@ struct Store {
         archetypes[entity.mask].destroy(entity);
     }
 
-    // unsigned int add(ComponentMask m) {
-    //     chunks[m].components
-
-    //     unsigned int id = chunks[m].count;
-    //     chunks[m].count++;
-    //     for(auto c : chunks[m].components) {
-    //         c.second->length = chunks[m].count;
-    //     }
-    //     return id;
-    // }
-
     template <typename C>
     void allocate(ComponentMask mask) {
         auto container = new ComponentContainer();
         container->allocate<C>(CHUNK_SIZE);
-        archetypes[mask].entities = new Entity[CHUNK_SIZE];
+
+        // Only allocate one array of entities per archetype
+        if(!archetypes[mask].components.size()) {
+            archetypes[mask].entities = new Entity[CHUNK_SIZE];
+        }
         archetypes[mask].components[TypeID::value<C>()] = container;
     }
 
@@ -233,6 +236,11 @@ struct Store {
     void allocate(ComponentMask m) {
         allocate<C>(m);
         allocate<C2, Components ...>(m);
+    }
+
+    template<typename T>
+    void set_component_data(const Entity entity, T component) {
+        archetypes[entity.mask].set_data(entity, component);
     }
 };
 
@@ -277,13 +285,7 @@ struct EntityManager {
 
     template<typename T>
 	void set_component(const Entity entity, T component) {
-        auto &archetype = storage.archetypes[entity.mask];
-        auto a = archetype._map.find(entity.id);
-        if(a != archetype._map.end()) {
-            unsigned index = a->second;
-            auto container = static_cast<T*>(archetype.components[TypeID::value<T>()]->instances);
-            container[index] = component;
-        }
+        storage.set_component_data(entity, component);
     }
 };
 
@@ -367,7 +369,6 @@ struct World {
         for(auto &c : entity_manager->storage.archetypes) {
             if((c.first & m) == m) {
                 auto container = c.second.components[TypeID::value<Component>()];
-                //auto container = static_cast<ComponentContainer<Component>*>();
                 indexer.add(static_cast<Component*>(container->instances), container->length);
             }
         }
@@ -378,7 +379,6 @@ struct World {
         ComponentMask m = entity_manager->create_mask<Components ...>();
         for(auto &c : entity_manager->storage.archetypes) {
             if((c.first & m) == m) {
-                //auto container = static_cast<ComponentContainer<Component>*>(c.second.components[TypeID::value<Component>()]);
                 indexer.add(c.second.entities, c.second.count);
             }
         }
