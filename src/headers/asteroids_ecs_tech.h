@@ -65,93 +65,19 @@ struct BaseContainer {
 const size_t CHUNK_SIZE = 128;
 
 template<typename T>
-struct ComponentContainer : BaseContainer {
-    const int invalid_index = -1;
+struct ComponentContainer : BaseContainer {    
     T* instances;
-    // // AoS
-    // struct InstanceData {
-    //     // unsigned size;
-    //     // unsigned n;
-        
-    // };
-    // InstanceData data;
-
+    
     void allocate(unsigned size) {
         instances = new T[size];
         length = 0;
-        max_size = size;
-        //data.size = size;
+        max_size = size;        
     }
 
     void remove_component(unsigned index) override {
-        instances[index] = instances[length - 1];
+        static_cast<T*>(instances)[index] = instances[length - 1];
         length--;
     }
-
-    //void create_component(Entity e) {
-        // ASSERT_WITH_MSG(data.n <= data.size, "Component storage is full, n:" + std::to_string(data.n));
-
-        // ASSERT_WITH_MSG(_map.find(e.id) != _map.end(), "Entity already has component");
-        
-        // unsigned int index = data.n;
-        // _map[e.id] = index;
-        
-    //}
-
-    // /// Create an instance from an index to the data arrays.
-    // Handle make_handle(int i) {
-    //     Handle inst = {i}; 
-    //     return inst;
-    // }
-
-    // /// Returns the component instance for the specified entity or a nil instance
-    // /// if the entity doesn't have the component.
-    // Handle lookup(Entity e) {
-    //     auto a = _map.find(e.id);
-    //     if(a != _map.end()) {
-    //         return a->second;
-    //     } else {
-    //         return invalid_index;
-    //     }
-    // }
-
-    // bool is_valid(Handle i) {
-    //     return i.i > -1;
-    // }
-
-
-    // void remove_component(Handle i) {
-    //     const int index = i.i;
-    //     const unsigned lastIndex = data.n - 1;
-
-    //     if (is_valid(i) && lastIndex >= 0) {
-    //         // Get the entity at the index to destroy
-    //         Entity entityToDestroy = data.entity[index];
-    //         // Get the entity at the end of the array
-    //         Entity lastEntity = data.entity[lastIndex];
-
-            
-    //         // Move last entity's data
-    //         data.entity[index] = data.entity[lastIndex];
-    //         data.instances[index] = data.instances[lastIndex];
-
-    //         // Update map entry for the swapped entity
-    //         _map[lastEntity.id] = index;
-    //         // Remove the map entry for the destroyed entity
-    //         _map.erase(entityToDestroy.id);
-
-    //         // Decrease count
-    //         data.n--;
-    //     }
-    // }
-
-    // T get_component(Handle i) {
-    //     return data.instances[i.i];
-    // }
-
-    // void set_component(Handle i, T input) {
-    //     data.instances[i.i] = input;
-    // }
 };
 
 struct Store {

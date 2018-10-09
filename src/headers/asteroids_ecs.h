@@ -6,7 +6,7 @@
 // 2. Fix faction in bullet firing in player move system
 // 3. Get indexer by archetype
 // 4. refactor => void set_component(const Entity entity, T component) 
-
+// 5. too many entity allocations? void allocate(ComponentMask mask)
 
 
 #ifndef ASTEROIDS_ECS_H
