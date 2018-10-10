@@ -182,7 +182,7 @@ inline void update_player_movement() {
     ComponentArray<Velocity> fv;
     ComponentArray<Direction> fd;
     unsigned length;
-    world->fill_by_type<PlayerInput, Position, Velocity, Direction>(length, fpi, fp, fv, fd);
+    world->fill_by_arguments(length, fpi, fp, fv, fd);
     
     // Engine::logn("PlayerInput: %d", fp.length);
     for(unsigned i = 0; i < length; ++i) {
@@ -222,19 +222,16 @@ inline void update_player_movement() {
     }
 }
 
-struct ForwardMovementData : ComponentData<Velocity, Position, MoveForwardComponent> {
+inline void update_forward_movement() {    
     ComponentArray<Velocity> velocity;
     ComponentArray<Position> position;
-};
-
-inline void update_forward_movement() {
-    ForwardMovementData data;
-    world->fill_data(data, data.position, data.velocity);
+    unsigned length;
+    world->fill_by_types<Velocity, Position, Faction, MoveForwardComponent>(length, velocity, position);
     
-    for(unsigned i = 0; i < data.length; ++i) {
-        Velocity &velocity = data.velocity.index(i);
-        Position &position = data.position.index(i);
-        position.value += velocity.value;
+    for(unsigned i = 0; i < length; ++i) {
+        Velocity &v = velocity.index(i);
+        Position &p = position.index(i);
+        p.value += v.value;
     }
 }
 
@@ -304,9 +301,6 @@ void render_debug_data() {
     std::string bullets = "Bullet entities: " + std::to_string(fp.length);
     draw_text_str(5, 15, Colors::white, bullets);
 }
-
-
-
 
 void asteroids_render() {
     // if(game_state.inactive) {

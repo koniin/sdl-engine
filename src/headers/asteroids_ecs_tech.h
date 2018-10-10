@@ -369,10 +369,21 @@ struct World {
     }
 
     // Use to fill a bunch of componentarrays
-    // Needs to have the same parameters as iterators
-    // e.g fill_by_type<Position, Velocity>(l, ComponentArray<Position>, ComponentArray<Velocity>)
+    // Will fill components based on the mask of arrays passed in
+    // if you pass a Position, Velocity and X array it will find all archetypes 
+    // matching Position, Velocity and X
+    // e.g fill_by_type(l, ComponentArray<Position>, ComponentArray<Velocity>)
     template<typename ... Components>
-    void fill_by_type(unsigned &length, ComponentArray<Components> &... iterators) {
+    void fill_by_arguments(unsigned &length, ComponentArray<Components> &... iterators) {
+        expander { 0, ( (void) fill_length<Components...>(length, iterators), 0) ... };
+    }
+
+    // Fills the arrays based on the mask defined as types
+    // fill_by_types<Velocity, Position, Faction, MoveForwardComponent>(length, vv, pp);
+    // this will fill the vv and pp arrays with all components of that type that 
+    // matches the mask => Velocity, Position, Faction, MoveForwardComponent
+    template<typename ... Components, typename ... Iterators>
+    void fill_by_types(unsigned &length, ComponentArray<Iterators> &... iterators) {
         expander { 0, ( (void) fill_length<Components...>(length, iterators), 0) ... };
     }
     
