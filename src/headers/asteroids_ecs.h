@@ -229,7 +229,7 @@ struct ForwardMovementData : ComponentData<Velocity, Position, MoveForwardCompon
 
 inline void update_forward_movement() {
     ForwardMovementData data;
-    world->update_data(data, data.position, data.velocity);
+    world->fill_data(data, data.position, data.velocity);
     
     for(unsigned i = 0; i < data.length; ++i) {
         Velocity &velocity = data.velocity.index(i);
@@ -327,7 +327,7 @@ void asteroids_render() {
         ComponentArray<Position> fp;
         ComponentArray<SizeComponent> fs;
     } bullet_data;
-    world->update_data(bullet_data, bullet_data.fp, bullet_data.fs);
+    world->fill_data(bullet_data, bullet_data.fp, bullet_data.fs);
 	for(unsigned i = 0; i < bullet_data.length; ++i) {
 		Position &p = bullet_data.fp.index(i);
         float radius = bullet_data.fs.index(i).radius;
@@ -339,7 +339,7 @@ void asteroids_render() {
         ComponentArray<Position> fp;
         ComponentArray<Direction> fd;
     } player_data;
-    world->update_data(player_data, player_data.fp, player_data.fd);
+    world->fill_data(player_data, player_data.fp, player_data.fd);
 
     for(unsigned i = 0; i < player_data.length; ++i) {
         const Position &p = player_data.fp.index(i);

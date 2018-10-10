@@ -316,7 +316,7 @@ struct ComponentArray {
 	}
 
 	T &index(unsigned i) {
-		ASSERT_WITH_MSG(i < length, "index out of bounds");
+		ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
 		
 		if(i >= cache.cached_end) {
 			update_cache(i);
@@ -329,6 +329,10 @@ struct ComponentArray {
 		cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
         cache.cached_end +=  cache.datasizes[cache.data_ptr];
 	}
+
+    void clear() {
+        length = 0;
+    }
 };
 
 template<typename ... Components>
@@ -353,17 +357,20 @@ struct World {
     typedef int expander[];
 
     template<typename ... Components, typename ... Iterators>
-    void update_data(ComponentData<Components...> &data, ComponentArray<Iterators> &... iterators) {
+    void fill_data(ComponentData<Components...> &data, ComponentArray<Iterators> &... iterators) {
         expander { 0, ( (void) fill_length<Components...>(data.length, iterators), 0) ... };
     }
 
     template<typename ... Components, typename ... Iterators>
-    void update_entity_data(EntityComponentData<Components...> &data, ComponentArray<Entity> &entities, ComponentArray<Iterators> &... iterators) {
+    void fill_entity_data(EntityComponentData<Components...> &data, ComponentArray<Entity> &entities, ComponentArray<Iterators> &... iterators) {
         expander { 0, ( (void) fill_length<Components...>(data.length, iterators), 0) ... };
         init_entity_indexer<Components...>(entities);
         data.length = entities.length;
     }
 
+    // Use to fill a bunch of componentarrays
+    // Needs to have the same parameters as iterators
+    // e.g fill_by_type<Position, Velocity>(l, ComponentArray<Position>, ComponentArray<Velocity>)
     template<typename ... Components>
     void fill_by_type(unsigned &length, ComponentArray<Components> &... iterators) {
         expander { 0, ( (void) fill_length<Components...>(length, iterators), 0) ... };
