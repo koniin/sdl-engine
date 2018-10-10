@@ -138,7 +138,7 @@ void handle_events() {
 }
 
 inline void update_player_input() {
-    ForwardIndexer<PlayerInput> fp;
+    ComponentArray<PlayerInput> fp;
     world->init_indexer<PlayerInput>(fp);
 
     //Engine::logn("PlayerInput: %d", fp.length);
@@ -177,13 +177,13 @@ inline void update_player_input() {
 }
 
 inline void update_player_movement() {
-    ForwardIndexer<PlayerInput> fpi;
+    ComponentArray<PlayerInput> fpi;
     world->init_indexer<PlayerInput, Position, Velocity, Direction>(fpi);
-    ForwardIndexer<Position> fp;
+    ComponentArray<Position> fp;
     world->init_indexer<PlayerInput, Position, Velocity, Direction>(fp);
-    ForwardIndexer<Velocity> fv;
+    ComponentArray<Velocity> fv;
     world->init_indexer<PlayerInput, Position, Velocity, Direction>(fv);
-    ForwardIndexer<Direction> fd;
+    ComponentArray<Direction> fd;
     world->init_indexer<PlayerInput, Position, Velocity, Direction>(fd);
 
     // Engine::logn("PlayerInput: %d", fp.length);
@@ -225,9 +225,9 @@ inline void update_player_movement() {
 }
 
 inline void update_forward_movement() {
-    ForwardIndexer<Velocity> fv;
+    ComponentArray<Velocity> fv;
     world->init_indexer<Velocity, Position, MoveForwardComponent>(fv);
-    ForwardIndexer<Position> fp;
+    ComponentArray<Position> fp;
     world->init_indexer<Velocity, Position, MoveForwardComponent>(fp);
     
     for(unsigned i = 0; i < fp.length; ++i) {
@@ -238,9 +238,9 @@ inline void update_forward_movement() {
 }
 
 inline void bullet_cleanup() {
-    ForwardIndexer<Position> fp;
+    ComponentArray<Position> fp;
     world->init_indexer<Velocity, Position, Faction, MoveForwardComponent>(fp);
-    ForwardIndexer<Entity> fe;
+    ComponentArray<Entity> fe;
     world->init_entity_indexer<Velocity, Position, Faction, MoveForwardComponent>(fe);
 
     for(unsigned i = 0; i < fp.length; ++i) {
@@ -266,8 +266,8 @@ void asteroids_load() {
     player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction>();
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, Faction, MoveForwardComponent, SizeComponent>();
 
-    // create entity
     auto e = entity_manager->create_entity(player_archetype);
+    
 
     // Set some component data
     entity_manager->set_component<PlayerInput>(e, { 0, 0, 0, 0, 0, false });
@@ -278,7 +278,128 @@ void asteroids_load() {
     Velocity vc = { vel };
     entity_manager->set_component(e, pc);
     entity_manager->set_component(e, vc);
+    Engine::logn("Position: %f", pc.value.x);
+    Engine::logn("Entity: %d", e.id);
     
+    spawn_bullet({ Vector2(666, 555) }, { Vector2(222, 333) }, 1);
+    spawn_bullet({ Vector2(777, 444) }, { Vector2(111, 12) }, 1);
+
+    // OLD WAY
+    Engine::logn("old way:");
+    ComponentArray<Position> fp;
+    world->init_indexer<Velocity, Position>(fp);
+
+    for(unsigned i = 0; i < fp.length; ++i) {
+        const Position &p = fp.index(i);
+        Engine::logn("Position: %f", p.value.x);
+    }
+
+    struct TestSome {
+        ComponentArray<PlayerInput> fpi;
+        ComponentArray<Position> fp;
+        ComponentArray<Velocity> fv;
+        ComponentArray<Direction> fd;
+        ComponentArray<Entity> entities;
+        unsigned length;
+    } d;
+
+    world->init_entity_indexer<PlayerInput, Position, Velocity, Direction>(d.entities);
+    world->update(d.length, d.fpi, d.fp, d.fv, d.fd);
+    Engine::logn("TestSome");
+    for(unsigned i = 0; i < d.length; ++i) {
+		//PlayerInput &pi = d.fpi.index(i);
+        Position &position = d.fp.index(i);
+        //Velocity &velocity = d.fv.index(i);
+        //Direction &direction = d.fd.index(i);
+        //Engine::logn("Entity: %d", d.entities.index(i));
+        Engine::logn("Position: %f", position.value.x);
+    }
+
+    struct TestSomePositions {
+        ComponentArray<Position> fp;
+        ComponentArray<Velocity> fv;
+        unsigned length;
+    } dp;
+
+    world->update<Position, Velocity>(dp.length, dp.fp, dp.fv);
+    Engine::logn("TestSomePositions");
+    for(unsigned i = 0; i < dp.length; ++i) {
+		//PlayerInput &pi = d.fpi.index(i);
+        Position &position = dp.fp.index(i);
+        //Velocity &velocity = d.fv.index(i);
+        //Direction &direction = d.fd.index(i);
+        //Engine::logn("Entity: %d", d.entities.index(i));
+        Engine::logn("Position: %f", position.value.x);
+    }
+
+    struct TestSystemCData : ComponentData<PlayerInput, Position, Velocity, Direction> {
+        ComponentArray<PlayerInput> input;
+        ComponentArray<Position> position;
+    };
+
+    struct TestSystemECData : EntityComponentData<PlayerInput, Position, Velocity, Direction> {
+        ComponentArray<PlayerInput> input;
+        ComponentArray<Position> position;
+    };
+
+    struct TestSystemPData : ComponentData<Position, Velocity> {
+        ComponentArray<Position> position;
+        ComponentArray<Velocity> velocity;
+    };
+
+    TestSystemCData data;
+    Engine::logn("TestSystemCData update");
+    world->update_data(data, data.input, data.position);
+    Engine::logn("TestSystemCData: %d", data.length);
+    for(unsigned i = 0; i < data.length; ++i) {
+        Engine::logn("PlayerInput: %f", data.input.index(i).move_x);
+        Engine::logn("Position: %f", data.position.index(i).value.x);
+    }
+
+    TestSystemECData datadata;
+    Engine::logn("TestSystemECData update");
+    world->update_entity_data(datadata, datadata.entities, datadata.input, datadata.position);
+    Engine::logn("TestSystemECData: %d", datadata.length);
+    for(unsigned i = 0; i < datadata.length; ++i) {
+        Engine::logn("PlayerInput: %f", datadata.input.index(i).move_x);
+        Engine::logn("Position: %f", datadata.position.index(i).value.x);
+        Engine::logn("Entity: %d", datadata.entities.index(i).id);
+    }
+
+    TestSystemPData pdata;
+    Engine::logn("TestSystemPData update");
+    world->update_data(pdata, pdata.position, pdata.velocity);
+    Engine::logn("TestSystemPData: %d", pdata.length);
+    for(unsigned i = 0; i < pdata.length; ++i) {
+        Engine::logn("Position: %f", pdata.position.index(i).value.x);
+        Engine::logn("Velocity: %f", pdata.velocity.index(i).value.x);
+    }
+
+    //entity_manager->destroy_entity(e2);
+
+    // SystemData<PlayerInput, Position> c;
+    // c.update(world);
+    // for(unsigned i = 0; i < c.length; ++i) {
+    //     Engine::logn("PlayerInput: %f", c.index<PlayerInput>(i).move_x);
+    //     Engine::logn("Position: %f", c.index<Position>(i).value.x);
+    // }
+
+    //world->init(c);
+/*
+    
+*/
+    //ComponentIterator<PlayerInput, Position, Velocity> cIterator;
+    //world->get_iterator(cIterator);
+
+    // MultiIndexer m;
+
+    // ComponentData<PlayerInput, Position> d;
+    // d.init(world);
+
+    // for(unsigned i = 0; i < d.length; ++i) {
+    //     Engine::logn("PlayerInput: %f", d.first.index(i).move_x);
+    //     Engine::logn("Position: %f", d.second.index(i).value.x);
+    // }
     
     // ForwardIndexer<Position> f;
     // world->init_indexer(f);
@@ -308,12 +429,12 @@ void asteroids_update() {
 }
 
 void render_debug_data() {
-    ForwardIndexer<PlayerInput> fpm;
+    ComponentArray<PlayerInput> fpm;
     world->init_indexer<PlayerInput, Position, Velocity, Direction>(fpm);
     std::string players = "Player entities: " + std::to_string(fpm.length);
     draw_text_str(5, 5, Colors::white, players);
     
-    ForwardIndexer<Position> fp;
+    ComponentArray<Position> fp;
     world->init_indexer<Position, Faction, SizeComponent>(fp);
     std::string bullets = "Bullet entities: " + std::to_string(fp.length);
     draw_text_str(5, 15, Colors::white, bullets);
@@ -335,9 +456,9 @@ void asteroids_render() {
 	// 	draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)asteroids[i].radius(), game_state.asteroid_color);
 	// }
 
-    ForwardIndexer<Position> fp;
+    ComponentArray<Position> fp;
     world->init_indexer<Position, Faction, SizeComponent>(fp);
-    ForwardIndexer<SizeComponent> fs;
+    ComponentArray<SizeComponent> fs;
     world->init_indexer<Position, Faction, SizeComponent>(fs);
 	for(unsigned i = 0; i < fp.length; ++i) {
 		Position &p = fp.index(i);
@@ -346,9 +467,9 @@ void asteroids_render() {
 		draw_g_circe_color((int16_t)p.value.x, (int16_t)p.value.y, (int16_t)radius, c);
 	}
 
-    ForwardIndexer<Position> fpm;
+    ComponentArray<Position> fpm;
     world->init_indexer<PlayerInput, Position, Direction>(fpm);
-    ForwardIndexer<Direction> fd;
+    ComponentArray<Direction> fd;
     world->init_indexer<PlayerInput, Position, Direction>(fd);
     for(unsigned i = 0; i < fpm.length; ++i) {
         const Position &p = fpm.index(i);

@@ -290,7 +290,7 @@ struct EntityManager {
 };
 
 template<typename T>
-struct ForwardIndexer {
+struct ComponentArray {
 	unsigned length = 0;
 	
 	struct Cache {
@@ -325,16 +325,48 @@ struct ForwardIndexer {
 	}
 
 	void update_cache(unsigned i) {
-		auto size = cache.datasizes[cache.data_ptr];
-		cache.cached_begin += size;
-		cache.cached_end += size;
+		cache.cached_begin += cache.datasizes[cache.data_ptr];
 		cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
+        cache.cached_end +=  cache.datasizes[cache.data_ptr];
 	}
 };
 
-template<typename ... Components>
-struct ComponentIterator {
+/*
+struct SystemDataBase {
+    
+};
 
+
+template<typename C, typename C2>
+struct ComponentData {
+    unsigned length;
+    ForwardIndexer<C> first;
+    ForwardIndexer<C2> second;
+
+    void init(World *w) {
+        w->init_indexer<C, C2>(first);
+        length = first.length;
+        w->init_indexer<C, C2>(second);
+    }
+};
+
+struct TheData : SystemDataBase<PlayerInput, Position> {
+};
+
+template<typename C, typename C2>
+void init(SystemDataBase<C, C2> d) {
+    world->init_indexer() 
+}
+*/
+
+template<typename ... Components>
+struct ComponentData {
+    unsigned length;
+};
+
+template<typename ... Components>
+struct EntityComponentData : ComponentData<Components...> {
+    ComponentArray<Entity> entities;
 };
 
 // owns systems / manages systems
@@ -345,26 +377,28 @@ struct World {
     EntityManager *get_entity_manager() {
         return entity_manager;
     }
+    
+    typedef int expander[];
 
-    // template<typename Component>
-    // void init_indexer(ForwardIndexer<Component> &indexer) {
-    //     ComponentMask m = entity_manager->create_mask<Component>();
-    //     for(auto &c : entity_manager->storage.archetypes) {
-    //         if((c.first & m) == m) {
-    //             auto container = static_cast<ComponentContainer<Component>*>(c.second.components[TypeID::value<Component>()]);
-    //             indexer.add(container->instances, container->length);
-    //             Engine::log("added");
-    //         }
-    //     }
-    // }
-
-    template<typename ... Components>
-    void get_iterator(ComponentIterator<Components ...> &iterator) {
-
+    template<typename ... Components, typename ... Iterators>
+    void update_data(ComponentData<Components...> &data, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) update_indexer<Components...>(data.length, iterators), 0) ... };
     }
 
+    template<typename ... Components, typename ... Iterators>
+    void update_entity_data(EntityComponentData<Components...> &data, ComponentArray<Entity> &entities, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) update_indexer<Components...>(data.length, iterators), 0) ... };
+        init_entity_indexer<Components...>(entities);
+        data.length = entities.length;
+    }
+
+    template<typename ... Components>
+    void update(unsigned &length, ComponentArray<Components> &... iterators) {
+        expander { 0, ( (void) update_indexer<Components...>(length, iterators), 0) ... };
+    }
+    
     template<typename ... Components, typename Component>
-    void init_indexer(ForwardIndexer<Component> &indexer) {
+    void update_indexer(unsigned &length, ComponentArray<Component> &indexer) {
         ComponentMask m = entity_manager->create_mask<Components ...>();
         for(auto &c : entity_manager->storage.archetypes) {
             if((c.first & m) == m) {
@@ -372,14 +406,27 @@ struct World {
                 indexer.add(static_cast<Component*>(container->instances), container->length);
             }
         }
+        Engine::logn("indexer length: %d", indexer.length);
+        length = indexer.length;
     }
 
     template<typename ... Components>
-    void init_entity_indexer(ForwardIndexer<Entity> &indexer) {
+    void init_entity_indexer(ComponentArray<Entity> &indexer) {
         ComponentMask m = entity_manager->create_mask<Components ...>();
         for(auto &c : entity_manager->storage.archetypes) {
             if((c.first & m) == m) {
                 indexer.add(c.second.entities, c.second.count);
+            }
+        }
+    }
+
+    template<typename ... Components, typename Component>
+    void init_indexer(ComponentArray<Component> &indexer) {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m) {
+                auto container = c.second.components[TypeID::value<Component>()];
+                indexer.add(static_cast<Component*>(container->instances), container->length);
             }
         }
     }
