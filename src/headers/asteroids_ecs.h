@@ -139,7 +139,7 @@ void handle_events() {
 
 inline void update_player_input() {
     ComponentArray<PlayerInput> fp;
-    world->init_indexer<PlayerInput>(fp);
+    world->fill<PlayerInput>(fp);
 
     //Engine::logn("PlayerInput: %d", fp.length);
     for(unsigned i = 0; i < fp.length; ++i) {
@@ -178,16 +178,14 @@ inline void update_player_input() {
 
 inline void update_player_movement() {
     ComponentArray<PlayerInput> fpi;
-    world->init_indexer<PlayerInput, Position, Velocity, Direction>(fpi);
     ComponentArray<Position> fp;
-    world->init_indexer<PlayerInput, Position, Velocity, Direction>(fp);
     ComponentArray<Velocity> fv;
-    world->init_indexer<PlayerInput, Position, Velocity, Direction>(fv);
     ComponentArray<Direction> fd;
-    world->init_indexer<PlayerInput, Position, Velocity, Direction>(fd);
-
+    unsigned length;
+    world->fill_by_type<PlayerInput, Position, Velocity, Direction>(length, fpi, fp, fv, fd);
+    
     // Engine::logn("PlayerInput: %d", fp.length);
-    for(unsigned i = 0; i < fpi.length; ++i) {
+    for(unsigned i = 0; i < length; ++i) {
 		PlayerInput &pi = fpi.index(i);
         Position &position = fp.index(i);
         Velocity &velocity = fv.index(i);
@@ -224,24 +222,27 @@ inline void update_player_movement() {
     }
 }
 
+struct ForwardMovementData : ComponentData<Velocity, Position, MoveForwardComponent> {
+    ComponentArray<Velocity> velocity;
+    ComponentArray<Position> position;
+};
+
 inline void update_forward_movement() {
-    ComponentArray<Velocity> fv;
-    world->init_indexer<Velocity, Position, MoveForwardComponent>(fv);
-    ComponentArray<Position> fp;
-    world->init_indexer<Velocity, Position, MoveForwardComponent>(fp);
+    ForwardMovementData data;
+    world->update_data(data, data.position, data.velocity);
     
-    for(unsigned i = 0; i < fp.length; ++i) {
-        Velocity &velocity = fv.index(i);
-        Position &position = fp.index(i);
+    for(unsigned i = 0; i < data.length; ++i) {
+        Velocity &velocity = data.velocity.index(i);
+        Position &position = data.position.index(i);
         position.value += velocity.value;
     }
 }
 
 inline void bullet_cleanup() {
     ComponentArray<Position> fp;
-    world->init_indexer<Velocity, Position, Faction, MoveForwardComponent>(fp);
+    world->fill<Velocity, Position, Faction, MoveForwardComponent>(fp);
     ComponentArray<Entity> fe;
-    world->init_entity_indexer<Velocity, Position, Faction, MoveForwardComponent>(fe);
+    world->fill_entities<Velocity, Position, Faction, MoveForwardComponent>(fe);
 
     for(unsigned i = 0; i < fp.length; ++i) {
         const Position &p = fp.index(i);
@@ -268,7 +269,6 @@ void asteroids_load() {
 
     auto e = entity_manager->create_entity(player_archetype);
     
-
     // Set some component data
     entity_manager->set_component<PlayerInput>(e, { 0, 0, 0, 0, 0, false });
     entity_manager->set_component<Direction>(e, { 0 });
@@ -280,141 +280,6 @@ void asteroids_load() {
     entity_manager->set_component(e, vc);
     Engine::logn("Position: %f", pc.value.x);
     Engine::logn("Entity: %d", e.id);
-    
-    spawn_bullet({ Vector2(666, 555) }, { Vector2(222, 333) }, 1);
-    spawn_bullet({ Vector2(777, 444) }, { Vector2(111, 12) }, 1);
-
-    // OLD WAY
-    Engine::logn("old way:");
-    ComponentArray<Position> fp;
-    world->init_indexer<Velocity, Position>(fp);
-
-    for(unsigned i = 0; i < fp.length; ++i) {
-        const Position &p = fp.index(i);
-        Engine::logn("Position: %f", p.value.x);
-    }
-
-    struct TestSome {
-        ComponentArray<PlayerInput> fpi;
-        ComponentArray<Position> fp;
-        ComponentArray<Velocity> fv;
-        ComponentArray<Direction> fd;
-        ComponentArray<Entity> entities;
-        unsigned length;
-    } d;
-
-    world->init_entity_indexer<PlayerInput, Position, Velocity, Direction>(d.entities);
-    world->update(d.length, d.fpi, d.fp, d.fv, d.fd);
-    Engine::logn("TestSome");
-    for(unsigned i = 0; i < d.length; ++i) {
-		//PlayerInput &pi = d.fpi.index(i);
-        Position &position = d.fp.index(i);
-        //Velocity &velocity = d.fv.index(i);
-        //Direction &direction = d.fd.index(i);
-        //Engine::logn("Entity: %d", d.entities.index(i));
-        Engine::logn("Position: %f", position.value.x);
-    }
-
-    struct TestSomePositions {
-        ComponentArray<Position> fp;
-        ComponentArray<Velocity> fv;
-        unsigned length;
-    } dp;
-
-    world->update<Position, Velocity>(dp.length, dp.fp, dp.fv);
-    Engine::logn("TestSomePositions");
-    for(unsigned i = 0; i < dp.length; ++i) {
-		//PlayerInput &pi = d.fpi.index(i);
-        Position &position = dp.fp.index(i);
-        //Velocity &velocity = d.fv.index(i);
-        //Direction &direction = d.fd.index(i);
-        //Engine::logn("Entity: %d", d.entities.index(i));
-        Engine::logn("Position: %f", position.value.x);
-    }
-
-    struct TestSystemCData : ComponentData<PlayerInput, Position, Velocity, Direction> {
-        ComponentArray<PlayerInput> input;
-        ComponentArray<Position> position;
-    };
-
-    struct TestSystemECData : EntityComponentData<PlayerInput, Position, Velocity, Direction> {
-        ComponentArray<PlayerInput> input;
-        ComponentArray<Position> position;
-    };
-
-    struct TestSystemPData : ComponentData<Position, Velocity> {
-        ComponentArray<Position> position;
-        ComponentArray<Velocity> velocity;
-    };
-
-    TestSystemCData data;
-    Engine::logn("TestSystemCData update");
-    world->update_data(data, data.input, data.position);
-    Engine::logn("TestSystemCData: %d", data.length);
-    for(unsigned i = 0; i < data.length; ++i) {
-        Engine::logn("PlayerInput: %f", data.input.index(i).move_x);
-        Engine::logn("Position: %f", data.position.index(i).value.x);
-    }
-
-    TestSystemECData datadata;
-    Engine::logn("TestSystemECData update");
-    world->update_entity_data(datadata, datadata.entities, datadata.input, datadata.position);
-    Engine::logn("TestSystemECData: %d", datadata.length);
-    for(unsigned i = 0; i < datadata.length; ++i) {
-        Engine::logn("PlayerInput: %f", datadata.input.index(i).move_x);
-        Engine::logn("Position: %f", datadata.position.index(i).value.x);
-        Engine::logn("Entity: %d", datadata.entities.index(i).id);
-    }
-
-    TestSystemPData pdata;
-    Engine::logn("TestSystemPData update");
-    world->update_data(pdata, pdata.position, pdata.velocity);
-    Engine::logn("TestSystemPData: %d", pdata.length);
-    for(unsigned i = 0; i < pdata.length; ++i) {
-        Engine::logn("Position: %f", pdata.position.index(i).value.x);
-        Engine::logn("Velocity: %f", pdata.velocity.index(i).value.x);
-    }
-
-    //entity_manager->destroy_entity(e2);
-
-    // SystemData<PlayerInput, Position> c;
-    // c.update(world);
-    // for(unsigned i = 0; i < c.length; ++i) {
-    //     Engine::logn("PlayerInput: %f", c.index<PlayerInput>(i).move_x);
-    //     Engine::logn("Position: %f", c.index<Position>(i).value.x);
-    // }
-
-    //world->init(c);
-/*
-    
-*/
-    //ComponentIterator<PlayerInput, Position, Velocity> cIterator;
-    //world->get_iterator(cIterator);
-
-    // MultiIndexer m;
-
-    // ComponentData<PlayerInput, Position> d;
-    // d.init(world);
-
-    // for(unsigned i = 0; i < d.length; ++i) {
-    //     Engine::logn("PlayerInput: %f", d.first.index(i).move_x);
-    //     Engine::logn("Position: %f", d.second.index(i).value.x);
-    // }
-    
-    // ForwardIndexer<Position> f;
-    // world->init_indexer(f);
-
-    // ForwardIndexer<PlayerInput> fp;
-    // world->init_indexer(fp);
-    // //auto c = static_cast<ComponentContainer<Position>*>(entity_manager->storage.archetypes[player_archetype.mask].components[TypeID::value<Position>()]);
-    // //f.add(c->instances, c->length);
-
-    // Engine::logn("Positions: %d", f.length);
-    // for(unsigned i = 0; i < f.length; ++i) {
-	// 	Position &p = f.index(i);
-	// 	Engine::logn("i: %d , position: %f.0, %f.0", i, p.value.x, p.value.y);
-	// }
-    
 }
 
 void asteroids_update() {
@@ -430,15 +295,18 @@ void asteroids_update() {
 
 void render_debug_data() {
     ComponentArray<PlayerInput> fpm;
-    world->init_indexer<PlayerInput, Position, Velocity, Direction>(fpm);
+    world->fill<PlayerInput, Position, Velocity, Direction>(fpm);
     std::string players = "Player entities: " + std::to_string(fpm.length);
     draw_text_str(5, 5, Colors::white, players);
     
     ComponentArray<Position> fp;
-    world->init_indexer<Position, Faction, SizeComponent>(fp);
+    world->fill<Position, Faction, SizeComponent>(fp);
     std::string bullets = "Bullet entities: " + std::to_string(fp.length);
     draw_text_str(5, 15, Colors::white, bullets);
 }
+
+
+
 
 void asteroids_render() {
     // if(game_state.inactive) {
@@ -455,25 +323,27 @@ void asteroids_render() {
 	// 	Position &p = asteroids[i].position;
 	// 	draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)asteroids[i].radius(), game_state.asteroid_color);
 	// }
-
-    ComponentArray<Position> fp;
-    world->init_indexer<Position, Faction, SizeComponent>(fp);
-    ComponentArray<SizeComponent> fs;
-    world->init_indexer<Position, Faction, SizeComponent>(fs);
-	for(unsigned i = 0; i < fp.length; ++i) {
-		Position &p = fp.index(i);
-        float radius = fs.index(i).radius;
+    struct BulletRenderData : ComponentData<Position, SizeComponent, Faction> {
+        ComponentArray<Position> fp;
+        ComponentArray<SizeComponent> fs;
+    } bullet_data;
+    world->update_data(bullet_data, bullet_data.fp, bullet_data.fs);
+	for(unsigned i = 0; i < bullet_data.length; ++i) {
+		Position &p = bullet_data.fp.index(i);
+        float radius = bullet_data.fs.index(i).radius;
 		SDL_Color c = { 255, 0, 0, 255 };
 		draw_g_circe_color((int16_t)p.value.x, (int16_t)p.value.y, (int16_t)radius, c);
 	}
 
-    ComponentArray<Position> fpm;
-    world->init_indexer<PlayerInput, Position, Direction>(fpm);
-    ComponentArray<Direction> fd;
-    world->init_indexer<PlayerInput, Position, Direction>(fd);
-    for(unsigned i = 0; i < fpm.length; ++i) {
-        const Position &p = fpm.index(i);
-        const Direction &d = fd.index(i);
+    struct PlayerRenderData : ComponentData<Position, Direction, PlayerInput> {
+        ComponentArray<Position> fp;
+        ComponentArray<Direction> fd;
+    } player_data;
+    world->update_data(player_data, player_data.fp, player_data.fd);
+
+    for(unsigned i = 0; i < player_data.length; ++i) {
+        const Position &p = player_data.fp.index(i);
+        const Direction &d = player_data.fd.index(i);
 		draw_spritesheet_name_centered_rotated(the_sheet, "player", (int)p.value.x, (int)p.value.y, d.angle + 90);
 		
 		// if(player.shield.is_active()) {
