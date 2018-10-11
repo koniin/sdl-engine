@@ -330,14 +330,11 @@ void system_player_movement() {
 	}
 }
 
-inline void system_asteroid_movement() {
+inline void system_forward_movement() {
 	for(unsigned i = 0; i < asteroid_n; ++i) {
 		Asteroid &s = asteroids[i];
 		update_position(s.position, s.velocity);
 	}
-}
-
-inline void system_bullet_movement() {
 	for(unsigned i = 0; i < bullets_n; ++i) {
 		Bullet &s = bullets[i];
 		update_position(s.position, s.velocity);
@@ -528,8 +525,7 @@ void asteroids_update() {
 	system_shield();
 	system_player_input();
 	system_player_movement();
-	system_asteroid_movement();
-	system_bullet_movement();
+	system_forward_movement();
 	system_keep_in_bounds();
 	system_collisions();
 

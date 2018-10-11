@@ -77,6 +77,7 @@ struct Faction {
 
 // Purely for tagging
 struct MoveForwardComponent {};
+struct WrapAroundMovement {};
 
 // Events
 
@@ -95,6 +96,7 @@ EntityManager *entity_manager;
 SpriteSheet the_sheet;
 EntityArchetype player_archetype;
 EntityArchetype bullet_archetype;
+EntityArchetype asteroid_archetype;
 
 // Application specific event queue wrapper
 EventQueue event_queue;
@@ -137,7 +139,7 @@ void handle_events() {
     event_queue.clear();
 }
 
-inline void update_player_input() {
+inline void system_player_input() {
     ComponentArray<PlayerInput> fp;
     world->fill<PlayerInput>(fp);
 
@@ -176,7 +178,7 @@ inline void update_player_input() {
 	}
 }
 
-inline void update_player_movement() {
+inline void system_player_movement() {
     ComponentArray<PlayerInput> fpi;
     ComponentArray<Position> fp;
     ComponentArray<Velocity> fv;
@@ -222,7 +224,7 @@ inline void update_player_movement() {
     }
 }
 
-inline void update_forward_movement() {    
+inline void system_forward_movement() {    
     ComponentArray<Velocity> velocity;
     ComponentArray<Position> position;
     unsigned length;
@@ -232,6 +234,18 @@ inline void update_forward_movement() {
         Velocity &v = velocity[i];
         Position &p = position[i];
         p.value += v.value;
+    }
+}
+
+inline void system_keep_in_bounds() {
+    ComponentArray<Position> position;
+    world->fill<Position, WrapAroundMovement>(position);
+    for(unsigned i = 0; i < position.length; ++i) {
+        Position &p = position[i];
+        if(p.value.x < 0) p.value.x = (float)gw;
+        if(p.value.x > gw) p.value.x = 0.0f;
+        if(p.value.y < 0) p.value.y = (float)gh;
+        if(p.value.y > gh) p.value.y = 0.0f;
     }
 }
 
@@ -261,8 +275,9 @@ void asteroids_load() {
     entity_manager = world->get_entity_manager();
 
     // create archetype
-    player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction>();
+    player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement>();
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, Faction, MoveForwardComponent, SizeComponent>();
+    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, WrapAroundMovement>();
 
     auto e = entity_manager->create_entity(player_archetype);
     
@@ -281,9 +296,10 @@ void asteroids_load() {
 
 void asteroids_update() {
     // update components
-    update_player_input();
-    update_player_movement();
-    update_forward_movement();
+    system_player_input();
+    system_player_movement();
+    system_forward_movement();
+    system_keep_in_bounds();
     
     bullet_cleanup();
     
