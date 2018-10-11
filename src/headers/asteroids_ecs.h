@@ -39,6 +39,7 @@ struct GameState {
 	float pause_time = 2.0f;
 	int level = 0;
 	SDL_Color text_color = { 220, 220, 220, 255 };
+    int player_score_1 = 0;
 } game_state;
 
 struct InputMapping {
@@ -57,12 +58,12 @@ InputMapping input_maps[2] = {
 
 struct PlayerInput {
 	// Input
-	float move_x;
-	float move_y;
-	float fire_x;
-	float fire_y;
-	float fire_cooldown;
-	bool shield;
+	float move_x = 0;
+	float move_y = 0;
+	float fire_x = 0;
+	float fire_y = 0;
+	float fire_cooldown = 0;
+	bool shield = false;
 };
 
 struct Position {
@@ -85,6 +86,19 @@ struct Faction {
     int faction = 0;
 };
 
+struct Health {
+	int value = 0;
+};
+
+struct Shield {
+	float active_timer = 0;
+	float inactive_timer = 0;
+	bool is_active() const {
+		return active_timer > 0.0f;
+	}
+};
+
+// Rendering
 struct ColorComponent {
     SDL_Color color;
 };
@@ -117,6 +131,24 @@ EventQueue event_queue;
 template<typename T>
 void queue_event(T *d) {
     event_queue.queue_evt(d);
+}
+
+void spawn_player() {
+    auto e = entity_manager->create_entity(player_archetype);
+    
+    // Set some component data
+    entity_manager->set_component<PlayerInput>(e, { 0, 0, 0, 0, 0, false });
+    entity_manager->set_component<Direction>(e, { 0 });
+    Vector2 pos = Vector2((float)gw / 2, (float)gh / 2);
+    Vector2 vel = Vector2::Zero;
+    Position pc = { pos };
+    Velocity vc = { vel };
+    entity_manager->set_component(e, pc);
+    entity_manager->set_component(e, vc);
+    entity_manager->set_component<Health>(e, { 3 });
+
+    Engine::logn("Position: %f", pc.value.x);
+    Engine::logn("Entity: %d", e.id);
 }
 
 void spawn_bullet(Vector2 position, Vector2 direction, int faction) {
@@ -156,11 +188,11 @@ void handle_events() {
 
 float asteroid_radius(const int size) {
     if(size == 1)
-		return 8.0f;
+		return 16.0f;
 	else if(size == 2) 
-		return 6.0f;
+		return 8.0f;
 	else 
-		return 2.0f;
+		return 4.0f;
 }
 
 void spawn_asteroid(Position position, Velocity velocity, int size) {
@@ -188,6 +220,23 @@ void system_asteroid_spawn() {
 	if(asteroids == 0) {
 		game_state.level++;
 		spawn_asteroid_wave();
+	}
+}
+
+void system_shield() {
+    ComponentArray<PlayerInput> player_input;
+    ComponentArray<Shield> shield;
+    unsigned length;
+    world->fill_by_arguments(length, player_input, shield);
+    for(unsigned i = 0; i < length; ++i) {
+		Shield &s = shield[i];
+		s.active_timer = Math::max_f(0.0f, s.active_timer - Time::deltaTime);
+		s.inactive_timer = Math::max_f(0.0f, s.inactive_timer - Time::deltaTime);
+		PlayerInput &pi = player_input[i];
+		if(pi.shield && s.inactive_timer <= 0.0f) {
+			s.active_timer = config.player_shield_time;
+			s.inactive_timer = config.player_shield_time + config.player_shield_inactive_time;
+		}
 	}
 }
 
@@ -327,28 +376,16 @@ void asteroids_load() {
     entity_manager = world->get_entity_manager();
 
     // create archetype
-    player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement>();
+    player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement, Shield, Health>();
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent>();
     asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, WrapAroundMovement, ColorComponent>();
 
-    auto e = entity_manager->create_entity(player_archetype);
-    
-    // Set some component data
-    entity_manager->set_component<PlayerInput>(e, { 0, 0, 0, 0, 0, false });
-    entity_manager->set_component<Direction>(e, { 0 });
-    Vector2 pos = Vector2((float)gw / 2, (float)gh / 2);
-    Vector2 vel = Vector2::Zero;
-    Position pc = { pos };
-    Velocity vc = { vel };
-    entity_manager->set_component(e, pc);
-    entity_manager->set_component(e, vc);
-    Engine::logn("Position: %f", pc.value.x);
-    Engine::logn("Entity: %d", e.id);
+    spawn_player();
 }
 
 void asteroids_update() {
     system_asteroid_spawn();
-	// system_shield();
+	system_shield();
     system_player_input();
     system_player_movement();
     system_forward_movement();
@@ -380,15 +417,6 @@ void render_debug_data() {
     draw_text_str(5, 25, Colors::white, asteroids);
 }
 
-void test() {
-    struct CircleRenderData : ComponentData<Position, SizeComponent, ColorComponent> {
-        ComponentArray<Position> fp;
-        ComponentArray<SizeComponent> fs;
-        ComponentArray<ColorComponent> fc;
-    } circle_data;
-    world->fill_data(circle_data, circle_data.fp, circle_data.fs, circle_data.fc);
-}
-
 void asteroids_render() {
     // if(game_state.inactive) {
 	// 	int seconds = (int)game_state.inactive_timer;
@@ -408,52 +436,57 @@ void asteroids_render() {
     world->fill_data(circle_data, circle_data.fp, circle_data.fs, circle_data.fc);
     draw_text_str(5, 45, Colors::white, "circles to render: " + std::to_string(circle_data.length));
 	for(unsigned i = 0; i < circle_data.length; ++i) {
-        test();
 		Position &p = circle_data.fp.index(i);
         float radius = circle_data.fs.index(i).radius;
 		SDL_Color c = circle_data.fc[i].color;
-        if(i == 0) {
-            std::string clr_text = std::to_string(p.value.x) 
-                + ", "
-                + std::to_string(p.value.y)
-                + ", "
-                + std::to_string(radius)
-                + ", "
-                + std::to_string(circle_data.fc[i].color.r)
-                + ", "
-                + std::to_string(circle_data.fc[i].color.g)
-                + ", "
-                + std::to_string(circle_data.fc[i].color.b)
-                + ", "
-                + std::to_string(circle_data.fc[i].color.a);
-            draw_text_str(5, 65, Colors::white, clr_text);
-        }
+        // if(i == 0) {
+        //     std::string clr_text = std::to_string(p.value.x) 
+        //         + ", "
+        //         + std::to_string(p.value.y)
+        //         + ", "
+        //         + std::to_string(radius)
+        //         + ", "
+        //         + std::to_string(circle_data.fc[i].color.r)
+        //         + ", "
+        //         + std::to_string(circle_data.fc[i].color.g)
+        //         + ", "
+        //         + std::to_string(circle_data.fc[i].color.b)
+        //         + ", "
+        //         + std::to_string(circle_data.fc[i].color.a);
+        //     draw_text_str(5, 65, Colors::white, clr_text);
+        // }
 		draw_g_circe_color((int16_t)p.value.x, (int16_t)p.value.y, (int16_t)radius, c);
 	}
 
-    struct PlayerRenderData : ComponentData<Position, Direction, PlayerInput> {
+    struct PlayerRenderData : ComponentData<Position, Direction, PlayerInput, Health, Faction, Shield> {
         ComponentArray<Position> fp;
         ComponentArray<Direction> fd;
+        ComponentArray<Shield> shield;
+        ComponentArray<Faction> faction;
+        ComponentArray<Health> health;
     } player_data;
-    world->fill_data(player_data, player_data.fp, player_data.fd);
+    world->fill_data(player_data, player_data.fp, player_data.fd, player_data.shield, player_data.faction, player_data.health);
 
     for(unsigned i = 0; i < player_data.length; ++i) {
         const Position &p = player_data.fp.index(i);
         const Direction &d = player_data.fd.index(i);
+        const Shield &shield = player_data.shield[i];
+        const Faction &faction = player_data.faction[i];
+        const Health &health = player_data.health[i];
 		draw_spritesheet_name_centered_rotated(the_sheet, "player", (int)p.value.x, (int)p.value.y, d.angle + 90);
 		
-		// if(player.shield.is_active()) {
-		// 	draw_g_circe_RGBA((int16_t)player.position.x, (int16_t)player.position.y, 
-		// 		10, 0, 0, 255, 255);
-		// }
-		// if(player.shield.inactive_timer <= 0) {
-		// 	draw_g_rectangle_filled_RGBA(gw / 2 - 90, 11 + 10 * i, 5, 5, 0, 255, 0, 255);
-		// }
+		if(shield.is_active()) {
+			draw_g_circe_RGBA((int16_t)p.value.x, (int16_t)p.value.y, 
+				10, 0, 0, 255, 255);
+		}
+		if(shield.inactive_timer <= 0) {
+			draw_g_rectangle_filled_RGBA(gw / 2 - 90, 11 + 10 * i, 5, 5, 0, 255, 0, 255);
+		}
 		
-		// std::string playerInfo = "Player " + std::to_string(player.faction + 1) + 
-		// 	" | Lives: " + std::to_string(player.health) + " | Score: ";
-		// draw_text_str(gw / 2 - 80, 10 + 10 * i, game_state.text_color, playerInfo);
-		// draw_text_str(gw / 2 + 60, 10 + 10 * i, game_state.text_color, std::to_string(player.score));
+		std::string playerInfo = "Player " + std::to_string(faction.faction + 1) + 
+			" | Lives: " + std::to_string(health.value) + " | Score: ";
+		draw_text_str(gw / 2 - 80, 10 + 10 * i, game_state.text_color, playerInfo);
+		draw_text_str(gw / 2 + 60, 10 + 10 * i, game_state.text_color, std::to_string(game_state.player_score_1));
 	}
 
     render_debug_data();
