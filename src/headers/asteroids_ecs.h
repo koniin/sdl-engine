@@ -146,6 +146,7 @@ void spawn_player() {
     entity_manager->set_component(e, pc);
     entity_manager->set_component(e, vc);
     entity_manager->set_component<Health>(e, { 3 });
+    entity_manager->set_component<SizeComponent>(e, { 7 });
 
     Engine::logn("Position: %f", pc.value.x);
     Engine::logn("Entity: %d", e.id);
@@ -350,6 +351,85 @@ inline void system_keep_in_bounds() {
     }
 }
 
+void system_collisions() {
+    struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
+        ComponentArray<Position> position;
+        ComponentArray<SizeComponent> collision_data;
+    };
+    CollisionGroup a, b;
+    world->fill_entity_data(a, a.entities, a.position, a.collision_data);
+    world->fill_entity_data(b, b.entities, b.position, b.collision_data);
+
+    // ComponentArray<Entity> entities;
+    // unsigned length;
+    // world->fill_by_types<Position, SizeComponent>(length, position, collision_data);
+    // world->fill_entities<Position, SizeComponent>(entities);
+    //Log::add_message("entities that will collide: %d == %d", length, entities.length);
+
+    for(unsigned i = 0; i < a.length; ++i) {
+        const Vector2 first_position = a.position[i].value;
+        const float first_radius = a.collision_data[i].radius;
+        const EntityId first_id = a.entities[i].id;
+        for(unsigned j = 0; j < b.length; ++j) {
+            const Vector2 second_position = b.position[j].value;
+            const float second_radius = b.collision_data[j].radius;
+            if(first_id != b.entities[j].id 
+                && Math::intersect_circles(first_position.x, first_position.y, first_radius, 
+                    second_position.x, second_position.y, second_radius)) {
+				Engine::logn("collision");
+                //queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
+			}
+        }
+        b.position.reset();
+        b.collision_data.reset();
+        b.entities.reset();
+    }
+    /*
+    for(unsigned ai = 0; ai < asteroid_n; ++ai) {
+		for(unsigned si = 0; si < ship_n; ++si) {
+			Position &pp = ships[si].position;
+			float pr = ships[si].radius;
+			Position &ap = asteroids[ai].position;
+			float ar = asteroids[ai].radius();
+			if(Math::intersect_circles(pp.x, pp.y, pr, ap.x, ap.y, ar)) {
+				queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
+			}
+		}
+	}
+
+	for(unsigned bi = 0; bi < bullets_n; ++bi) {
+		for(unsigned ai = 0; ai < asteroid_n; ++ai) {
+			Position &bp = bullets[bi].position;
+			float br = bullets[bi].radius;
+			Position &ap = asteroids[ai].position;
+			float ar = asteroids[ai].radius();
+			if(Math::intersect_circles(bp.x, bp.y, br, ap.x, ap.y, ar)) {
+				queue_event({ Event::AsteroidDestroyed, new AsteroidDestroyedData { 
+					asteroids[ai].size,
+					bullets[bi].faction
+				}});
+				
+				Velocity v = { asteroids[ai].velocity.x * 3, asteroids[ai].velocity.y * 3 };
+				int size = asteroids[ai].size + 1;
+				queue_event({ Event::SpawnAsteroid, new AsteroidSpawnData { ap, v, size } });
+				v.x = -v.x;
+				v.y = -v.y;
+				queue_event({ Event::SpawnAsteroid, new AsteroidSpawnData { ap, v, size } });
+				
+				// TODO: This should be an destroy entity event and just send the ID
+				bullets[bi].time_to_live = 0.0f;
+
+				// TODO: This should be an destroy entity event and just send the ID
+				// then some system could watch for destroyed asteroids and spawn new ones if needed
+				// probably a part of the Event::AsteroidDestroyed
+				asteroids[ai] = asteroids[asteroid_n - 1];
+				asteroid_n--;
+			}
+		}	
+	}
+    */
+}
+
 inline void bullet_cleanup() {
     ComponentArray<Position> fp;
     world->fill<Velocity, Position, Faction, MoveForwardComponent>(fp);
@@ -376,7 +456,7 @@ void asteroids_load() {
     entity_manager = world->get_entity_manager();
 
     // create archetype
-    player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement, Shield, Health>();
+    player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement, Shield, Health, SizeComponent>();
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent>();
     asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, WrapAroundMovement, ColorComponent>();
 
@@ -390,7 +470,7 @@ void asteroids_update() {
     system_player_movement();
     system_forward_movement();
     system_keep_in_bounds();
-    // system_collisions();
+    system_collisions();
 
     bullet_cleanup();
     
@@ -406,7 +486,7 @@ void render_debug_data() {
     
     int bullet_count = entity_manager->archetype_count(bullet_archetype);
     ComponentArray<Position> fp;
-    world->fill<Position, Faction, SizeComponent>(fp);
+    world->fill<Position, Faction, SizeComponent, MoveForwardComponent>(fp);
     std::string bullets = "Bullet entities: " + std::to_string(fp.length) + " : " + std::to_string(bullet_count);
     draw_text_str(5, 15, Colors::white, bullets);
 

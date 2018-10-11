@@ -283,9 +283,14 @@ struct ComponentArray {
 		length += n;
 	}
 
+
+    int last_index = -1;
 	T &index(unsigned i) {
 		ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
-		
+		ASSERT_WITH_MSG(last_index < (int)i, "FORWARD ITERATION ONLY");
+        
+        last_index = i;
+
 		if(i >= cache.cached_end) {
 			update_cache(i);
 		}
@@ -300,6 +305,14 @@ struct ComponentArray {
 
     void clear() {
         length = 0;
+    }
+
+    void reset() {
+        cache.cached_begin = 0;
+		cache.data_ptr = 0;
+		cache.cached_end = cache.datasizes[cache.data_ptr];
+        cache.cache_ptr = cache.data[cache.data_ptr];
+        last_index = -1;
     }
 };
 
@@ -332,7 +345,7 @@ struct World {
     template<typename ... Components, typename ... Iterators>
     void fill_entity_data(EntityComponentData<Components...> &data, ComponentArray<Entity> &entities, ComponentArray<Iterators> &... iterators) {
         expander { 0, ( (void) fill_length<Components...>(data.length, iterators), 0) ... };
-        init_entity_indexer<Components...>(entities);
+        fill_entities<Components...>(entities);
         data.length = entities.length;
     }
 
