@@ -199,6 +199,10 @@ struct Store {
     void set_component_data(const Entity entity, T component) {
         archetypes[entity.mask].set_data(entity, component);
     }
+
+    size_t count(ComponentMask mask) {
+        return archetypes[mask].count;
+    }
 };
 
 struct EntityManager {
@@ -230,6 +234,10 @@ struct EntityManager {
     template <typename C1, typename C2, typename ... Components>
     ComponentMask create_mask() {
         return create_mask<C1>() | create_mask<C2, Components ...>();
+    }
+
+    size_t archetype_count(const EntityArchetype &ea) {
+        return storage.count(ea.mask);
     }
 
     Entity create_entity(const EntityArchetype &ea) {
@@ -351,7 +359,7 @@ struct World {
     void fill_entities(ComponentArray<Entity> &indexer) {
         ComponentMask m = entity_manager->create_mask<Components ...>();
         for(auto &c : entity_manager->storage.archetypes) {
-            if((c.first & m) == m) {
+            if((c.first & m) == m && c.second.count > 0) {
                 indexer.add(c.second.entities, c.second.count);
             }
         }
@@ -361,7 +369,7 @@ struct World {
     void fill(ComponentArray<Component> &indexer) {
         ComponentMask m = entity_manager->create_mask<Components ...>();
         for(auto &c : entity_manager->storage.archetypes) {
-            if((c.first & m) == m) {
+            if((c.first & m) == m && c.second.count > 0) {
                 auto container = c.second.components[TypeID::value<Component>()];
                 indexer.add(static_cast<Component*>(container->instances), container->length);
             }
@@ -373,7 +381,7 @@ struct World {
         void fill_length(unsigned &length, ComponentArray<Component> &indexer) {
             ComponentMask m = entity_manager->create_mask<Components ...>();
             for(auto &c : entity_manager->storage.archetypes) {
-                if((c.first & m) == m) {
+                if((c.first & m) == m && c.second.count > 0) {
                     auto container = c.second.components[TypeID::value<Component>()];
                     indexer.add(static_cast<Component*>(container->instances), container->length);
                 }

@@ -29,7 +29,17 @@ struct AsteroidsConfig {
 	float player_shield_time = 2.0f;
 	float player_shield_inactive_time = 6.0f;
 	int asteroid_count_increase_per_level = 2;
+	SDL_Color asteroid_color = { 240, 240, 240, 255 };
+    SDL_Color bullet_color = { 255, 0, 0, 255 };
 } config;
+
+struct GameState {
+	bool inactive = false;
+	float inactive_timer = 0.0f;
+	float pause_time = 2.0f;
+	int level = 0;
+	SDL_Color text_color = { 220, 220, 220, 255 };
+} game_state;
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -75,6 +85,10 @@ struct Faction {
     int faction = 0;
 };
 
+struct ColorComponent {
+    SDL_Color color;
+};
+
 // Purely for tagging
 struct MoveForwardComponent {};
 struct WrapAroundMovement {};
@@ -113,6 +127,7 @@ void spawn_bullet(Vector2 position, Vector2 direction, int faction) {
 
     entity_manager->set_component<Position>(bullet, { position });
     entity_manager->set_component<Faction>(bullet, { faction });
+    entity_manager->set_component<ColorComponent>(bullet, { config.bullet_color });
     if(faction == config.player_faction_1 || faction == config.player_faction_2) {
         entity_manager->set_component<Velocity>(bullet, { 
             Vector2(direction.x * config.player_bullet_speed,
@@ -137,6 +152,43 @@ void handle_events() {
     }
     
     event_queue.clear();
+}
+
+float asteroid_radius(const int size) {
+    if(size == 1)
+		return 8.0f;
+	else if(size == 2) 
+		return 6.0f;
+	else 
+		return 2.0f;
+}
+
+void spawn_asteroid(Position position, Velocity velocity, int size) {
+    Entity asteroid = entity_manager->create_entity(asteroid_archetype);
+    entity_manager->set_component(asteroid, position);
+    entity_manager->set_component(asteroid, velocity);
+    entity_manager->set_component<SizeComponent>(asteroid, { asteroid_radius(size) });
+    entity_manager->set_component<ColorComponent>(asteroid, { config.asteroid_color });
+
+    Engine::logn("spawning asteroid: x: %f, y: %f, size: %d, radius: %f",
+        position.value.x, position.value.y, size, asteroid_radius(size));
+}
+
+void spawn_asteroid_wave() {
+	for(int i = 0; i < game_state.level + config.asteroid_count_increase_per_level; ++i) {
+		Position position = { Vector2(RNG::range_f(0, (float)gw), RNG::range_f(0, (float)gh)) };
+        Velocity velocity = { Vector2(RNG::range_f(0, 100) / 100.0f - 0.5f, RNG::range_f(0, 100) / 100.0f - 0.5f) };
+		int new_asteroid_size = 1;
+		spawn_asteroid(position, velocity, new_asteroid_size);
+	}
+}
+
+void system_asteroid_spawn() {
+    size_t asteroids = entity_manager->archetype_count(asteroid_archetype);
+	if(asteroids == 0) {
+		game_state.level++;
+		spawn_asteroid_wave();
+	}
 }
 
 inline void system_player_input() {
@@ -228,7 +280,7 @@ inline void system_forward_movement() {
     ComponentArray<Velocity> velocity;
     ComponentArray<Position> position;
     unsigned length;
-    world->fill_by_types<Velocity, Position, Faction, MoveForwardComponent>(length, velocity, position);
+    world->fill_by_types<Velocity, Position, MoveForwardComponent>(length, velocity, position);
     
     for(unsigned i = 0; i < length; ++i) {
         Velocity &v = velocity[i];
@@ -276,8 +328,8 @@ void asteroids_load() {
 
     // create archetype
     player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement>();
-    bullet_archetype = entity_manager->create_archetype<Position, Velocity, Faction, MoveForwardComponent, SizeComponent>();
-    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, WrapAroundMovement>();
+    bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent>();
+    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, WrapAroundMovement, ColorComponent>();
 
     auto e = entity_manager->create_entity(player_archetype);
     
@@ -295,27 +347,46 @@ void asteroids_load() {
 }
 
 void asteroids_update() {
-    // update components
+    system_asteroid_spawn();
+	// system_shield();
     system_player_input();
     system_player_movement();
     system_forward_movement();
     system_keep_in_bounds();
-    
+    // system_collisions();
+
     bullet_cleanup();
     
     handle_events();
 }
 
 void render_debug_data() {
+    int player_count = entity_manager->archetype_count(player_archetype);
     ComponentArray<PlayerInput> fpm;
     world->fill<PlayerInput, Position, Velocity, Direction>(fpm);
-    std::string players = "Player entities: " + std::to_string(fpm.length);
+    std::string players = "Player entities: " + std::to_string(fpm.length) + " : " + std::to_string(player_count);
     draw_text_str(5, 5, Colors::white, players);
     
+    int bullet_count = entity_manager->archetype_count(bullet_archetype);
     ComponentArray<Position> fp;
     world->fill<Position, Faction, SizeComponent>(fp);
-    std::string bullets = "Bullet entities: " + std::to_string(fp.length);
+    std::string bullets = "Bullet entities: " + std::to_string(fp.length) + " : " + std::to_string(bullet_count);
     draw_text_str(5, 15, Colors::white, bullets);
+
+    int asteroid_count = entity_manager->archetype_count(asteroid_archetype);
+    ComponentArray<Position> fpa;
+    world->fill<Position, SizeComponent, WrapAroundMovement, ColorComponent>(fpa);
+    std::string asteroids = "Asteroids entities: " + std::to_string(fpa.length) + " : " + std::to_string(asteroid_count);
+    draw_text_str(5, 25, Colors::white, asteroids);
+}
+
+void test() {
+    struct CircleRenderData : ComponentData<Position, SizeComponent, ColorComponent> {
+        ComponentArray<Position> fp;
+        ComponentArray<SizeComponent> fs;
+        ComponentArray<ColorComponent> fc;
+    } circle_data;
+    world->fill_data(circle_data, circle_data.fp, circle_data.fs, circle_data.fc);
 }
 
 void asteroids_render() {
@@ -329,19 +400,34 @@ void asteroids_render() {
 	//     draw_text_centered_str(gw / 2, gh - 10, game_state.text_color, level_string);
     // }
 
-	// for(unsigned i = 0; i < asteroid_n; ++i) {
-	// 	Position &p = asteroids[i].position;
-	// 	draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)asteroids[i].radius(), game_state.asteroid_color);
-	// }
-    struct BulletRenderData : ComponentData<Position, SizeComponent, Faction> {
+    struct CircleRenderData : ComponentData<Position, SizeComponent, ColorComponent> {
         ComponentArray<Position> fp;
         ComponentArray<SizeComponent> fs;
-    } bullet_data;
-    world->fill_data(bullet_data, bullet_data.fp, bullet_data.fs);
-	for(unsigned i = 0; i < bullet_data.length; ++i) {
-		Position &p = bullet_data.fp.index(i);
-        float radius = bullet_data.fs.index(i).radius;
-		SDL_Color c = { 255, 0, 0, 255 };
+        ComponentArray<ColorComponent> fc;
+    } circle_data;
+    world->fill_data(circle_data, circle_data.fp, circle_data.fs, circle_data.fc);
+    draw_text_str(5, 45, Colors::white, "circles to render: " + std::to_string(circle_data.length));
+	for(unsigned i = 0; i < circle_data.length; ++i) {
+        test();
+		Position &p = circle_data.fp.index(i);
+        float radius = circle_data.fs.index(i).radius;
+		SDL_Color c = circle_data.fc[i].color;
+        if(i == 0) {
+            std::string clr_text = std::to_string(p.value.x) 
+                + ", "
+                + std::to_string(p.value.y)
+                + ", "
+                + std::to_string(radius)
+                + ", "
+                + std::to_string(circle_data.fc[i].color.r)
+                + ", "
+                + std::to_string(circle_data.fc[i].color.g)
+                + ", "
+                + std::to_string(circle_data.fc[i].color.b)
+                + ", "
+                + std::to_string(circle_data.fc[i].color.a);
+            draw_text_str(5, 65, Colors::white, clr_text);
+        }
 		draw_g_circe_color((int16_t)p.value.x, (int16_t)p.value.y, (int16_t)radius, c);
 	}
 
