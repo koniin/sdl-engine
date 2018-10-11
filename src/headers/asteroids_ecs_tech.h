@@ -44,49 +44,6 @@ struct EntityArchetype {
     ComponentMask mask;
 };
 
-/*
-struct BaseContainer {
-    unsigned length;
-    unsigned max_size;
-    void create_component() {
-        length++;
-    }
-    virtual void remove_component(unsigned index) = 0;
-};
-
-template<typename T>
-struct ComponentContainer : BaseContainer {    
-    T* instances;
-    
-    void allocate(unsigned size) {
-        instances = new T[size];
-        length = 0;
-        max_size = size;        
-    }
-
-    void remove_component(unsigned index) override {
-        instances[index] = instances[--length];
-    }
-};
-*/
-
-/*
-KomponentContainer *k = new KomponentContainer();
-k->allocate<Position>(42);
-k->create_component();
-k->create_component();
-k->create_component();
-for(unsigned i = 0; i < k->length; i++) {
-    ((Position*)k->instances)[i].value.x = 100.0f + (float)i;
-}
-for(unsigned i = 0; i < k->length; i++) {
-    Engine::logn("x: %f", ((Position*)k->instances)[i].value.x);
-}
-k->remove_component(1);
-for(unsigned i = 0; i < k->length; i++) {
-    Engine::logn("x: %f", ((Position*)k->instances)[i].value.x);
-}
-*/
 struct ComponentContainer {
     void *instances;
     unsigned length;
@@ -302,6 +259,9 @@ struct ComponentArray {
 		T *data[1024];
 		size_t datasizes[1024];
 	} cache;
+
+    inline T operator [](int i) const { return index(i); }
+    inline T & operator [](int i) { return index(i); }
 
 	void add(T* data, unsigned n) {
 		if(cache.cached_end == 0) {

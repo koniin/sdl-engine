@@ -229,8 +229,8 @@ inline void update_forward_movement() {
     world->fill_by_types<Velocity, Position, Faction, MoveForwardComponent>(length, velocity, position);
     
     for(unsigned i = 0; i < length; ++i) {
-        Velocity &v = velocity.index(i);
-        Position &p = position.index(i);
+        Velocity &v = velocity[i];
+        Position &p = position[i];
         p.value += v.value;
     }
 }
