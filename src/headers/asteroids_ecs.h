@@ -1,12 +1,12 @@
 
 // TODO:
-// 1. Make a function in world that returns a struct that can index into all types you want
-//      instead of making one for each
-//      it also has the length/count in it and the entities
+// 1. Make a fix for the reset function on ComponentArray
+//      either a new collection that is just forward or do some magic on the
+//      update_cache, perhaps check if its one more etc
 // 2. Fix faction in bullet firing in player move system
-// 3. Get indexer by archetype
-// 4. refactor => void set_component(const Entity entity, T component) 
-// 5. too many entity allocations? void allocate(ComponentMask mask)
+// 3. Fill indexer by archetype 
+// 4. 
+// 5. 
 
 
 #ifndef ASTEROIDS_ECS_H
@@ -366,17 +366,26 @@ void system_collisions() {
     // world->fill_entities<Position, SizeComponent>(entities);
     //Log::add_message("entities that will collide: %d == %d", length, entities.length);
 
+    struct CollisionPair {
+        Entity a;
+        Entity b;
+    };
+    std::vector<CollisionPair> collisions;
     for(unsigned i = 0; i < a.length; ++i) {
         const Vector2 first_position = a.position[i].value;
         const float first_radius = a.collision_data[i].radius;
-        const EntityId first_id = a.entities[i].id;
+        const Entity first_entity = a.entities[i];
         for(unsigned j = 0; j < b.length; ++j) {
             const Vector2 second_position = b.position[j].value;
             const float second_radius = b.collision_data[j].radius;
-            if(first_id != b.entities[j].id 
+            const Entity second_entity = b.entities[j];
+            if(i != j 
                 && Math::intersect_circles(first_position.x, first_position.y, first_radius, 
                     second_position.x, second_position.y, second_radius)) {
-				Engine::logn("collision");
+                collisions.push_back({ 
+                    first_entity,
+                    second_entity
+                });
                 //queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
 			}
         }
@@ -384,6 +393,18 @@ void system_collisions() {
         b.collision_data.reset();
         b.entities.reset();
     }
+
+    for(auto &c : collisions) {
+        Engine::logn("collision = %d <> %d", c.a.id, c.b.id);
+        
+        // Find out if asteroid is hit by ship
+        // -> ship is hit
+
+        // find out if asteroid is hit by bullet
+        // -> destroy bullet
+        // -> destroy asteroid -> fire event
+    }
+
     /*
     for(unsigned ai = 0; ai < asteroid_n; ++ai) {
 		for(unsigned si = 0; si < ship_n; ++si) {

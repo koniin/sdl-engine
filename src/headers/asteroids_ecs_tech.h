@@ -287,7 +287,7 @@ struct ComponentArray {
     int last_index = -1;
 	T &index(unsigned i) {
 		ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
-		ASSERT_WITH_MSG(last_index < (int)i, "FORWARD ITERATION ONLY");
+		ASSERT_WITH_MSG(last_index <= (int)i, "FORWARD ITERATION ONLY");
         
         last_index = i;
 
