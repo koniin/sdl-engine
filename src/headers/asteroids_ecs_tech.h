@@ -35,6 +35,7 @@ public:
     template<typename T>
     static ComponentID value() {
         static ComponentID id = counter++;
+        ASSERT_WITH_MSG(counter <= MAX_ARCHETYPE_COMPONENTS, "MAX components reached");
         return id;
     }
 };
@@ -251,6 +252,12 @@ struct EntityManager {
     template<typename T>
 	void set_component(const Entity entity, T component) {
         storage.set_component_data(entity, component);
+    }
+
+    template<typename T>
+	bool has_component(const Entity entity) {
+        auto typeId = TypeID::value<T>();
+        return entity.mask.test(typeId);
     }
 };
 

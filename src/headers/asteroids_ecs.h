@@ -394,9 +394,39 @@ void system_collisions() {
         b.entities.reset();
     }
 
+    // Maybe do this somewhere else?
+
     for(auto &c : collisions) {
         Engine::logn("collision = %d <> %d", c.a.id, c.b.id);
         
+        // player => asteroid
+        // instead of wraparound it should be DealDamage / Damage or something
+        if(entity_manager->has_component<Health>(c.a) && entity_manager->has_component<WrapAroundMovement>(c.b)) {
+            Engine::log(" - player is hit");
+            // queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
+        }
+        // asteroid to bullet => should be something like destroy on impact component or something
+        else if(entity_manager->has_component<Faction>(c.a) 
+            && entity_manager->has_component<WrapAroundMovement>(c.b)) {
+            Engine::log(" - bullet to asteroid");
+            // a is bullet
+            // b is asteroid
+
+            // destroy asteroid
+            // DestroyEntityData *de = new DestroyEntityData { fe.index(i) };
+            // queue_event(de);
+
+            // queue some kind of spawn asteroid event or take care of that somewhere else
+            // queue_event({ Event::AsteroidDestroyed, new AsteroidDestroyedData { 
+			// 		asteroids[ai].size,
+			// 		bullets[bi].faction
+			// 	}});
+
+            // destroy bullet
+            // DestroyEntityData *de = new DestroyEntityData { fe.index(i) };
+            // queue_event(de);
+
+        }        
         // Find out if asteroid is hit by ship
         // -> ship is hit
 
