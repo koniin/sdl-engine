@@ -540,6 +540,7 @@ void game_state_reset() {
 }
 
 void game_state_inactivate() {
+    game_state.inactive = true;
 	game_state.inactive_timer = game_state.pause_time;
 }
 
@@ -558,10 +559,11 @@ void asteroids_load() {
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent, Damage>();
     asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, WrapAroundMovement, ColorComponent, Health, Damage, PointComponent>();
 
+    game_state_reset();
 }
 
 void asteroids_update() {
-    if(game_state.inactive_timer >= 0.0f) {
+    if(game_state.inactive) {
         Engine::logn("inactive timer: %f", game_state.inactive_timer);
 		game_state.inactive_timer -= Time::deltaTime;
 		// Remove all asteroids and bullets
