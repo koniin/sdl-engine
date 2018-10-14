@@ -88,11 +88,22 @@ struct Faction {
 
 struct Health {
 	int value = 0;
+
+    // This could be it's own component
+    bool can_be_invulnerable = false;
+    float invulnerability_on_hit = 0;
+    bool is_invulnerable() {
+        return invulnerability_on_hit > 0;
+    }
 };
 
 struct Damage {
     int value = 0;
     bool destroy_on_impact = true;
+};
+
+struct PointComponent {
+    int value;
 };
 
 struct Shield {
@@ -150,7 +161,7 @@ void spawn_player() {
     Velocity vc = { vel };
     entity_manager->set_component(e, pc);
     entity_manager->set_component(e, vc);
-    entity_manager->set_component<Health>(e, { 3 });
+    entity_manager->set_component<Health>(e, { 3, true });
     entity_manager->set_component<SizeComponent>(e, { 7 });
 
     Engine::logn("Position: %f", pc.value.x);
@@ -200,6 +211,15 @@ float asteroid_radius(const int size) {
 		return 4.0f;
 }
 
+int asteroid_size(const float radius) {
+    if(radius == 16.0f)
+		return 1;
+	else if(radius == 8.0f) 
+		return 2;
+	else 
+		return 3;
+}
+
 void spawn_asteroid(Position position, Velocity velocity, int size) {
     Entity asteroid = entity_manager->create_entity(asteroid_archetype);
     entity_manager->set_component(asteroid, position);
@@ -209,6 +229,13 @@ void spawn_asteroid(Position position, Velocity velocity, int size) {
     entity_manager->set_component<Health>(asteroid, { 1 });
     entity_manager->set_component<Damage>(asteroid, { 1, false });
     entity_manager->set_component<Faction>(asteroid, { config.asteroid_faction });
+    int score = 0;
+    switch(size) {
+		case 1: score = 10; break;
+		case 2: score = 20; break;
+		case 3: score = 50; break;
+	}
+    entity_manager->set_component<PointComponent>(asteroid, { score });
 
     Engine::logn("spawning asteroid: x: %f, y: %f, size: %d, radius: %f",
         position.value.x, position.value.y, size, asteroid_radius(size));
@@ -424,7 +451,13 @@ inline void system_collision_resolution() {
 
                     bool has_shield = entity_manager->has_component<Shield>(c.a);
                     if(!has_shield || has_shield && !entity_manager->get_component<Shield>(c.a).is_active()) {
-                        health.value -= damage.value;
+                        if(!health.is_invulnerable()) {
+                            health.value -= damage.value;
+                            // Could be another component so we don't need this, or a setting on the component
+                            if(health.can_be_invulnerable) {
+                                health.invulnerability_on_hit = config.player_shield_time;
+                            }
+                        }
                     }
 
                     if(damage.destroy_on_impact) {
@@ -432,100 +465,47 @@ inline void system_collision_resolution() {
                         queue_event(de);
                     }
                 }
-            } else {
-                
-                
-                // Player or asteroid is hit
-                //Engine::log(" - player is hit");
             }
-            // queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
         }
-        // asteroid to bullet => should be something like destroy on impact component or something
-        //else if(entity_manager->has_component<Faction>(c.a) 
-            //&& entity_manager->has_component<WrapAroundMovement>(c.b)) {
-            //Engine::log(" - bullet to asteroid");
-            // a is bullet
-            // b is asteroid
-
-            // destroy asteroid
-            // DestroyEntityData *de = new DestroyEntityData { fe.index(i) };
-            // queue_event(de);
-
-            // queue some kind of spawn asteroid event or take care of that somewhere else
-            // queue_event({ Event::AsteroidDestroyed, new AsteroidDestroyedData { 
-			// 		asteroids[ai].size,
-			// 		bullets[bi].faction
-			// 	}});
-
-            // destroy bullet
-            // DestroyEntityData *de = new DestroyEntityData { fe.index(i) };
-            // queue_event(de);
-
-        //}        
-        // Find out if asteroid is hit by ship
-        // -> ship is hit
-
-        // find out if asteroid is hit by bullet
-        // -> destroy bullet
-        // -> destroy asteroid -> fire event
     }
-
-    /*
-    for(unsigned ai = 0; ai < asteroid_n; ++ai) {
-		for(unsigned si = 0; si < ship_n; ++si) {
-			Position &pp = ships[si].position;
-			float pr = ships[si].radius;
-			Position &ap = asteroids[ai].position;
-			float ar = asteroids[ai].radius();
-			if(Math::intersect_circles(pp.x, pp.y, pr, ap.x, ap.y, ar)) {
-				queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
-			}
-		}
-	}
-
-	for(unsigned bi = 0; bi < bullets_n; ++bi) {
-		for(unsigned ai = 0; ai < asteroid_n; ++ai) {
-			Position &bp = bullets[bi].position;
-			float br = bullets[bi].radius;
-			Position &ap = asteroids[ai].position;
-			float ar = asteroids[ai].radius();
-			if(Math::intersect_circles(bp.x, bp.y, br, ap.x, ap.y, ar)) {
-				queue_event({ Event::AsteroidDestroyed, new AsteroidDestroyedData { 
-					asteroids[ai].size,
-					bullets[bi].faction
-				}});
-				
-				Velocity v = { asteroids[ai].velocity.x * 3, asteroids[ai].velocity.y * 3 };
-				int size = asteroids[ai].size + 1;
-				queue_event({ Event::SpawnAsteroid, new AsteroidSpawnData { ap, v, size } });
-				v.x = -v.x;
-				v.y = -v.y;
-				queue_event({ Event::SpawnAsteroid, new AsteroidSpawnData { ap, v, size } });
-				
-				// TODO: This should be an destroy entity event and just send the ID
-				bullets[bi].time_to_live = 0.0f;
-
-				// TODO: This should be an destroy entity event and just send the ID
-				// then some system could watch for destroyed asteroids and spawn new ones if needed
-				// probably a part of the Event::AsteroidDestroyed
-				asteroids[ai] = asteroids[asteroid_n - 1];
-				asteroid_n--;
-			}
-		}	
-	}
-    */
 }
 
-void system_remove_dead() {
+void system_health() {
     ComponentArray<Health> fh;
     world->fill<Health>(fh);
     ComponentArray<Entity> fe;
     world->fill_entities<Health>(fe);
     for(unsigned i = 0; i < fh.length; i++) {
+        fh[i].invulnerability_on_hit = Math::max_f(0.0f, fh[i].invulnerability_on_hit - Time::deltaTime);
+        
         if(fh[i].value <= 0) {
             DestroyEntityData *de = new DestroyEntityData { fe[i] };
             queue_event(de);
-            Engine::logn("remove entity!");
+
+            if(entity_manager->has_component<PointComponent>(fe[i])) {
+                const PointComponent p = entity_manager->get_component<PointComponent>(fe[i]);
+                game_state.player_score_1 += p.value;
+                
+                // This could be done with another component like SplitOnDead
+                // which a split on dead system could handle instead and spawn new things
+                // that system would fetch health and SplitOnDead entities and do this
+                const Velocity velocity = entity_manager->get_component<Velocity>(fe[i]);
+                const SizeComponent size_component = entity_manager->get_component<SizeComponent>(fe[i]);
+                Vector2 v = Vector2(velocity.value.x * 3, velocity.value.y * 3);
+				int size = asteroid_size(size_component.radius) + 1;
+				if(size <= 3) {
+                    spawn_asteroid(entity_manager->get_component<Position>(fe[i]), 
+                        { v }, size);
+                    v.x = -v.x;
+				    v.y = -v.y;
+                    spawn_asteroid(entity_manager->get_component<Position>(fe[i]), 
+                        { v }, size);
+                }
+            } else {
+                // This means we are about to destroy player.
+                Engine::logn("player destroyed.");
+                // reset game state with inactive time etc
+            }
         }
     }
 }
@@ -558,7 +538,7 @@ void asteroids_load() {
     // create archetype
     player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement, Shield, Health, SizeComponent>();
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent, Damage>();
-    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, WrapAroundMovement, ColorComponent, Health, Damage>();
+    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, WrapAroundMovement, ColorComponent, Health, Damage, PointComponent>();
 
     spawn_player();
 }
@@ -572,7 +552,7 @@ void asteroids_update() {
     system_keep_in_bounds();
     system_collisions();
     system_collision_resolution();
-    system_remove_dead();
+    system_health();
     bullet_cleanup();
     
     handle_events();
