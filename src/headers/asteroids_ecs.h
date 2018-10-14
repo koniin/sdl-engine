@@ -5,7 +5,7 @@
 //      update_cache, perhaps check if its one more etc
 // 2. Fix faction in bullet firing in player move system
 // 3. Fill indexer by archetype 
-// 4. 
+// 4. Collision data should be two arrays of entities instead of one of struct?
 // 5. 
 
 
@@ -147,6 +147,10 @@ EventQueue event_queue;
 template<typename T>
 void queue_event(T *d) {
     event_queue.queue_evt(d);
+}
+
+void queue_clear() {
+    event_queue.clear();
 }
 
 void spawn_player() {
@@ -502,9 +506,9 @@ void system_health() {
                         { v }, size);
                 }
             } else {
-                // This means we are about to destroy player.
                 Engine::logn("player destroyed.");
                 // reset game state with inactive time etc
+                Engine::logn("Inactivate game and reset after time");
             }
         }
     }
@@ -525,6 +529,20 @@ inline void bullet_cleanup() {
     }
 }
 
+void game_state_reset() {
+	spawn_player();
+    // spawn_player(config.player_faction_1);
+	// spawn_player(config.player_faction_2);
+	game_state.level = 1;
+	spawn_asteroid_wave();
+
+    Engine::logn("reset!");
+}
+
+void game_state_inactivate() {
+	game_state.inactive_timer = game_state.pause_time;
+}
+
 void asteroids_load() {
     Engine::set_base_data_folder("data");
 	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
@@ -540,10 +558,21 @@ void asteroids_load() {
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent, Damage>();
     asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, WrapAroundMovement, ColorComponent, Health, Damage, PointComponent>();
 
-    spawn_player();
 }
 
 void asteroids_update() {
+    if(game_state.inactive_timer >= 0.0f) {
+        Engine::logn("inactive timer: %f", game_state.inactive_timer);
+		game_state.inactive_timer -= Time::deltaTime;
+		// Remove all asteroids and bullets
+        // entity_manager->remove_all(asteroid_archetype);
+        // entity_manager->remove_all(bullet_archetype);
+        queue_clear();
+		if(game_state.inactive_timer <= 0.0f) {
+			game_state_reset();
+		}
+	}
+
     system_asteroid_spawn();
 	system_shield();
     system_player_input();

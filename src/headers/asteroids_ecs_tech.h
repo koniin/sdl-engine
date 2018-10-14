@@ -440,7 +440,6 @@ World *make_world() {
     return w;
 }
 
-
 #include <queue>
 
 struct EventQueue {
