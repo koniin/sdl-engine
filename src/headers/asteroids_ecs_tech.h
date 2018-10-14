@@ -35,6 +35,7 @@ public:
     template<typename T>
     static ComponentID value() {
         static ComponentID id = counter++;
+        // either we put max per archetype or just increase the total count
         ASSERT_WITH_MSG(counter <= MAX_ARCHETYPE_COMPONENTS, "MAX components reached");
         return id;
     }
