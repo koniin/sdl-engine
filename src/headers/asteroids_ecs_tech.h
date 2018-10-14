@@ -165,6 +165,18 @@ struct Store {
                 container[index] = data;
             }
         }
+
+        template<typename T> 
+        T &get_data(const Entity entity) {
+            auto a = _map.find(entity.id);
+            ASSERT_WITH_MSG(a != _map.end(), "Could not find component on entity, use has component first");
+            // we don't check if it's here or not, use method to see if entity has component instead
+            //if(a != _map.end()) {
+            unsigned index = a->second;
+            auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+            return container[index];
+            //}
+        }
     };
     
     std::unordered_map<ComponentMask, ArchetypeRepository> archetypes;
@@ -199,6 +211,11 @@ struct Store {
     template<typename T>
     void set_component_data(const Entity entity, T component) {
         archetypes[entity.mask].set_data(entity, component);
+    }
+
+    template <typename T>
+    T &get_component(const Entity entity) {
+        return archetypes[entity.mask].get_data<T>(entity);
     }
 
     size_t count(ComponentMask mask) {
@@ -251,7 +268,13 @@ struct EntityManager {
 
     template<typename T>
 	void set_component(const Entity entity, T component) {
+        ASSERT_WITH_MSG(has_component<T>(entity), "Can't set component data, component not defined on entity");
         storage.set_component_data(entity, component);
+    }
+
+    template<typename T>
+    T &get_component(const Entity entity) {
+        return storage.get_component<T>(entity);
     }
 
     template<typename T>
