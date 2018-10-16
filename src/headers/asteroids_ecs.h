@@ -4,9 +4,6 @@
 // 1. Make a fix for the reset function on ComponentArray
 //      either a new collection that is just forward or do some magic on the
 //      update_cache, perhaps check if its one more etc
-// 3. Fill indexer by archetype -> should not get by exact archetype?
-//      - no it should get all entities with all components in archetype
-// 4. Collision data should be two arrays of entities instead of one of struct?
 
 // Make a test with 
 // * Add component to entity (move from one archetype to another)
@@ -392,11 +389,25 @@ inline void system_keep_in_bounds() {
     }
 }
 
-struct CollisionPair {
-    Entity a;
-    Entity b;
-};
-std::vector<CollisionPair> collisions;
+struct CollisionData {
+    std::vector<Entity> first;
+    std::vector<Entity> second;
+
+    unsigned int count = 0;
+
+    void push(Entity a, Entity b) {
+        first.push_back(a);
+        second.push_back(b);
+        ++count;
+    }
+
+    void clear() {
+        count = 0;
+        first.clear();
+        second.clear();
+    }
+} collisions;
+
 void system_collisions() {
     struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
         ComponentArray<Position> position;
@@ -418,10 +429,7 @@ void system_collisions() {
             if(i != j 
                 && Math::intersect_circles(first_position.x, first_position.y, first_radius, 
                     second_position.x, second_position.y, second_radius)) {
-                collisions.push_back({ 
-                    first_entity,
-                    second_entity
-                });
+                collisions.push(first_entity, second_entity);
                 //queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
 			}
         }
@@ -432,17 +440,19 @@ void system_collisions() {
 }
 
 inline void system_damage() {
-    for(auto &c : collisions) {
-        if(entity_manager->has_component<Health>(c.a) && entity_manager->has_component<Damage>(c.b)
-            && entity_manager->has_component<Faction>(c.a) && entity_manager->has_component<Faction>(c.b)) {
-                const Faction faction_a = entity_manager->get_component<Faction>(c.a);
-                const Faction faction_b = entity_manager->get_component<Faction>(c.b);
+    for(unsigned i = 0; i < collisions.count; ++i) {
+        Entity first = collisions.first[i];
+        Entity second = collisions.second[i];
+        if(entity_manager->has_component<Health>(first) && entity_manager->has_component<Damage>(second)
+            && entity_manager->has_component<Faction>(first) && entity_manager->has_component<Faction>(second)) {
+                const Faction faction_a = entity_manager->get_component<Faction>(first);
+                const Faction faction_b = entity_manager->get_component<Faction>(second);
                 if(faction_a.faction != faction_b.faction) {
-                    Health &health = entity_manager->get_component<Health>(c.a);
-                    const Damage damage = entity_manager->get_component<Damage>(c.b);
+                    Health &health = entity_manager->get_component<Health>(first);
+                    const Damage damage = entity_manager->get_component<Damage>(second);
 
-                    bool has_shield = entity_manager->has_component<Shield>(c.a);
-                    if(!has_shield || has_shield && !entity_manager->get_component<Shield>(c.a).is_active()) {
+                    bool has_shield = entity_manager->has_component<Shield>(first);
+                    if(!has_shield || has_shield && !entity_manager->get_component<Shield>(first).is_active()) {
                         if(!health.is_invulnerable()) {
                             health.value -= damage.value;
                             // Could be another component so we don't need this, or a setting on the component
@@ -453,7 +463,7 @@ inline void system_damage() {
                     }
 
                     if(damage.destroy_on_impact) {
-                        DestroyEntityData *de = new DestroyEntityData { c.b };
+                        DestroyEntityData *de = new DestroyEntityData { second };
                         queue_event(de);
                     }
                 }
@@ -573,7 +583,23 @@ void asteroids_load() {
     game_state_reset();
 }
 
+void system_test() {
+    ComponentArray<Position> positions;
+    world->fill<Position>(positions);
+
+    FrameLog::log(Text::format("Positions: %d", positions.length));
+    /*
+    for(unsigned i = 0; i < positions.length; i++) {
+        for(unsigned j = 0; j < positions.length; j++) {
+            const Position p = positions[j];
+        }
+    }
+    */
+}
+
 void asteroids_update() {
+    FrameLog::reset();
+    
     if(game_state.inactive) {
         Engine::logn("inactive timer: %f", game_state.inactive_timer);
 		game_state.inactive_timer -= Time::deltaTime;
@@ -585,6 +611,8 @@ void asteroids_update() {
             game_state.inactive = false;
 		}
 	}
+
+    system_test();
 
     system_asteroid_spawn();
 	system_shield();
@@ -619,6 +647,17 @@ void render_debug_data() {
     world->fill<Position, SizeComponent, WrapAroundMovement, ColorComponent>(fpa);
     std::string asteroids = "Asteroids entities: " + std::to_string(fpa.length) + " : " + std::to_string(asteroid_count);
     draw_text_str(5, 25, Colors::white, asteroids);
+
+    
+    struct CircleRenderData : ComponentData<Position, SizeComponent, ColorComponent> {
+        ComponentArray<Position> fp;
+        ComponentArray<SizeComponent> fs;
+        ComponentArray<ColorComponent> fc;
+    } circle_data;
+    world->fill_data(circle_data, circle_data.fp, circle_data.fs, circle_data.fc);
+    draw_text_str(5, 45, Colors::white, "circles to render: " + std::to_string(circle_data.length));
+
+    FrameLog::render(5, 60);
 }
 
 void asteroids_render() {
@@ -638,7 +677,6 @@ void asteroids_render() {
         ComponentArray<ColorComponent> fc;
     } circle_data;
     world->fill_data(circle_data, circle_data.fp, circle_data.fs, circle_data.fc);
-    draw_text_str(5, 45, Colors::white, "circles to render: " + std::to_string(circle_data.length));
 	for(unsigned i = 0; i < circle_data.length; ++i) {
 		Position &p = circle_data.fp.index(i);
         float radius = circle_data.fs.index(i).radius;
