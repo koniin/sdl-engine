@@ -419,6 +419,29 @@ struct World {
             }
         }
     }
+
+    template<typename ... Components>
+    void remove_all() {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m && c.second.count > 0) {
+                for(unsigned i = 0; i < c.second.count; i++) {
+                    entity_manager->destroy_entity(c.second.entities[i]);
+                }
+            }
+        }
+    }
+
+    void remove_all(const EntityArchetype &ea) {
+        ComponentMask m = ea.mask;
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m && c.second.count > 0) {
+                for(unsigned i = 0; i < c.second.count; i++) {
+                    entity_manager->destroy_entity(c.second.entities[i]);
+                }
+            }
+        }
+    }
     
     private:
         template<typename ... Components, typename Component>

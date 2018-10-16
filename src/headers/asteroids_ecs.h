@@ -1,13 +1,17 @@
 
 // TODO:
+// * TypeID in archetype instead of global?
 // 1. Make a fix for the reset function on ComponentArray
 //      either a new collection that is just forward or do some magic on the
 //      update_cache, perhaps check if its one more etc
 // 2. Fix faction in bullet firing in player move system
-// 3. Fill indexer by archetype 
+// 3. Fill indexer by archetype -> should not get by exact archetype?
+//      - no it should get all entities with all components in archetype
 // 4. Collision data should be two arrays of entities instead of one of struct?
-// 5. 
 
+// Make a test with 
+// * Add component to entity (move from one archetype to another)
+// * dynamic archetypes 
 
 #ifndef ASTEROIDS_ECS_H
 #define ASTEROIDS_ECS_H
@@ -41,6 +45,8 @@ struct GameState {
 	SDL_Color text_color = { 220, 220, 220, 255 };
     int player_score_1 = 0;
 } game_state;
+void game_state_inactivate();
+void game_state_reset();
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -114,6 +120,10 @@ struct Shield {
 	}
 };
 
+struct SplitOnDeath {
+    int pieces;
+};
+
 // Rendering
 struct ColorComponent {
     SDL_Color color;
@@ -133,6 +143,12 @@ struct ShotSpawnData {
 
 struct DestroyEntityData {
     Entity entity;
+};
+
+struct SpawnAsteroidData {
+    Vector2 position;
+    Vector2 velocity;
+    int size;
 };
 
 World *world;
@@ -191,21 +207,6 @@ void spawn_bullet(Vector2 position, Vector2 direction, int faction) {
     }
 }
 
-void handle_events() {
-    for(auto &e : event_queue.events) {
-		if(e.is<ShotSpawnData>()) {
-            ShotSpawnData *d = e.get<ShotSpawnData>();
-			spawn_bullet(d->position, d->direction, d->faction);
-        } else if(e.is<DestroyEntityData>()) {
-            DestroyEntityData *d = e.get<DestroyEntityData>();
-            entity_manager->destroy_entity(d->entity);
-        }
-        // e.destroy(); <- only needed if manually emptying the queue
-    }
-    
-    event_queue.clear();
-}
-
 float asteroid_radius(const int size) {
     if(size == 1)
 		return 16.0f;
@@ -233,6 +234,7 @@ void spawn_asteroid(Position position, Velocity velocity, int size) {
     entity_manager->set_component<Health>(asteroid, { 1 });
     entity_manager->set_component<Damage>(asteroid, { 1, false });
     entity_manager->set_component<Faction>(asteroid, { config.asteroid_faction });
+    entity_manager->set_component<SplitOnDeath>(asteroid, { 2 });
     int score = 0;
     switch(size) {
 		case 1: score = 10; break;
@@ -255,6 +257,10 @@ void spawn_asteroid_wave() {
 }
 
 void system_asteroid_spawn() {
+    if(game_state.inactive) {
+        return;
+    }
+
     size_t asteroids = entity_manager->archetype_count(asteroid_archetype);
 	if(asteroids == 0) {
 		game_state.level++;
@@ -355,7 +361,7 @@ inline void system_player_movement() {
             d->position = position.value;
             d->direction.x = direction_x;
             d->direction.y = direction_y;            
-            // TODO: FIX FACTION
+            // TODO: Faction from component
             d->faction = config.player_faction_1;
             queue_event(d);
             
@@ -402,12 +408,7 @@ void system_collisions() {
     CollisionGroup a, b;
     world->fill_entity_data(a, a.entities, a.position, a.collision_data);
     world->fill_entity_data(b, b.entities, b.position, b.collision_data);
-
-    // ComponentArray<Entity> entities;
-    // unsigned length;
-    // world->fill_by_types<Position, SizeComponent>(length, position, collision_data);
-    // world->fill_entities<Position, SizeComponent>(entities);
-    //Log::add_message("entities that will collide: %d == %d", length, entities.length);
+    
     collisions.clear();
     for(unsigned i = 0; i < a.length; ++i) {
         const Vector2 first_position = a.position[i].value;
@@ -433,22 +434,12 @@ void system_collisions() {
     }
 }
 
-inline void system_collision_resolution() {
+inline void system_damage() {
     for(auto &c : collisions) {
-        Engine::logn("collision = %d <> %d", c.a.id, c.b.id);
-        
-
-        // Think we could do all collisions with
-        // Damage - component - deals damage to targets with health component on hit
-        // Health - component - health, destroy entity on no health left
-        // problem here -> ship vs bullet <- check faction!
-        // player => asteroid
-        // instead of wraparound it should be DealDamage / Damage or something
-        if(entity_manager->has_component<Health>(c.a) && entity_manager->has_component<Damage>(c.b)) {
-            if(entity_manager->has_component<Faction>(c.a) && entity_manager->has_component<Faction>(c.b)) {
+        if(entity_manager->has_component<Health>(c.a) && entity_manager->has_component<Damage>(c.b)
+            && entity_manager->has_component<Faction>(c.a) && entity_manager->has_component<Faction>(c.b)) {
                 const Faction faction_a = entity_manager->get_component<Faction>(c.a);
                 const Faction faction_b = entity_manager->get_component<Faction>(c.b);
-                Engine::logn("COLLIDER");
                 if(faction_a.faction != faction_b.faction) {
                     Health &health = entity_manager->get_component<Health>(c.a);
                     const Damage damage = entity_manager->get_component<Damage>(c.b);
@@ -469,8 +460,25 @@ inline void system_collision_resolution() {
                         queue_event(de);
                     }
                 }
-            }
+            
         }
+    }
+}
+
+void system_health_split(Entity entity) {
+    // This is not really how it's supposed to work
+    // but the fact that only asteroids split is known
+    // we can use that to spawn new ones
+    const Velocity velocity = entity_manager->get_component<Velocity>(entity);
+    const Position position = entity_manager->get_component<Position>(entity);
+    const SizeComponent size_component = entity_manager->get_component<SizeComponent>(entity);
+    Vector2 v = Vector2(velocity.value.x * 3, velocity.value.y * 3);
+	int size = asteroid_size(size_component.radius) + 1;
+	if(size <= 3) {
+        queue_event(new SpawnAsteroidData { position.value, v, size });
+        v.x = -v.x;
+	    v.y = -v.y;
+        queue_event(new SpawnAsteroidData { position.value, v, size });
     }
 }
 
@@ -489,26 +497,15 @@ void system_health() {
             if(entity_manager->has_component<PointComponent>(fe[i])) {
                 const PointComponent p = entity_manager->get_component<PointComponent>(fe[i]);
                 game_state.player_score_1 += p.value;
-                
-                // This could be done with another component like SplitOnDead
-                // which a split on dead system could handle instead and spawn new things
-                // that system would fetch health and SplitOnDead entities and do this
-                const Velocity velocity = entity_manager->get_component<Velocity>(fe[i]);
-                const SizeComponent size_component = entity_manager->get_component<SizeComponent>(fe[i]);
-                Vector2 v = Vector2(velocity.value.x * 3, velocity.value.y * 3);
-				int size = asteroid_size(size_component.radius) + 1;
-				if(size <= 3) {
-                    spawn_asteroid(entity_manager->get_component<Position>(fe[i]), 
-                        { v }, size);
-                    v.x = -v.x;
-				    v.y = -v.y;
-                    spawn_asteroid(entity_manager->get_component<Position>(fe[i]), 
-                        { v }, size);
-                }
-            } else {
+            }
+            if(entity_manager->has_component<SplitOnDeath>(fe[i])) {
+                system_health_split(fe[i]);
+            } 
+            if(entity_manager->has_component<PlayerInput>(fe[i])) {
                 Engine::logn("player destroyed.");
                 // reset game state with inactive time etc
                 Engine::logn("Inactivate game and reset after time");
+                game_state_inactivate();
             }
         }
     }
@@ -527,6 +524,25 @@ inline void bullet_cleanup() {
             queue_event(de);
         }
     }
+}
+
+void handle_events() {
+    for(auto &e : event_queue.events) {
+		if(e.is<ShotSpawnData>()) {
+            ShotSpawnData *d = e.get<ShotSpawnData>();
+			spawn_bullet(d->position, d->direction, d->faction);
+        } else if(e.is<DestroyEntityData>()) {
+            DestroyEntityData *d = e.get<DestroyEntityData>();
+            entity_manager->destroy_entity(d->entity);
+        } else if(e.is<SpawnAsteroidData>()) {
+            SpawnAsteroidData *d = e.get<SpawnAsteroidData>();
+			if(d->size <= 3)
+				spawn_asteroid({ d->position }, { d->velocity }, d->size);
+        }
+        // e.destroy(); <- only needed if manually emptying the queue (not using clear method)
+    }
+    
+    event_queue.clear();
 }
 
 void game_state_reset() {
@@ -557,7 +573,7 @@ void asteroids_load() {
     // create archetype
     player_archetype = entity_manager->create_archetype<PlayerInput, Position, Velocity, Direction, Faction, WrapAroundMovement, Shield, Health, SizeComponent>();
     bullet_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, ColorComponent, Damage>();
-    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, WrapAroundMovement, ColorComponent, Health, Damage, PointComponent>();
+    asteroid_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, Faction, WrapAroundMovement, ColorComponent, Health, Damage, PointComponent, SplitOnDeath>();
 
     game_state_reset();
 }
@@ -566,12 +582,12 @@ void asteroids_update() {
     if(game_state.inactive) {
         Engine::logn("inactive timer: %f", game_state.inactive_timer);
 		game_state.inactive_timer -= Time::deltaTime;
-		// Remove all asteroids and bullets
-        // entity_manager->remove_all(asteroid_archetype);
-        // entity_manager->remove_all(bullet_archetype);
+		// Remove all asteroids and bullets and ships
+        world->remove_all<MoveForwardComponent>();
         queue_clear();
 		if(game_state.inactive_timer <= 0.0f) {
 			game_state_reset();
+            game_state.inactive = false;
 		}
 	}
 
@@ -582,7 +598,7 @@ void asteroids_update() {
     system_forward_movement();
     system_keep_in_bounds();
     system_collisions();
-    system_collision_resolution();
+    system_damage();
     system_health();
     bullet_cleanup();
     
@@ -610,15 +626,15 @@ void render_debug_data() {
 }
 
 void asteroids_render() {
-    // if(game_state.inactive) {
-	// 	int seconds = (int)game_state.inactive_timer;
-	// 	draw_text_font_centered(Resources::font_get("gameover"), gw / 2, gh / 2, game_state.text_color, "GAME OVER");
-	// 	draw_text_font_centered(Resources::font_get("normal"), gw / 2, gh / 2 + 100, game_state.text_color, 
-	// 		std::string("Resetting in: " + std::to_string(seconds) + " seconds..").c_str());
-	// } else {
-	//     std::string level_string = "Level: " + std::to_string(game_state.level);
-	//     draw_text_centered_str(gw / 2, gh - 10, game_state.text_color, level_string);
-    // }
+    if(game_state.inactive) {
+		int seconds = (int)game_state.inactive_timer;
+		draw_text_font_centered(Resources::font_get("gameover"), gw / 2, gh / 2, game_state.text_color, "GAME OVER");
+		draw_text_font_centered(Resources::font_get("normal"), gw / 2, gh / 2 + 100, game_state.text_color, 
+			std::string("Resetting in: " + std::to_string(seconds) + " seconds..").c_str());
+	} else {
+	    std::string level_string = "Level: " + std::to_string(game_state.level);
+	    draw_text_centered_str(gw / 2, gh - 10, game_state.text_color, level_string);
+    }
 
     struct CircleRenderData : ComponentData<Position, SizeComponent, ColorComponent> {
         ComponentArray<Position> fp;
@@ -631,22 +647,6 @@ void asteroids_render() {
 		Position &p = circle_data.fp.index(i);
         float radius = circle_data.fs.index(i).radius;
 		SDL_Color c = circle_data.fc[i].color;
-        // if(i == 0) {
-        //     std::string clr_text = std::to_string(p.value.x) 
-        //         + ", "
-        //         + std::to_string(p.value.y)
-        //         + ", "
-        //         + std::to_string(radius)
-        //         + ", "
-        //         + std::to_string(circle_data.fc[i].color.r)
-        //         + ", "
-        //         + std::to_string(circle_data.fc[i].color.g)
-        //         + ", "
-        //         + std::to_string(circle_data.fc[i].color.b)
-        //         + ", "
-        //         + std::to_string(circle_data.fc[i].color.a);
-        //     draw_text_str(5, 65, Colors::white, clr_text);
-        // }
 		draw_g_circe_color((int16_t)p.value.x, (int16_t)p.value.y, (int16_t)radius, c);
 	}
 
