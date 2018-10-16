@@ -169,7 +169,7 @@ void queue_clear() {
     event_queue.clear();
 }
 
-void spawn_player() {
+void spawn_player(int faction) {
     auto e = entity_manager->create_entity(player_archetype);
     
     // Set some component data
@@ -177,14 +177,15 @@ void spawn_player() {
     entity_manager->set_component<Direction>(e, { 0 });
     Vector2 pos = Vector2((float)gw / 2, (float)gh / 2);
     Vector2 vel = Vector2::Zero;
-    Position pc = { pos };
-    Velocity vc = { vel };
-    entity_manager->set_component(e, pc);
-    entity_manager->set_component(e, vc);
+    Position position = { pos };
+    Velocity velocity = { vel };
+    entity_manager->set_component(e, position);
+    entity_manager->set_component(e, velocity);
     entity_manager->set_component<Health>(e, { 3, true });
     entity_manager->set_component<SizeComponent>(e, { 7 });
+    entity_manager->set_component<Faction>(e, { faction });
 
-    Engine::logn("Position: %f", pc.value.x);
+    Engine::logn("Position: %f", position.value.x);
     Engine::logn("Entity: %d", e.id);
 }
 
@@ -325,8 +326,9 @@ inline void system_player_movement() {
     ComponentArray<Position> fp;
     ComponentArray<Velocity> fv;
     ComponentArray<Direction> fd;
+    ComponentArray<Faction> ff;
     unsigned length;
-    world->fill_by_arguments(length, fpi, fp, fv, fd);
+    world->fill_by_arguments(length, fpi, fp, fv, fd, ff);
     
     // Engine::logn("PlayerInput: %d", fp.length);
     for(unsigned i = 0; i < length; ++i) {
@@ -334,6 +336,7 @@ inline void system_player_movement() {
         Position &position = fp.index(i);
         Velocity &velocity = fv.index(i);
         Direction &direction = fd.index(i);
+        const Faction faction = ff.index(i);
 
         // Update rotation based on rotational speed
         // for other objects than player input once
@@ -356,9 +359,8 @@ inline void system_player_movement() {
             ShotSpawnData *d = new ShotSpawnData;
             d->position = position.value;
             d->direction.x = direction_x;
-            d->direction.y = direction_y;            
-            // TODO: Faction from component
-            d->faction = config.player_faction_1;
+            d->direction.y = direction_y;
+            d->faction = faction.faction;
             queue_event(d);
             
             pi.fire_cooldown = config.fire_cooldown;
@@ -542,10 +544,9 @@ void handle_events() {
 }
 
 void game_state_reset() {
-	spawn_player();
-    // spawn_player(config.player_faction_1);
+    spawn_player(config.player_faction_1);
 	// spawn_player(config.player_faction_2);
-	game_state.level = 1;
+	game_state.level = 0;
 	
     Engine::logn("reset!");
 }
