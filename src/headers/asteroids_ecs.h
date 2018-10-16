@@ -247,15 +247,6 @@ void spawn_asteroid(Position position, Velocity velocity, int size) {
         position.value.x, position.value.y, size, asteroid_radius(size));
 }
 
-void spawn_asteroid_wave() {
-	for(int i = 0; i < game_state.level + config.asteroid_count_increase_per_level; ++i) {
-		Position position = { Vector2(RNG::range_f(0, (float)gw), RNG::range_f(0, (float)gh)) };
-        Velocity velocity = { Vector2(RNG::range_f(0, 100) / 100.0f - 0.5f, RNG::range_f(0, 100) / 100.0f - 0.5f) };
-		int new_asteroid_size = 1;
-		spawn_asteroid(position, velocity, new_asteroid_size);
-	}
-}
-
 void system_asteroid_spawn() {
     if(game_state.inactive) {
         return;
@@ -264,7 +255,12 @@ void system_asteroid_spawn() {
     size_t asteroids = entity_manager->archetype_count(asteroid_archetype);
 	if(asteroids == 0) {
 		game_state.level++;
-		spawn_asteroid_wave();
+		for(int i = 0; i < game_state.level + config.asteroid_count_increase_per_level; ++i) {
+            Position position = { Vector2(RNG::range_f(0, (float)gw), RNG::range_f(0, (float)gh)) };
+            Velocity velocity = { Vector2(RNG::range_f(0, 100) / 100.0f - 0.5f, RNG::range_f(0, 100) / 100.0f - 0.5f) };
+            int new_asteroid_size = 1;
+            spawn_asteroid(position, velocity, new_asteroid_size);
+        }
 	}
 }
 
@@ -550,8 +546,7 @@ void game_state_reset() {
     // spawn_player(config.player_faction_1);
 	// spawn_player(config.player_faction_2);
 	game_state.level = 1;
-	spawn_asteroid_wave();
-
+	
     Engine::logn("reset!");
 }
 
