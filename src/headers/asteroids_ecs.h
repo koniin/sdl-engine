@@ -509,7 +509,7 @@ void system_health() {
     }
 }
 
-inline void bullet_cleanup() {
+inline void system_out_of_bounds() {
     ComponentArray<Position> fp;
     world->fill<Velocity, Position, Faction, MoveForwardComponent>(fp);
     ComponentArray<Entity> fe;
@@ -596,7 +596,7 @@ void asteroids_update() {
     system_collisions();
     system_damage();
     system_health();
-    bullet_cleanup();
+    system_out_of_bounds();
     
     handle_events();
 }
