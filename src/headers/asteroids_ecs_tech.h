@@ -398,6 +398,16 @@ struct World {
     void fill_by_types(unsigned &length, ComponentArray<Iterators> &... iterators) {
         expander { 0, ( (void) fill_length<Components...>(length, iterators), 0) ... };
     }
+
+    template<typename ... Iterators>
+    void fill_by_archetype(const EntityArchetype &ea, unsigned &length, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_archetype(ea, length, iterators), 0) ... };
+    }
+
+    template<typename ... Iterators>
+    void fill_by_archetype_exact(const EntityArchetype &ea, unsigned &length, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_archetype_exact(ea, length, iterators), 0) ... };
+    }
     
     template<typename ... Components>
     void fill_entities(ComponentArray<Entity> &indexer) {
@@ -454,6 +464,27 @@ struct World {
                 }
             }
             length = indexer.length;
+        }
+
+        template<typename Component>
+        void fill_archetype(const EntityArchetype &ea, unsigned &length, ComponentArray<Component> &indexer) {
+            ComponentMask m = ea.mask;
+            for(auto &c : entity_manager->storage.archetypes) {
+                if((c.first & m) == m && c.second.count > 0) {
+                    auto container = c.second.components[TypeID::value<Component>()];
+                    indexer.add(static_cast<Component*>(container->instances), container->length);
+                }
+            }
+            length = indexer.length;
+        }
+
+        template<typename Component>
+        void fill_archetype_exact(const EntityArchetype &ea, unsigned &length, ComponentArray<Component> &indexer) {
+            ComponentMask m = ea.mask;
+            auto &archetype = entity_manager->storage.archetypes[ea.mask];
+            auto container = archetype.components[TypeID::value<Component>()];
+            indexer.add(static_cast<Component*>(container->instances), container->length);
+            length = archetype.count;
         }
 };
 

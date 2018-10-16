@@ -1,10 +1,9 @@
 
 // TODO:
-// * TypeID in archetype instead of global?
+// * TypeID in archetype instead of global? - NO for now.
 // 1. Make a fix for the reset function on ComponentArray
 //      either a new collection that is just forward or do some magic on the
 //      update_cache, perhaps check if its one more etc
-// 2. Fix faction in bullet firing in player move system
 // 3. Fill indexer by archetype -> should not get by exact archetype?
 //      - no it should get all entities with all components in archetype
 // 4. Collision data should be two arrays of entities instead of one of struct?
@@ -610,7 +609,8 @@ void render_debug_data() {
     
     int bullet_count = entity_manager->archetype_count(bullet_archetype);
     ComponentArray<Position> fp;
-    world->fill<Position, Faction, SizeComponent, MoveForwardComponent>(fp);
+    unsigned bullets_by_archetype = 0;
+    world->fill_by_archetype_exact(bullet_archetype, bullets_by_archetype, fp);
     std::string bullets = "Bullet entities: " + std::to_string(fp.length) + " : " + std::to_string(bullet_count);
     draw_text_str(5, 15, Colors::white, bullets);
 
