@@ -1,15 +1,7 @@
-
-// TODO:
-// * TypeID in archetype instead of global? - NO for now.
-
-// Make a test with 
-// * Add component to entity (move from one archetype to another)
-// * dynamic archetypes 
-
 #ifndef ASTEROIDS_ECS_H
 #define ASTEROIDS_ECS_H
 
-#include "asteroids_ecs_tech.h"
+#include "ecs.h"
 
 struct AsteroidsConfig {
 	float rotation_speed = 5.0f; 
@@ -17,7 +9,7 @@ struct AsteroidsConfig {
 	float brake_speed = -0.05f;
 	float drag = 0.02f;
 	float fire_cooldown = 0.25f; // s
-	float player_bullet_speed = 5;
+	float player_bullet_speed = 20;
 	float player_bullet_size = 1;
 	int player_faction_1 = 0;
 	int player_faction_2 = 1;
@@ -177,15 +169,11 @@ void spawn_player(int faction) {
     entity_manager->set_component<Health>(e, { 3, true });
     entity_manager->set_component<SizeComponent>(e, { 7 });
     entity_manager->set_component<Faction>(e, { faction });
-
-    Engine::logn("Position: %f", position.value.x);
-    Engine::logn("Entity: %d", e.id);
 }
 
 void spawn_bullet(Vector2 position, Vector2 direction, int faction) {
     auto bullet = entity_manager->create_entity(bullet_archetype);
-    Engine::logn("new bullet, x: %f, y: %f", position.x, position.y);
-
+    
     entity_manager->set_component<Position>(bullet, { position });
     entity_manager->set_component<Faction>(bullet, { faction });
     entity_manager->set_component<ColorComponent>(bullet, { config.bullet_color });
@@ -237,8 +225,8 @@ void spawn_asteroid(Position position, Velocity velocity, int size) {
 	}
     entity_manager->set_component<PointComponent>(asteroid, { score });
 
-    Engine::logn("spawning asteroid: x: %f, y: %f, size: %d, radius: %f",
-        position.value.x, position.value.y, size, asteroid_radius(size));
+    // Engine::logn("spawning asteroid: x: %f, y: %f, size: %d, radius: %f",
+    //     position.value.x, position.value.y, size, asteroid_radius(size));
 }
 
 void system_asteroid_spawn() {
@@ -581,17 +569,51 @@ void asteroids_load() {
 }
 
 struct SpecialTest {
-    int test = 0;
+    int test = 111;
+};
+
+struct SpecialTestAdded {
+    int test = 111;
 };
 
 static bool run = true;
 void system_test() {
     if(run) {
-        Entity entity = entity_manager->create_entity<Position, SpecialTest>();
+        Entity entity = entity_manager->create_entity<Position>();
         entity_manager->set_component<Position>(entity, { Vector2(111, 222) });
-        entity_manager->set_component<SpecialTest>(entity, { 666 });
+        
+        {
+            ComponentArray<SpecialTest> specials;
+            world->fill<SpecialTest>(specials);
+            Engine::logn(Text::format("SpecialTests: %d", specials.length).c_str());
+        }
 
-        entity = entity_manager->create_entity<Position, SpecialTest>();
+        entity = entity_manager->create_entity<SpecialTest>();
+
+        {
+            ComponentArray<SpecialTest> specials;
+            world->fill<SpecialTest>(specials);
+            Engine::logn(Text::format("SpecialTests (after create): %d", specials.length).c_str());
+
+            ComponentArray<SpecialTestAdded> specialsadded;
+            world->fill<SpecialTest, SpecialTestAdded>(specialsadded);
+            Engine::logn(Text::format("SpecialTestsAdded (after create): %d", specialsadded.length).c_str());
+        }
+
+        entity_manager->add_component<SpecialTestAdded>(entity);
+
+        {
+            ComponentArray<SpecialTest> specials;
+            world->fill<SpecialTest>(specials);
+            Engine::logn(Text::format("SpecialTests (after ADD): %d", specials.length).c_str());
+
+            ComponentArray<SpecialTestAdded> specialsadded;
+            world->fill<SpecialTest, SpecialTestAdded>(specialsadded);
+            Engine::logn(Text::format("SpecialTestsAdded (after ADD): %d", specialsadded.length).c_str());
+        }
+
+        //entity_manager->set_component<SpecialTest>(entity, { 777 });
+
         run = false;
     }
 
@@ -607,16 +629,18 @@ void system_test() {
         }
     }
 
+    FrameLog::log(Text::format("%d position: %.1f, %.1f", 
+                0, positions.index(0).value.x, positions.index(0).value.y));
+
     ComponentArray<SpecialTest> specials;
     world->fill<SpecialTest>(specials);
-    FrameLog::log(Text::format("Specials: %d", specials.length));
+    FrameLog::log(Text::format("Specials: %d, value: %d", specials.length, specials.length > 0 ? specials.index(0).test : 0));
 }
 
 void asteroids_update() {
     FrameLog::reset();
 
     if(game_state.inactive) {
-        Engine::logn("inactive timer: %f", game_state.inactive_timer);
 		game_state.inactive_timer -= Time::deltaTime;
 		// Remove all asteroids and bullets and ships
         world->remove_all<MoveForwardComponent>();

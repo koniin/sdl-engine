@@ -2,105 +2,220 @@
 #define ECS_H
 
 #include "engine.h"
-
+#include <queue>
 #include <bitset>
-#include <unordered_map>
-#include <typeindex>
 
-struct BaseContainer {
-    size_t length;
-};
+const size_t MAX_ARCHETYPE_COMPONENTS = 20;
 
-template<typename T>
-struct ComponentContainer : BaseContainer {
-	ComponentContainer() {}
-	ComponentContainer(const std::vector<T> data) : data(data) {}
-    std::vector<T> data;
-};
+const unsigned ENTITY_INDEX_BITS = 22;
+const unsigned ENTITY_INDEX_MASK = (1<<ENTITY_INDEX_BITS)-1;
 
-static const size_t MAX_ARCHETYPE_ENTITIES = 128;
-static const size_t MAX_ARCHETYPE_COMPONENTS = 40;
+const unsigned ENTITY_GENERATION_BITS = 8;
+const unsigned ENTITY_GENERATION_MASK = (1<<ENTITY_GENERATION_BITS)-1;
+
 typedef std::bitset<MAX_ARCHETYPE_COMPONENTS> ComponentMask;
 
+typedef unsigned EntityId;
 struct Entity {
-    int id;
+    EntityId id;
+    
     ComponentMask mask;
+
+    unsigned generation_index() const { return id & ENTITY_INDEX_MASK; }
+    unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
 };
 
-struct EntityArcheType {
-    ComponentMask mask;
-};
+const unsigned MINIMUM_FREE_INDICES = 1024;
 
 typedef size_t ComponentID;
 
-class TypeID
-{
+class TypeID {
     static ComponentID counter;
 public:
     template<typename T>
-    static ComponentID value()
-    {
+    static ComponentID value() {
         static ComponentID id = counter++;
+        // either we put max per archetype or just increase the total count
+        ASSERT_WITH_MSG(counter <= MAX_ARCHETYPE_COMPONENTS, "MAX components reached");
         return id;
     }
 };
-ComponentID TypeID::counter = 1;
+ComponentID TypeID::counter = 0;
 
-struct Chunk {
-    size_t count = 0;
-    std::unordered_map<ComponentID, BaseContainer*> components;
-
-    template<typename T>
-    ComponentContainer<T> *get_container() {
-        return static_cast<ComponentContainer<T>*>(components[TypeID::value<T>()]);
-    }
-
-    template<typename T>
-    T &get(size_t i) {
-        return static_cast<ComponentContainer<T>*>(components[TypeID::value<T>()])->data[i];
-    }
-    
-    template <typename ... Args, typename F>
-    void call_function(F f, size_t i)  {
-        f(get<Args>(i)...);
-    }
-
-    template <typename... Args>
-    std::tuple<Args...> get_components(size_t i) {
-        return std::make_tuple(get<Args>(i)...);
-    }
-
+struct EntityArchetype {
+    ComponentMask mask;
 };
+
+struct ComponentContainer {
+    void *instances;
+    unsigned length;
+    unsigned max_size;
+    size_t type_size;
+
+    template<typename T>
+    void allocate(unsigned size) {
+        instances = new T[size];
+        length = 0;
+        max_size = size;        
+        type_size = sizeof(T);
+    }
+
+    void create_component() {
+        length++;
+    }
+
+    void remove_component(unsigned index) {
+        std::memcpy((char*)instances + (index * type_size), 
+            (char*)instances + (--length * type_size), 
+            type_size);
+    }
+};
+
+
+const size_t CHUNK_SIZE = 128;
 
 struct Store {
-    std::unordered_map<ComponentMask, Chunk> chunks;
-    
-    unsigned int add(ComponentMask m) {
-        unsigned int id = chunks[m].count;
-        chunks[m].count++;
-        for(auto c : chunks[m].components) {
-            c.second->length = chunks[m].count;
+    struct ArchetypeRepository {
+        size_t count = 0;
+        std::unordered_map<ComponentID, ComponentContainer*> components;
+        
+        std::vector<unsigned char> _generation;
+        std::queue<unsigned> _free_indices;
+
+        Entity *entities = nullptr;
+        std::unordered_map<EntityId, unsigned> _map;
+        
+        Entity create(ComponentMask mask) {
+            Entity e = make_entity_id();
+            e.mask = mask;
+            _map[e.id] = count;
+		    entities[count] = e;
+            ++count;
+
+            for(auto c : components) {
+                c.second->create_component();
+                ASSERT_WITH_MSG(c.second->length == count, "something wrong with creating entity");
+                // c.second->length = chunks[m].count;
+            }
+            return e;
         }
-        return id;
+
+        Entity make_entity_id() {
+            unsigned idx;
+            if (_free_indices.size() > MINIMUM_FREE_INDICES) {
+                idx = _free_indices.front();
+                _free_indices.pop();
+            } else {
+                _generation.push_back(0);
+                idx = _generation.size() - 1;
+                ASSERT_WITH_MSG(idx < (1 << ENTITY_INDEX_BITS), "idx is malformed, larger than 22 bits?");
+            }
+
+            return assign_entity_id(idx, _generation[idx]);
+        }
+
+        Entity assign_entity_id(unsigned idx, unsigned char generation) {
+            Entity e;
+            auto id = generation << ENTITY_INDEX_BITS | idx;
+            e.id = id;
+            return e;
+        }
+
+        bool alive(Entity e) const {
+            return _generation[e.generation_index()] == e.generation();
+        }
+
+        void destroy(Entity e) {
+            if(!alive(e))
+                return;
+
+            const unsigned idx = e.generation_index();
+            ++_generation[idx];
+            _free_indices.push(idx);
+
+            // Find the entity by id
+            auto a = _map.find(e.id);
+            if(a != _map.end()) {
+                const int index = a->second;
+                const unsigned lastIndex = count - 1;
+
+                Entity entityToDestroy = entities[index];
+                Entity lastEntity = entities[lastIndex];
+
+                entities[index] = lastEntity;
+
+                // Remove data
+                for(auto c : components) {
+                    c.second->remove_component(index);
+                }
+
+                _map[lastEntity.id] = index;
+                _map.erase(entityToDestroy.id);
+                
+                count--;
+            } 
+            // ASSERT_WITH_MSG(0, "destroy is not implemented");
+        }
+
+        template<typename T>
+        void set_data(const Entity entity, T data) {
+            auto a = _map.find(entity.id);
+            if(a != _map.end()) {
+                unsigned index = a->second;
+                auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+                container[index] = data;
+            }
+        }
+
+        template<typename T> 
+        T &get_data(const Entity entity) {
+            auto a = _map.find(entity.id);
+            ASSERT_WITH_MSG(a != _map.end(), "Could not find component on entity, use has_component first");
+            // we don't check if it's here or not, use method to see if entity has component instead
+            //if(a != _map.end()) {
+            unsigned index = a->second;
+            auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+            return container[index];
+            //}
+        }
+
+        template<typename T>
+        T &get(size_t i) {
+            auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+            return container[index];
+        }
+        
+        template <typename ... Args, typename F>
+        void call_function(F f, size_t i)  {
+            f(get<Args>(i)...);
+        }
+    };
+    
+    std::unordered_map<ComponentMask, ArchetypeRepository> archetypes;
+
+    Entity add_entity(ComponentMask mask) {
+        Entity e = archetypes[mask].create(mask);
+        return e;
+    }
+
+    void remove_entity(Entity entity) {
+        archetypes[entity.mask].destroy(entity);
     }
 
     template <typename C>
-    void allocate(ComponentMask m) {
-        // Here we allocate memory and data
-        std::vector<C> data(MAX_ARCHETYPE_ENTITIES);
+    void allocate(ComponentMask mask) {
+        ASSERT_WITH_MSG(archetypes.find(mask) == archetypes.end() ||
+            archetypes.find(mask) != archetypes.end() && archetypes[mask].components.find(TypeID::value<C>()) == archetypes[mask].components.end(), 
+            "Archetype already exists while allocating");
 
-        /*
-        You can do this instead but then you need create data on adding to vector
-        std::vector<C> data();
-        data.reserve(MAX_ARCHETYPE_ENTITIES);
-        C c; 
-        c.XX = ;
-        data[i] = c;
-        */
-        auto container = new ComponentContainer<C>(data);
-        container->length = chunks[m].count;
-        chunks[m].components[TypeID::value<C>()] = container;
-        //Engine::log("\n Allocating for: %d", TypeID::value<C>());
+        auto container = new ComponentContainer();
+        container->allocate<C>(CHUNK_SIZE);
+
+        // Only allocate one array of entities per archetype
+        if(!archetypes[mask].components.size()) {
+            archetypes[mask].entities = new Entity[CHUNK_SIZE];
+        }
+        archetypes[mask].components[TypeID::value<C>()] = container;
     }
 
     template <typename C, typename C2, typename ... Components>
@@ -108,25 +223,111 @@ struct Store {
         allocate<C>(m);
         allocate<C2, Components ...>(m);
     }
+
+    bool contains_archetype(ComponentMask mask) {
+        return archetypes.find(mask) != archetypes.end();
+    }
+
+    template<typename T>
+    void set_component_data(const Entity entity, T component) {
+        archetypes[entity.mask].set_data(entity, component);
+    }
+
+    template <typename T>
+    T &get_component(const Entity entity) {
+        return archetypes[entity.mask].get_data<T>(entity);
+    }
+
+    template <typename T>
+    void move_entity(Entity &e, ComponentMask to) {
+        if(!contains_archetype(to)) {
+            // make a new archetype by copying the old one
+            archetypes[to] = ArchetypeRepository();
+            archetypes[to].count = 0;
+            archetypes[to].entities = new Entity[CHUNK_SIZE];
+            ComponentMask from = e.mask;
+            for(auto &c : archetypes[from].components) {
+                archetypes[to].components[c.first] = new ComponentContainer();
+                archetypes[to].components[c.first]->type_size = archetypes[from].components[c.first]->type_size;
+                archetypes[to].components[c.first]->length = 0;
+                archetypes[to].components[c.first]->max_size = archetypes[from].components[c.first]->max_size;
+                size_t sizeOfComponents = CHUNK_SIZE * archetypes[from].components[c.first]->type_size;
+                archetypes[to].components[c.first]->instances = operator new(sizeOfComponents);
+            }
+
+            allocate<T>(to);
+        }
+
+        Entity new_entity = add_entity(to);
+        auto a = archetypes[e.mask]._map.find(e.id);
+        unsigned index = a->second;
+
+        for(auto &d : archetypes[e.mask].components) {
+            auto componentId = d.first;
+            auto container = d.second;
+            auto target_container = archetypes[to].components[componentId];
+            auto target_index = archetypes[to]._map.find(e.id)->second;
+            
+            std::memcpy((char*)container->instances + (index * container->type_size), 
+                (char*)target_container->instances + (target_index * container->type_size), 
+                container->type_size);
+        }
+
+        remove_entity(e);
+        e = new_entity;
+
+        /*
+        
+        template<typename T> 
+        T &get_data(const Entity entity) {
+            auto a = _map.find(entity.id);
+            ASSERT_WITH_MSG(a != _map.end(), "Could not find component on entity, use has_component first");
+            // we don't check if it's here or not, use method to see if entity has component instead
+            //if(a != _map.end()) {
+            unsigned index = a->second;
+            auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+            return container[index];
+            //}
+        }
+
+        template<typename T>
+        void set_data(const Entity entity, T data) {
+            auto a = _map.find(entity.id);
+            if(a != _map.end()) {
+                unsigned index = a->second;
+                auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+                container[index] = data;
+            }
+        }
+
+        */
+    }
+
+    size_t count(ComponentMask mask) {
+        return archetypes[mask].count;
+    }
 };
 
 struct EntityManager {
-    unsigned int type_count = 0;
     Store storage;
 
     template <typename C>
-    EntityArcheType create_archetype() {
-        EntityArcheType a;
+    EntityArchetype create_archetype() {
+        EntityArchetype a;
         a.mask = create_mask<C>();
-        storage.allocate<C>(a.mask);
+        if(!storage.contains_archetype(a.mask)) {
+            storage.allocate<C>(a.mask);
+        }
         return a;
     }
 
     template <typename C1, typename C2, typename ... Components>
-    EntityArcheType create_archetype() { 
-        EntityArcheType a;
+    EntityArchetype create_archetype() { 
+        EntityArchetype a;
         a.mask = create_mask<C1, C2, Components ...>();
-        storage.allocate<C1, C2, Components ...>(a.mask);
+        if(!storage.contains_archetype(a.mask)) {
+             storage.allocate<C1, C2, Components ...>(a.mask);
+        }
         return a;
     }
 
@@ -142,395 +343,383 @@ struct EntityManager {
         return create_mask<C1>() | create_mask<C2, Components ...>();
     }
 
-    Entity create_entity(const EntityArcheType &ea) {
-        unsigned int id = storage.add(ea.mask);
-        Entity entity;
-        entity.id = id;
-        entity.mask = ea.mask;
-        return entity;
+    size_t archetype_count(const EntityArchetype &ea) {
+        return storage.count(ea.mask);
+    }
+
+    Entity create_entity(const EntityArchetype &ea) {
+        return storage.add_entity(ea.mask);
+    }
+
+    template <typename C>
+    Entity create_entity() {
+        EntityArchetype ea = create_archetype<C>();
+        return storage.add_entity(ea.mask);
+    }
+
+    template <typename C1, typename C2, typename ... Components>
+    Entity create_entity() {
+        EntityArchetype ea = create_archetype<C1, C2, Components...>();
+        return storage.add_entity(ea.mask);
+    }
+
+    void destroy_entity(Entity entity) {
+        storage.remove_entity(entity);
     }
 
     template<typename T>
-	void set_component_data(const Entity entity, T component) {
-        auto &chunk = storage.chunks[entity.mask];
-        auto container = static_cast<ComponentContainer<T>*>(chunk.components[TypeID::value<T>()]);
-        container->data[entity.id] = component;
+	void set_component(const Entity entity, T component) {
+        ASSERT_WITH_MSG(has_component<T>(entity), "Can't set component data, component not defined on entity");
+        storage.set_component_data(entity, component);
     }
 
     template<typename T>
-    T get_component_data(const Entity entity) {
-        auto &chunk = storage.chunks[entity.mask];
-        auto container = static_cast<ComponentContainer<T>*>(chunk.components[TypeID::value<T>()]);
-        return container->data[entity.id];
+    T &get_component(const Entity entity) {
+        return storage.get_component<T>(entity);
     }
 
     template<typename T>
-    bool has_component(const Entity entity) {
-        return entity.mask.test(TypeID::value<T>());
+	bool has_component(const Entity entity) {
+        auto typeId = TypeID::value<T>();
+        return entity.mask.test(typeId);
     }
 
-    bool exists(const Entity entity) {
-        ASSERT_WITH_MSG(false, "exists IS NOT IMPLEMENTED");
-        //return false;
+    template<typename T>
+    void add_component(Entity &entity) {
+        if(has_component<T>(entity)) {
+            return;
+        }
+        ComponentMask new_mask = entity.mask;
+        new_mask.set(TypeID::value<T>());
+
+        Engine::logn("entity mask: %s", entity.mask.to_string().c_str());
+        Engine::logn("new mask: %s", new_mask.to_string().c_str());
+        storage.move_entity<T>(entity, new_mask);
+    }
+};
+
+template<typename T>
+struct ComponentArray {
+	unsigned length = 0;
+    
+	T &index(unsigned i) {
+		ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
+
+        if(i < cache.cached_begin_index || i >= cache.cached_end_index) {
+            set_cache_location(i);
+        }
+        last_index_a = i;
+		return static_cast<T&>(*(cache.cache_ptr + i));
+	}
+
+    inline T operator [](int i) const { return index(i); }
+    inline T & operator [](int i) { return index(i); }
+
+	void add(T* data, unsigned n) {
+		if(cache.cached_end_index == 0) {
+			cache.cached_begin_index = 0;
+			cache.data_ptr = 0;
+			cache.cached_end_index = n;
+		}
+		cache.datasizes[cache.data_n] = n;
+		cache.data[cache.data_n++] = data;
+		cache.cache_ptr = cache.data[cache.data_ptr];
+		length += n;
+	}
+
+    private:
+        struct Cache {
+            T *cache_ptr;
+            unsigned cached_begin_index = 0;
+            unsigned cached_end_index = 0;
+            int data_n = 0;
+            int data_ptr = 0;
+            T *data[1024];
+            size_t datasizes[1024];
+        } cache;
+
+        unsigned last_index_a = 0;
+        // Updates the cache pointer to point into the right data array
+        void set_cache_location(unsigned index) {
+            cache.cached_begin_index = 0;
+            cache.data_ptr = 0;
+            cache.cache_ptr = cache.data[cache.data_ptr];
+            cache.cached_end_index = cache.datasizes[0];
+            
+            for(int i = 0; i < cache.data_n; i++) {
+                if(index >= cache.cached_end_index) {
+                    cache.cached_begin_index += cache.datasizes[cache.data_ptr];
+                    cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin_index);
+                    cache.cached_end_index +=  cache.datasizes[cache.data_ptr];
+                }
+            }
+        }
+
+    // Still here if you want to use only forward iteration
+
+    // int last_index = -1;
+	// T &index(unsigned i) {
+	// 	ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
+	// 	ASSERT_WITH_MSG(last_index <= (int)i, "FORWARD ITERATION ONLY, use index_anywhere");
+        
+    //     last_index = i;
+
+	// 	if(i >= cache.cached_end) {
+	// 		update_cache();
+	// 	}
+	// 	return static_cast<T&>(*(cache.cache_ptr + i));
+	// }
+    
+
+	// void update_cache() {
+	// 	cache.cached_begin += cache.datasizes[cache.data_ptr];
+	// 	cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
+    //     cache.cached_end +=  cache.datasizes[cache.data_ptr];
+	// }
+
+    // void reset() {
+    //     cache.cached_begin = 0;
+	// 	cache.data_ptr = 0;
+	// 	cache.cached_end = cache.datasizes[cache.data_ptr];
+    //     cache.cache_ptr = cache.data[cache.data_ptr];
+    //     last_index = -1;
+    // }
+};
+
+template<typename ... Components>
+struct ComponentData {
+    unsigned length;
+};
+
+template<typename ... Components>
+struct EntityComponentData : ComponentData<Components...> {
+    ComponentArray<Entity> entities;
+};
+
+// owns systems / manages systems
+// owns entitymanager
+struct World {
+    EntityManager *entity_manager;
+
+    EntityManager *get_entity_manager() {
+        return entity_manager;
+    }
+    
+    typedef int expander[];
+
+    template<typename ... Components, typename ... Iterators>
+    void fill_data(ComponentData<Components...> &data, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_length<Components...>(data.length, iterators), 0) ... };
+    }
+
+    template<typename ... Components, typename ... Iterators>
+    void fill_entity_data(EntityComponentData<Components...> &data, ComponentArray<Entity> &entities, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_length<Components...>(data.length, iterators), 0) ... };
+        fill_entities<Components...>(entities);
+        data.length = entities.length;
+    }
+
+    // Use to fill a bunch of componentarrays
+    // Will fill components based on the mask of arrays passed in
+    // if you pass a Position, Velocity and X array it will find all archetypes 
+    // matching Position, Velocity and X
+    // e.g fill_by_type(l, ComponentArray<Position>, ComponentArray<Velocity>)
+    template<typename ... Components>
+    void fill_by_arguments(unsigned &length, ComponentArray<Components> &... iterators) {
+        expander { 0, ( (void) fill_length<Components...>(length, iterators), 0) ... };
+    }
+
+    // Fills the arrays based on the mask defined as types
+    // fill_by_types<Velocity, Position, Faction, MoveForwardComponent>(length, vv, pp);
+    // this will fill the vv and pp arrays with all components of that type that 
+    // matches the mask => Velocity, Position, Faction, MoveForwardComponent
+    template<typename ... Components, typename ... Iterators>
+    void fill_by_types(unsigned &length, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_length<Components...>(length, iterators), 0) ... };
+    }
+
+    template<typename ... Iterators>
+    void fill_by_archetype(const EntityArchetype &ea, unsigned &length, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_archetype(ea, length, iterators), 0) ... };
+    }
+
+    template<typename ... Iterators>
+    void fill_by_archetype_exact(const EntityArchetype &ea, unsigned &length, ComponentArray<Iterators> &... iterators) {
+        expander { 0, ( (void) fill_archetype_exact(ea, length, iterators), 0) ... };
+    }
+    
+    template<typename ... Components>
+    void fill_entities(ComponentArray<Entity> &indexer) {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m && c.second.count > 0) {
+                indexer.add(c.second.entities, c.second.count);
+            }
+        }
+    }
+
+    template<typename ... Components, typename Component>
+    void fill(ComponentArray<Component> &indexer) {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m && c.second.count > 0) {
+                auto container = c.second.components[TypeID::value<Component>()];
+                indexer.add(static_cast<Component*>(container->instances), container->length);
+            }
+        }
+    }
+
+    template<typename ... Components>
+    void remove_all() {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m && c.second.count > 0) {
+                for(unsigned i = 0; i < c.second.count; i++) {
+                    entity_manager->destroy_entity(c.second.entities[i]);
+                }
+            }
+        }
+    }
+
+    void remove_all(const EntityArchetype &ea) {
+        ComponentMask m = ea.mask;
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m && c.second.count > 0) {
+                for(unsigned i = 0; i < c.second.count; i++) {
+                    entity_manager->destroy_entity(c.second.entities[i]);
+                }
+            }
+        }
     }
     
     template<typename ... Components, typename F>
     void each(F f) {
-        ComponentMask m = create_mask<Components ...>();
-        for(auto &c : storage.chunks) {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
             if((c.first & m) == m) {
-                auto &chunk = c.second;
-                for(size_t i = 0; i < chunk.count; i++) {
-                    chunk.call_function<Components...>(f, i);
+                auto &archetype = c.second;
+                for(size_t i = 0; i < archetype.count; i++) {
+                    archetype.call_function<Components...>(f, i);
                 }
             }
         }
     }
-};
-
-template<typename Component>
-struct ContainerIterator {
-    std::vector<std::tuple<typename std::vector<Component>::iterator, typename std::vector<Component>::iterator, size_t>> iterators;
-    size_t count = 0;
-    size_t current_length = 0;
-    size_t index = -1;
-    size_t current_vector = 0;
-    typename std::vector<Component>::iterator it;
-    typename std::vector<Component>::iterator itend;
-
-    void add(ComponentContainer<Component> *container) {
-        size_t length = container->length;
-        Engine::log("\n Size: %d", length);
-        if(length == 0)
-            return;
- 
-        iterators.push_back(std::make_tuple(container->data.begin(), container->data.end(), length));
-        if(count == 0) {
-            current_length = length;
-            it = container->data.begin();
-            itend = container->data.end();
-        }
-        count++;
-    }
-
-    bool move_next() {
-        if(index != -1)
-            it++;
-        
-        index++;
-
-        if(it == itend || index >= current_length) {
-            current_vector++;
-            if(current_vector >= count)
-                return false;
-            
-            index = 0;
-            it = std::get<0>(iterators[current_vector]);
-            itend = std::get<1>(iterators[current_vector]);
-            current_length = std::get<2>(iterators[current_vector]);
-        }
-        return true;
-    }
-
-    Component &current() {
-        return *it;
-    }
-};
-
-template<typename Component>
-struct IndexedComponentIterator {
-    size_t length = 0;
-    size_t current_offset = 0;
-    size_t container_count = 0;
-    size_t current_length = 0;
-    ComponentContainer<Component>* current;
-    ComponentContainer<Component>* containers[128];
-
-    void add(ComponentContainer<Component>* container) {
-        size_t size = container->length;
-        if(size == 0)
-            return;
-
-        length += size;
-
-        containers[container_count] = container;
-        if(container_count == 0) {
-            current = container;
-            current_length = size;
-        }
-        container_count++;
-    }
-
-    Component &get(size_t index) {
-        ASSERT_WITH_MSG(index >= 0 && index < length, "INDEX IS OUTSIDE RANGE!");
-
-        size_t local_index = index - current_offset;
-        if(local_index < 0 || local_index >= current_length) {
-            current_offset = 0;
-            for(size_t i = 0; i < container_count; i++) {
-                size_t s = containers[i]->length;
-                if(index - current_offset < s) {
-                    current = containers[i];
-                    current_length = current->length;
-                    break;
-                } else {
-                    current_offset += s;
+    
+    private:
+        template<typename ... Components, typename Component>
+        void fill_length(unsigned &length, ComponentArray<Component> &indexer) {
+            ComponentMask m = entity_manager->create_mask<Components ...>();
+            for(auto &c : entity_manager->storage.archetypes) {
+                if((c.first & m) == m && c.second.count > 0) {
+                    auto container = c.second.components[TypeID::value<Component>()];
+                    indexer.add(static_cast<Component*>(container->instances), container->length);
                 }
             }
-            local_index = index - current_offset;
+            length = indexer.length;
         }
-        return current->data[local_index];
-    }
-};
 
-////////////////////////////////////////////////////////
-// Game code
-////////////////////////////////////////////////////////
-
-struct PlayerInput {
-    Vector2 move;
-};
-
-struct Position {
-    float x;
-};
-
-struct Velocity { 
-    float x;
-};
-
-struct Faction {
-    int faction;
-};
-
-EntityManager e;
-EntityArcheType player_archetype;
-
-void test_iterator() {
-    Engine::log("\n Testing iterator system");
-    ComponentMask m = e.create_mask<PlayerInput, Position>();
-
-    IndexedComponentIterator<PlayerInput> ici;
-    IndexedComponentIterator<Position> pici;
-    
-    for(auto &c : e.storage.chunks) {
-        if((c.first & m) == m) {
-            ici.add(c.second.get_container<PlayerInput>());
-            pici.add(c.second.get_container<Position>());
-        }
-    }
-
-    for(size_t i = 0; i < ici.length; i++) {
-        Engine::log("\n ICI move.x: %f", ici.get(i).move.x);
-        Engine::log("\n ICI position.x: %f", pici.get(i).x);
-        ici.get(i).move.x = 42;
-    }
-
-    m = e.create_mask<PlayerInput>();
-    ContainerIterator<PlayerInput> player_input;
-    for(auto &c : e.storage.chunks) {
-        if((c.first & m) == m) {
-            auto container = c.second.get_container<PlayerInput>();
-            player_input.add(container);
-        }
-    }
-
-    while(player_input.move_next()) {
-        Engine::log("\n movex in iterator: %f", player_input.current().move.x);
-    }
-}
-
-void setup() {
-    Engine::log("\n Create Entity Manager");
-    // var entityManager = World.Active.GetOrCreateManager<EntityManager>();
-    // create entityManager from world or something
-    
-    Engine::log("\n Make archetype");
-    // PlayerArchetype = entityManager.CreateArchetype(
-    //     typeof(Position2D), typeof(Heading2D), typeof(PlayerInput),
-    //     typeof(Faction), typeof(Health), typeof(TransformMatrix));
-    Engine::log("\n\t Creating player archetype | PlayerInput, Position");
-    player_archetype = e.create_archetype<PlayerInput, Position>();
-    Engine::log("\n\t Creating other archetype | PlayerInput, Velocity");
-    auto eaa = e.create_archetype<PlayerInput, Velocity>();
-}
-
-void new_game() {    
-    Engine::log("\n Create Entity");
-    // Access the ECS entity manager
-    // var entityManager = World.Active.GetOrCreateManager<EntityManager>();
-    // Entity player = entityManager.CreateEntity(PlayerArchetype);
-    Engine::log("\n\t Creating player entity");
-    auto player = e.create_entity(player_archetype);
-    
-    Engine::log("\n Set some data on components for entity");
-    // // We can change a few components so it makes more sense like this:
-    // entityManager.SetComponentData(player, new Position2D { Value = new float2(0.0f, 0.0f) });
-    // entityManager.SetComponentData(player, new Heading2D  { Value = new float2(0.0f, 1.0f) });
-    // entityManager.SetComponentData(player, new Faction { Value = Faction.Player });
-    // entityManager.SetComponentData(player, new Health { Value = Settings.playerInitialHealth });
-    Engine::log("\n\t Setting position to 666 for player entity");
-    Position p = { 666 };
-    e.set_component_data<Position>(player, p);
-    // Position p2 = { 321 };
-    // e.set_component_data<Position>(player2, p2);
-    // Position pOut = e.get_component_data<Position>(player);
-    // Engine::log("\n Player pos: %f", pOut.x);
-    // Position pOut2 = e.get_component_data<Position>(player2);
-    // Engine::log("\n Player TWO pos: %f", pOut2.x);
-    
-    Engine::log("\n Instantiate PlayerInputSystem");
-    Engine::log("\n Instantiate PlayerMoveSystem");
-}
-
-void test_iterate_player_input_system() {
-    Engine::log("\n\n iterating player input system");
-
-    // We want to get all components we are interrested in => PlayerInput
-
-    // Go through all archetypes matching the mask we are interrested in
-
-    //ComponentMask m = e.create_mask<PlayerInput>();
-    // ci.init(m);
-    // for(size_t i = 0; i < ci.n; i++) {
-    //     Engine::log("\n  iterator,   move x: %f", ci.index(i));
-    // }
-
-    Engine::log("\n\n Each PlayerInput");
-    e.each<PlayerInput>([](auto &p) {
-        Engine::log("\n\t Player Input only: %f", p.move.x);
-        Engine::log("\n\t Setting position to 546 for player entity");
-        p.move.x = 546;
-    });
-
-    test_iterator();
-
-    Engine::log("\n\n each PlayerInput && Position");
-    e.each<PlayerInput, Position>([](PlayerInput &p, Position &pos) {
-        Engine::log("\n Double component => move.x: %f,  pos.x: %f", p.move.x, pos.x);
-    });
-
-    Engine::log("\n\n each PlayerInput && Position && Velocity");
-    e.each<PlayerInput, Position, Velocity>([](PlayerInput &p, Position &pos, auto &v) {
-        Engine::log("\n EACH => move.x: %f,  pos.x: %f, vel.x: %f", p.move.x, pos.x, v.x);
-    });
-
-/*
-    for(auto &c : e.storage.chunks) {
-        Engine::log("\n chunk: ");
-        if((c.first & m) == m) {
-            auto &chunk = c.second;
-            auto container = static_cast<ComponentContainer<PlayerInput>*>(chunk.components[TypeID::value<PlayerInput>()]);
-            Engine::log("MATCH! | entity count: %d", chunk.count);
-            for(size_t i = 0; i < chunk.count; i++) {
-                Engine::log("\n    move x: %f", container->data[i].move.x);
+        template<typename Component>
+        void fill_archetype(const EntityArchetype &ea, unsigned &length, ComponentArray<Component> &indexer) {
+            ComponentMask m = ea.mask;
+            for(auto &c : entity_manager->storage.archetypes) {
+                if((c.first & m) == m && c.second.count > 0) {
+                    auto container = c.second.components[TypeID::value<Component>()];
+                    indexer.add(static_cast<Component*>(container->instances), container->length);
+                }
             }
+            length = indexer.length;
         }
-    }*/
+
+        template<typename Component>
+        void fill_archetype_exact(const EntityArchetype &ea, unsigned &length, ComponentArray<Component> &indexer) {
+            ComponentMask m = ea.mask;
+            auto &archetype = entity_manager->storage.archetypes[ea.mask];
+            auto container = archetype.components[TypeID::value<Component>()];
+            indexer.add(static_cast<Component*>(container->instances), container->length);
+            length = archetype.count;
+        }
+};
+
+World *make_world() {
+    World *w = new World;
+    w->entity_manager = new EntityManager;
+    return w;
 }
 
-void run_game_tick() {
-    test_iterate_player_input_system();
+#include <queue>
 
-    Engine::log("\n Update PlayerInputSystem");
-    Engine::log("\n - update all entities with the PlayerInput component");
-    Engine::log("\n Update PlayerMoveSystem");
-    Engine::log("\n - update all entities with the PlayerInput AND Position component");
-    // position += dt * playerInput.Move * settings.playerMoveSpeed;
-}
-
-void test_ecs() {
-    Engine::log("\n ECS TEST \n ----------- \n");
-
-    setup();
-
-    new_game();
-
-    run_game_tick();
-
-    // EntityArcheType arch;
-    // auto pins = new PlayerInput[100];
-    // auto cins = new ComponentContainer<PlayerInput>(*pins);
-    // arch.components[getTypeIndex<PlayerInput>()] = cins;
-
-    // // Fetches all components of the current type
-    // auto input = arch.get<PlayerInput>();
-    // input[0].move.x = 23;
-    // input[1].move.x = 66;
-    // auto input2 = arch.get<PlayerInput>();
-    // Engine::log("\n input again: %f \n", input[0].move.x);
-    // Engine::log("\n input again again: %f \n", input[1].move.x);
-}
-
-
-/* 
-// for(size_t i = 0; i < player_archetype.mask.size(); i++) {
-    //     if(player_archetype.mask.test(i)) {
-    //         Engine::log("\n %d bit is set", i);
-    //     }
-    // }
-*/
-
-/*
-
-template <typename ... Components>
-
-// template <typename C>
-//   ComponentMask component_mask(const ComponentHandle<C> &c) {
-//     return component_mask<C>();
-//   }
-
-//   template <typename C1, typename ... Components>
-//   ComponentMask component_mask(const ComponentHandle<C1> &c1, const ComponentHandle<Components> &... args) {
-//     return component_mask<C1, Components ...>();
-// }
-
-UnpackingView<Components...> entities_with_components(ComponentHandle<Components> & ... components) {
-    auto mask = component_mask<Components...>();
-    return UnpackingView<Components...>(this, mask, components...);
-}
-
-template<typename T, typename... Args>
-	ComponentHandle<T> Entity::assign(Args&&... args)
-	{
-		using ComponentAllocator = std::allocator_traits<World::EntityAllocator>::template rebind_alloc<Internal::ComponentContainer<T>>;
-
-		auto found = components.find(getTypeIndex<T>());
-		if (found != components.end())
-		{
-			Internal::ComponentContainer<T>* container = reinterpret_cast<Internal::ComponentContainer<T>*>(found->second);
-			container->data = T(args...);
-
-			auto handle = ComponentHandle<T>(&container->data);
-			world->emit<Events::OnComponentAssigned<T>>({ this, handle });
-			return handle;
+struct EventQueue {
+	struct Evt {
+		void *data;
+		size_t type;
+		static size_t counter;
+		template<typename T>
+		bool is() {
+			return getType<T>() == type;
 		}
-		else
-		{
-			ComponentAllocator alloc(world->getPrimaryAllocator());
 
-			Internal::ComponentContainer<T>* container = std::allocator_traits<ComponentAllocator>::allocate(alloc, 1);
-			std::allocator_traits<ComponentAllocator>::construct(alloc, container, T(args...));
-
-			components.insert({ getTypeIndex<T>(), container });
-
-			auto handle = ComponentHandle<T>(&container->data);
-			world->emit<Events::OnComponentAssigned<T>>({ this, handle });
-			return handle;
+		template<typename T>
+		void set() {
+			type = getType<T>();
 		}
-	}
+
+		template<typename T>
+		T *get() {
+			return static_cast<T*>(data);
+		}
+
+		void destroy() {
+			delete data;
+		}
+
+		template<typename T>
+		static size_t getType() {
+			static size_t id = counter++;
+			return id;
+		}
+	};
+
+	std::vector<Evt> events;
 
 	template<typename T>
-	ComponentHandle<T> Entity::get()
-	{
-		auto found = components.find(getTypeIndex<T>());
-		if (found != components.end())
-		{
-			return ComponentHandle<T>(&reinterpret_cast<Internal::ComponentContainer<T>*>(found->second)->data);
-		}
-	
-		return ComponentHandle<T>();
-}
+	void queue_evt(T *data) {
+		Evt evt = { data };
+		evt.set<T>();
+		events.push_back(evt);
+	}
 
-*/
+    void clear() {
+        for(auto &e : events) {
+            e.destroy();
+        }
+        events.clear();
+    }
+};
+size_t EventQueue::Evt::counter = 1;
+
+namespace FrameLog {
+    const int max_messages = 20;
+    static std::vector<std::string> messages;
+    
+    static void log(const std::string message) {
+        if(messages.size() == max_messages) {
+            return;
+        }
+        messages.push_back(message);
+    }
+
+    static void render(int x, int y) {
+        int y_start = y;
+        for(auto m : messages) {
+            draw_text_str(x, y_start, Colors::white, m);
+            y_start += 15;
+        }
+    }
+
+    static void reset() {
+        messages.clear();
+    }
+};
+
+
 #endif
