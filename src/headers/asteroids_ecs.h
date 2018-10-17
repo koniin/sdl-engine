@@ -1,9 +1,6 @@
 
 // TODO:
 // * TypeID in archetype instead of global? - NO for now.
-// 1. Make a fix for the reset function on ComponentArray
-//      either a new collection that is just forward or do some magic on the
-//      update_cache, perhaps check if its one more etc
 
 // Make a test with 
 // * Add component to entity (move from one archetype to another)
@@ -583,7 +580,21 @@ void asteroids_load() {
     game_state_reset();
 }
 
+struct SpecialTest {
+    int test = 0;
+};
+
+static bool run = true;
 void system_test() {
+    if(run) {
+        Entity entity = entity_manager->create_entity<Position, SpecialTest>();
+        entity_manager->set_component<Position>(entity, { Vector2(111, 222) });
+        entity_manager->set_component<SpecialTest>(entity, { 666 });
+
+        entity = entity_manager->create_entity<Position, SpecialTest>();
+        run = false;
+    }
+
     ComponentArray<Position> positions;
     world->fill<Position>(positions);
 
@@ -595,6 +606,10 @@ void system_test() {
                 j, positions.index(j).value.x, positions.index(j).value.y));
         }
     }
+
+    ComponentArray<SpecialTest> specials;
+    world->fill<SpecialTest>(specials);
+    FrameLog::log(Text::format("Specials: %d", specials.length));
 }
 
 void asteroids_update() {

@@ -170,7 +170,7 @@ struct Store {
         template<typename T> 
         T &get_data(const Entity entity) {
             auto a = _map.find(entity.id);
-            ASSERT_WITH_MSG(a != _map.end(), "Could not find component on entity, use has component first");
+            ASSERT_WITH_MSG(a != _map.end(), "Could not find component on entity, use has_component first");
             // we don't check if it's here or not, use method to see if entity has component instead
             //if(a != _map.end()) {
             unsigned index = a->second;
@@ -204,6 +204,10 @@ struct Store {
 
     template <typename C>
     void allocate(ComponentMask mask) {
+        ASSERT_WITH_MSG(archetypes.find(mask) == archetypes.end() ||
+            archetypes.find(mask) != archetypes.end() && archetypes[mask].components.find(TypeID::value<C>()) == archetypes[mask].components.end(), 
+            "Archetype already exists while allocating");
+
         auto container = new ComponentContainer();
         container->allocate<C>(CHUNK_SIZE);
 
@@ -218,6 +222,10 @@ struct Store {
     void allocate(ComponentMask m) {
         allocate<C>(m);
         allocate<C2, Components ...>(m);
+    }
+
+    bool contains_archetype(ComponentMask mask) {
+        return archetypes.find(mask) != archetypes.end();
     }
 
     template<typename T>
@@ -242,7 +250,9 @@ struct EntityManager {
     EntityArchetype create_archetype() {
         EntityArchetype a;
         a.mask = create_mask<C>();
-        storage.allocate<C>(a.mask);
+        if(!storage.contains_archetype(a.mask)) {
+            storage.allocate<C>(a.mask);
+        }
         return a;
     }
 
@@ -250,7 +260,9 @@ struct EntityManager {
     EntityArchetype create_archetype() { 
         EntityArchetype a;
         a.mask = create_mask<C1, C2, Components ...>();
-        storage.allocate<C1, C2, Components ...>(a.mask);
+        if(!storage.contains_archetype(a.mask)) {
+             storage.allocate<C1, C2, Components ...>(a.mask);
+        }
         return a;
     }
 
@@ -271,6 +283,18 @@ struct EntityManager {
     }
 
     Entity create_entity(const EntityArchetype &ea) {
+        return storage.add_entity(ea.mask);
+    }
+
+    template <typename C>
+    Entity create_entity() {
+        EntityArchetype ea = create_archetype<C>();
+        return storage.add_entity(ea.mask);
+    }
+
+    template <typename C1, typename C2, typename ... Components>
+    Entity create_entity() {
+        EntityArchetype ea = create_archetype<C1, C2, Components...>();
         return storage.add_entity(ea.mask);
     }
 
