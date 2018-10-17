@@ -178,6 +178,17 @@ struct Store {
             return container[index];
             //}
         }
+
+        template<typename T>
+        T &get(size_t i) {
+            auto container = static_cast<T*>(components[TypeID::value<T>()]->instances);
+            return container[index];
+        }
+        
+        template <typename ... Args, typename F>
+        void call_function(F f, size_t i)  {
+            f(get<Args>(i)...);
+        }
     };
     
     std::unordered_map<ComponentMask, ArchetypeRepository> archetypes;
@@ -288,16 +299,15 @@ struct EntityManager {
 template<typename T>
 struct ComponentArray {
 	unsigned length = 0;
-	
-	struct Cache {
-		T *cache_ptr;
-		unsigned cached_begin = 0;
-		unsigned cached_end = 0;
-		int data_n = 0;
-		int data_ptr = 0;
-		T *data[1024];
-		size_t datasizes[1024];
-	} cache;
+	T &index(unsigned i) {
+		ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
+
+        if(i < last_index_a || i >= cache.cached_end) {
+            set_cache_location(i);
+        }
+        last_index_a = i;
+		return static_cast<T&>(*(cache.cache_ptr + i));
+	}
 
     inline T operator [](int i) const { return index(i); }
     inline T & operator [](int i) { return index(i); }
@@ -314,37 +324,63 @@ struct ComponentArray {
 		length += n;
 	}
 
+    private:
+        struct Cache {
+            T *cache_ptr;
+            unsigned cached_begin = 0;
+            unsigned cached_end = 0;
+            int data_n = 0;
+            int data_ptr = 0;
+            T *data[1024];
+            size_t datasizes[1024];
+        } cache;
 
-    int last_index = -1;
-	T &index(unsigned i) {
-		ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
-		ASSERT_WITH_MSG(last_index <= (int)i, "FORWARD ITERATION ONLY");
+        unsigned last_index_a = 0;
+        // Updates the cache pointer to point into the right data array
+        void set_cache_location(unsigned index) {
+            cache.cached_begin = 0;
+            cache.data_ptr = 0;
+            cache.cache_ptr = cache.data[cache.data_ptr];
+            cache.cached_end = cache.datasizes[0];
+            
+            for(int i = 0; i < cache.data_n; i++) {
+                if(index >= cache.cached_end) {
+                    cache.cached_begin += cache.datasizes[cache.data_ptr];
+                    cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
+                    cache.cached_end +=  cache.datasizes[cache.data_ptr];
+                }
+            }
+        }
+
+    // Still here if you want to use only forward iteration
+
+    // int last_index = -1;
+	// T &index(unsigned i) {
+	// 	ASSERT_WITH_MSG(i >= 0 && i < length, "index out of bounds");
+	// 	ASSERT_WITH_MSG(last_index <= (int)i, "FORWARD ITERATION ONLY, use index_anywhere");
         
-        last_index = i;
+    //     last_index = i;
 
-		if(i >= cache.cached_end) {
-			update_cache(i);
-		}
-		return static_cast<T&>(*(cache.cache_ptr + i));
-	}
+	// 	if(i >= cache.cached_end) {
+	// 		update_cache();
+	// 	}
+	// 	return static_cast<T&>(*(cache.cache_ptr + i));
+	// }
+    
 
-	void update_cache(unsigned i) {
-		cache.cached_begin += cache.datasizes[cache.data_ptr];
-		cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
-        cache.cached_end +=  cache.datasizes[cache.data_ptr];
-	}
+	// void update_cache() {
+	// 	cache.cached_begin += cache.datasizes[cache.data_ptr];
+	// 	cache.cache_ptr = (cache.data[++cache.data_ptr] - cache.cached_begin);
+    //     cache.cached_end +=  cache.datasizes[cache.data_ptr];
+	// }
 
-    void clear() {
-        length = 0;
-    }
-
-    void reset() {
-        cache.cached_begin = 0;
-		cache.data_ptr = 0;
-		cache.cached_end = cache.datasizes[cache.data_ptr];
-        cache.cache_ptr = cache.data[cache.data_ptr];
-        last_index = -1;
-    }
+    // void reset() {
+    //     cache.cached_begin = 0;
+	// 	cache.data_ptr = 0;
+	// 	cache.cached_end = cache.datasizes[cache.data_ptr];
+    //     cache.cache_ptr = cache.data[cache.data_ptr];
+    //     last_index = -1;
+    // }
 };
 
 template<typename ... Components>
@@ -448,6 +484,19 @@ struct World {
             if((c.first & m) == m && c.second.count > 0) {
                 for(unsigned i = 0; i < c.second.count; i++) {
                     entity_manager->destroy_entity(c.second.entities[i]);
+                }
+            }
+        }
+    }
+    
+    template<typename ... Components, typename F>
+    void each(F f) {
+        ComponentMask m = entity_manager->create_mask<Components ...>();
+        for(auto &c : entity_manager->storage.archetypes) {
+            if((c.first & m) == m) {
+                auto &archetype = c.second;
+                for(size_t i = 0; i < archetype.count; i++) {
+                    archetype.call_function<Components...>(f, i);
                 }
             }
         }
@@ -562,8 +611,6 @@ namespace FrameLog {
             draw_text_str(x, y_start, Colors::white, m);
             y_start += 15;
         }
-
-        Engine::logn("x: %d, y: %d, size: %d", x, y, messages.size());
     }
 
     static void reset() {

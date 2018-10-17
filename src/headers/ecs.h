@@ -59,16 +59,17 @@ struct Chunk {
     T &get(size_t i) {
         return static_cast<ComponentContainer<T>*>(components[TypeID::value<T>()])->data[i];
     }
+    
+    template <typename ... Args, typename F>
+    void call_function(F f, size_t i)  {
+        f(get<Args>(i)...);
+    }
 
     template <typename... Args>
     std::tuple<Args...> get_components(size_t i) {
         return std::make_tuple(get<Args>(i)...);
     }
 
-    template <typename ... Args, typename F>
-    void call_function(F f, size_t i)  {
-        f(get<Args>(i)...);
-    }
 };
 
 struct Store {

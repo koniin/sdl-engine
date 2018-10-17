@@ -433,9 +433,9 @@ void system_collisions() {
                 //queue_event({ Event::ShipHit, new ShipHitData { ships[si].faction }});
 			}
         }
-        b.position.reset();
-        b.collision_data.reset();
-        b.entities.reset();
+        // b.position.reset();
+        // b.collision_data.reset();
+        // b.entities.reset();
     }
 }
 
@@ -588,18 +588,18 @@ void system_test() {
     world->fill<Position>(positions);
 
     FrameLog::log(Text::format("Positions: %d", positions.length));
-    /*
+    
     for(unsigned i = 0; i < positions.length; i++) {
         for(unsigned j = 0; j < positions.length; j++) {
-            const Position p = positions[j];
+            FrameLog::log(Text::format("%d position: %.1f, %.1f", 
+                j, positions.index(j).value.x, positions.index(j).value.y));
         }
     }
-    */
 }
 
 void asteroids_update() {
     FrameLog::reset();
-    
+
     if(game_state.inactive) {
         Engine::logn("inactive timer: %f", game_state.inactive_timer);
 		game_state.inactive_timer -= Time::deltaTime;
