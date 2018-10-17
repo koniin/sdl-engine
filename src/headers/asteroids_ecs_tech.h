@@ -40,7 +40,7 @@ public:
         return id;
     }
 };
-ComponentID TypeID::counter = 1;
+ComponentID TypeID::counter = 0;
 
 struct EntityArchetype {
     ComponentMask mask;
