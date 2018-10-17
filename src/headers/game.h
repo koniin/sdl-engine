@@ -3,13 +3,11 @@
 
 #include "engine.h"
 #include "renderer.h"
-#include "asteroids_ecs.h"
+// #include "asteroids_ecs.h"
 // #include "tile_collisions.h"
 // #include "asteroids.h"
-// #include "ecs_bitsquid.h"
-// #include "ecs.h"
-// #include "ecs_one.h"
-// #include "ecs_static.h"
+#include "bullet_physics.h"
+
 
 // ECS UNITY MOTHERLOAD => https://forum.unity.com/threads/ecs-memory-layout.532028/
 /*
@@ -33,17 +31,19 @@
 // };
 
 inline void game_load() {
-	asteroids_load();
+	// asteroids_load();
+
+	bullet_load();
 
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
 	// Resources::sprite_sheet_load("shooter.data", the_sheet);
-	
 	// tile_collisions_load();
 }
 
 inline void game_update() {
-	asteroids_update();
+	bullet_update();
+	// asteroids_update();
 	// tile_collisions_update();
 }
 
@@ -57,8 +57,9 @@ inline void game_render() {
 
 	renderer_clear();
 	
-	asteroids_render();
+	//asteroids_render();
 	//tile_collisions_render();
+	bullet_render();
 
 	renderer_draw_render_target();
 	renderer_flip();

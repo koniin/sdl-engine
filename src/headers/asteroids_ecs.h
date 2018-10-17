@@ -568,75 +568,6 @@ void asteroids_load() {
     game_state_reset();
 }
 
-struct SpecialTest {
-    int test = 111;
-};
-
-struct SpecialTestAdded {
-    int test = 111;
-};
-
-static bool run = true;
-void system_test() {
-    if(run) {
-        Entity entity = entity_manager->create_entity<Position>();
-        entity_manager->set_component<Position>(entity, { Vector2(111, 222) });
-        
-        {
-            ComponentArray<SpecialTest> specials;
-            world->fill<SpecialTest>(specials);
-            Engine::logn(Text::format("SpecialTests: %d", specials.length).c_str());
-        }
-
-        entity = entity_manager->create_entity<SpecialTest>();
-
-        {
-            ComponentArray<SpecialTest> specials;
-            world->fill<SpecialTest>(specials);
-            Engine::logn(Text::format("SpecialTests (after create): %d", specials.length).c_str());
-
-            ComponentArray<SpecialTestAdded> specialsadded;
-            world->fill<SpecialTest, SpecialTestAdded>(specialsadded);
-            Engine::logn(Text::format("SpecialTestsAdded (after create): %d", specialsadded.length).c_str());
-        }
-
-        entity_manager->add_component<SpecialTestAdded>(entity);
-
-        {
-            ComponentArray<SpecialTest> specials;
-            world->fill<SpecialTest>(specials);
-            Engine::logn(Text::format("SpecialTests (after ADD): %d", specials.length).c_str());
-
-            ComponentArray<SpecialTestAdded> specialsadded;
-            world->fill<SpecialTest, SpecialTestAdded>(specialsadded);
-            Engine::logn(Text::format("SpecialTestsAdded (after ADD): %d", specialsadded.length).c_str());
-        }
-
-        //entity_manager->set_component<SpecialTest>(entity, { 777 });
-
-        run = false;
-    }
-
-    ComponentArray<Position> positions;
-    world->fill<Position>(positions);
-
-    FrameLog::log(Text::format("Positions: %d", positions.length));
-    
-    for(unsigned i = 0; i < positions.length; i++) {
-        for(unsigned j = 0; j < positions.length; j++) {
-            FrameLog::log(Text::format("%d position: %.1f, %.1f", 
-                j, positions.index(j).value.x, positions.index(j).value.y));
-        }
-    }
-
-    FrameLog::log(Text::format("%d position: %.1f, %.1f", 
-                0, positions.index(0).value.x, positions.index(0).value.y));
-
-    ComponentArray<SpecialTest> specials;
-    world->fill<SpecialTest>(specials);
-    FrameLog::log(Text::format("Specials: %d, value: %d", specials.length, specials.length > 0 ? specials.index(0).test : 0));
-}
-
 void asteroids_update() {
     FrameLog::reset();
 
@@ -650,8 +581,6 @@ void asteroids_update() {
             game_state.inactive = false;
 		}
 	}
-
-    system_test();
 
     system_asteroid_spawn();
 	system_shield();

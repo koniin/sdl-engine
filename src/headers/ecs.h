@@ -369,7 +369,7 @@ struct EntityManager {
 
     template<typename T>
 	void set_component(const Entity entity, T component) {
-        ASSERT_WITH_MSG(has_component<T>(entity), "Can't set component data, component not defined on entity");
+        ASSERT_WITH_MSG(has_component<T>(entity), "Can't set component. Entity does not have: " + std::string(typeid(T).name()));
         storage.set_component_data(entity, component);
     }
 
