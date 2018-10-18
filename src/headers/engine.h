@@ -392,6 +392,13 @@ namespace Math {
 		int top;
 	};
 
+	struct AABB_f {
+		float left;
+		float right;
+		float bottom;
+		float top;
+	};
+
 	inline bool intersect_AABB(const Rectangle &a, const Rectangle &b) {
 		AABB aa = { a.x, a.x + a.w, a.y, a.y + a.h };
 		AABB bb = { b.x, b.x + b.w, b.y, b.y + b.h };
@@ -400,7 +407,7 @@ namespace Math {
 	}
 
 	inline bool intersect_circle_AABB(const float &cx, const float &cy, const float &radius, const Rectangle &rect) {
-		AABB aa = { rect.x, rect.x + rect.w, rect.y, rect.y + rect.h };
+		AABB_f aa = { (float)rect.x, (float)rect.x + rect.w, (float)rect.y, rect.y + (float)rect.h };
 		float delta_x = cx - Math::max_f(aa.left, Math::min_f(cx, aa.right));
 		float delta_y = cy - Math::max_f(aa.bottom, Math::min_f(cy, aa.top));
 		return (delta_x * delta_x + delta_y * delta_y) < (radius * radius);
