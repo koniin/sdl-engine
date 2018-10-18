@@ -5,6 +5,7 @@
 // Game Feel TODO:
 /* ==========================
 
+All gfx can be found in shooter_spritesheet.png
 * Bullet gfx (big)
 * Ship gfx
 * Enemy gfx
@@ -19,15 +20,15 @@
 * player knockback on fire weapon (if player is too far back move to start pos for demo)
 * Sleep on hit an enemy (20ms)
 * Shells or something fly out on fire weapon (make it a "machine gun")
-* Camera kick - move camera back on firing (moves back to player automatically if following)
 * BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
 * Smoke on explosion
 * Smoke on fire gun
 
-
-When we have done movement also:
+Do movement and then:
+* Area larger than the screen with camera
 * Camera lerp - follow player
 * Camera towards where player is aiming
+* Camera kick - move camera back on firing (moves back to player automatically if following)
 
 Then:
 * Sound and animatons
