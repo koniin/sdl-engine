@@ -2,6 +2,41 @@
 #include "engine.h"
 #include "renderer.h"
 
+// Game Feel TODO:
+/* ==========================
+
+* Bullet gfx (big)
+* Ship gfx
+* Enemy gfx
+* Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
+* Bullet spread (accuracy)
+* Impact effect (hit effect, like a little marker on the side we hit)
+* Hit animation (Blink)
+* Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
+* Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
+* Screen shake on fire weapon
+* Screen shake on hit enemy
+* player knockback on fire weapon (if player is too far back move to start pos for demo)
+* Sleep on hit an enemy (20ms)
+* Shells or something fly out on fire weapon (make it a "machine gun")
+* Camera kick - move camera back on firing (moves back to player automatically if following)
+* BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
+* Smoke on explosion
+* Smoke on fire gun
+
+
+When we have done movement also:
+* Camera lerp - follow player
+* Camera towards where player is aiming
+
+Then:
+* Sound and animatons
+* More base in sound effects
+
+* Gun gfx
+* Gun kick - make it smaller or something when firing
+
+*/
 
 struct PlayerInput {
 	// Input
@@ -90,6 +125,7 @@ struct Configuration {
 struct DebugData {
     int bullets_fired = 0;
     int bullets_collided = 0;
+    int bullets_to_rect = 0;
 } debug_data;
 
 World *world;
@@ -121,7 +157,7 @@ void spawn_player(int faction) {
     Velocity velocity = { vel };
     entity_manager->set_component(e, position);
     entity_manager->set_component(e, velocity);
-    entity_manager->set_component<SizeComponent>(e, { 7 });
+    entity_manager->set_component<SizeComponent>(e, { 6 });
 }
 
 void spawn_bullet(Vector2 position, Vector2 direction, int faction) {
@@ -134,7 +170,7 @@ void spawn_bullet(Vector2 position, Vector2 direction, int faction) {
     entity_manager->set_component<Velocity>(bullet, { 
             Vector2(direction.x * config.bullet_speed, direction.y * config.bullet_speed)
         });
-    entity_manager->set_component<SizeComponent>(bullet, { 2.0f });
+    entity_manager->set_component<SizeComponent>(bullet, { 4.0f });
 }
 
 void spawn_target(Position position, Velocity velocity, int size) {
@@ -188,6 +224,10 @@ struct CollisionData {
     }
 } collisions;
 
+const int rect_h = 16;
+const int rect_w = 16;
+static Rectangle the_square;
+
 void system_collisions() {
     struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
         ComponentArray<Position> position;
@@ -212,9 +252,12 @@ void system_collisions() {
                 collisions.push(first_entity, second_entity);
 			}
         }
+
+        if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square)) {
+            debug_data.bullets_to_rect++;
+        }
     }
 
-    FrameLog::log("collision count: " + std::to_string(collisions.count));
     for(unsigned i = 0; i < collisions.count; ++i) {
         Entity first = collisions.first[i];
         Entity second = collisions.second[i];
@@ -240,7 +283,8 @@ void bullet_load() {
     target_archetype = entity_manager->create_archetype<Position, Velocity, MoveForwardComponent, SizeComponent, ColorComponent, Health>();
 
     spawn_player(1);
-    spawn_target({ Vector2((float)gw - 200.0f, (float)gh/2) }, Velocity(), 10);
+    spawn_target({ Vector2((float)gw - 150.0f, (float)gh/2) }, Velocity(), 10);
+    the_square = Rectangle(gw - 200 - (rect_h / 2), gh/2 - (rect_w / 2), 16, 16);
 }
 
 void bullet_update() {
@@ -284,6 +328,15 @@ void bullet_update() {
             if(Input::key_pressed(SDLK_w)) {
                 config.bullet_speed += 2.0f;
             }
+            if(Input::key_pressed(SDLK_s)) {
+                config.bullet_speed -= 2.0f;
+            }
+            if(Input::key_pressed(SDLK_a)) {
+                config.fire_cooldown -= 0.1f;
+            }
+            if(Input::key_pressed(SDLK_d)) {
+                config.fire_cooldown += 0.1f;
+            }
         }
     }
 
@@ -321,8 +374,10 @@ void bullet_update() {
     handle_events();
 
     FrameLog::log("bullets collided: " + std::to_string(debug_data.bullets_collided));
+    FrameLog::log("bullets to rect: " + std::to_string(debug_data.bullets_to_rect));
     FrameLog::log("bullets fired: " + std::to_string(debug_data.bullets_fired));
-    FrameLog::log("fire speed: " + std::to_string(config.bullet_speed));
+    FrameLog::log("bullet speed: " + std::to_string(config.bullet_speed));
+    FrameLog::log("fire cooldown: " + std::to_string(config.fire_cooldown));
 }
 
 void bullet_render() {
@@ -333,8 +388,7 @@ void bullet_render() {
     world->fill_data(player_data, player_data.fp, player_data.fd);
     for(unsigned i = 0; i < player_data.length; ++i) {
         const Position &p = player_data.fp.index(i);
-        draw_g_rectangle_filled((int)p.value.x, (int)p.value.y, 10, 10, Colors::white);
-		// draw_spritesheet_name_centered_rotated(the_sheet, "player", (int)p.value.x, (int)p.value.y, d.angle + 90);
+        draw_g_rectangle_filled((int)p.value.x, (int)p.value.y, 16, 16, Colors::white);
     }
 
     struct CircleRenderData : ComponentData<Position, SizeComponent, ColorComponent> {
@@ -349,6 +403,8 @@ void bullet_render() {
 		SDL_Color c = circle_data.fc[i].color;
 		draw_g_circe_color((int16_t)p.value.x, (int16_t)p.value.y, (int16_t)radius, c);
 	}
+
+    draw_g_rectangle_filled(the_square.x, the_square.y, rect_w, rect_h, Colors::white);
 
     FrameLog::render(5, 10);
 }

@@ -399,6 +399,13 @@ namespace Math {
 			&& (aa.bottom <= bb.top && aa.top >= bb.bottom);
 	}
 
+	inline bool intersect_circle_AABB(const float &cx, const float &cy, const float &radius, const Rectangle &rect) {
+		AABB aa = { rect.x, rect.x + rect.w, rect.y, rect.y + rect.h };
+		float delta_x = cx - Math::max_f(aa.left, Math::min_f(cx, aa.right));
+		float delta_y = cy - Math::max_f(aa.bottom, Math::min_f(cy, aa.top));
+		return (delta_x * delta_x + delta_y * delta_y) < (radius * radius);
+	}
+
 	// 	inline bool intersect_AABB(Rectangle &a, Rectangle &b) {
 	//   		return (a.minX <= b.maxX && a.maxX >= b.minX) 
 	// 			&& (a.minY <= b.maxY && a.maxY >= b.minY);
