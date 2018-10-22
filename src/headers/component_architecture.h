@@ -170,6 +170,7 @@ struct Velocity {
     float x, y;
 
     Velocity(): x(0), y(0) {}
+    Velocity(float xv, float yv): x(xv), y(yv) {}
 };
 
 struct Direction {
@@ -227,9 +228,7 @@ struct Bullet : Entities::EntityData {
     }
     
     void spawn_bullet(Position p, Direction direction, float speed) {
-        Velocity v;
-        v.x = direction.x * speed;
-        v.y = direction.y * speed;
+        Velocity v = { direction.x * speed, direction.y * speed };
         bullet_queue.push_back({ p, v });
     }
 };
