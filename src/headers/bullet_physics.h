@@ -1,3 +1,6 @@
+#ifndef BULLET_PHYSICS_H
+#define BULLET_PHYSICS_H
+
 #include "ecs.h"
 #include "engine.h"
 #include "renderer.h"
@@ -341,6 +344,7 @@ void bullet_update() {
         }
     }
 
+    // Move forward system
     {
         ComponentArray<Velocity> velocity;
         ComponentArray<Position> position;
@@ -409,3 +413,5 @@ void bullet_render() {
 
     FrameLog::render(5, 10);
 }
+
+#endif
