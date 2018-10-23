@@ -523,7 +523,7 @@ void system_collisions(CollisionPairs &collision_pairs) {
     for(int i = 0; i < projectiles.length; ++i) {
         for(int j = 0; j < targets.length; ++j) {
             const Position &first_position = projectiles.position[i];
-            const Position &second_position = targets.position[i];
+            const Position &second_position = targets.position[j];
             const float first_radius = (float)projectiles.radius;
             const float second_radius = (float)targets.radius;
             if(Math::intersect_circles(first_position.x, first_position.y, first_radius, second_position.x, second_position.y, second_radius)) {
@@ -531,6 +531,9 @@ void system_collisions(CollisionPairs &collision_pairs) {
             }
         }
     }
+
+    if(collision_pairs.count > 0)
+        Engine::logn("detected %d collisions", collision_pairs.count);
 
     for(unsigned i = 0; i < collision_pairs.count; ++i) {
         //ECS::Entity first = ;
@@ -687,6 +690,8 @@ void draw_buffer(SpriteData *spr, int length) {
 
 void render_arch() {
     int sprite_count = 0;
+
+    draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
 
     for(int i = 0; i < players.length; i++) {
         Direction &d = players.direction[i];
