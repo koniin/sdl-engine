@@ -583,13 +583,34 @@ void remove_destroyed_entities() {
 }
 
 static CollisionPairs collisions;
-static SpriteSheet the_sheet;
-void load_arch() {
-    Engine::set_base_data_folder("data");
-	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
+
+static std::vector<SpriteSheet> sprite_sheets;
+struct SpriteData {
+    enum Type { Circle, Sprite } type;
+    int16_t x, y;
+    SDL_Color color;
+    int16_t radius;
+    int sprite_index;
+    std::string sprite_name;
+    float rotation;
+};
+SpriteData *sprite_data_buffer;
+
+void load_render_data() {
+    Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
+    sprite_sheets.reserve(8);
+    SpriteSheet the_sheet;
 	Resources::sprite_sheet_load("shooter_spritesheet.data", the_sheet);
+    sprite_sheets.push_back(the_sheet);
+    sprite_data_buffer = new SpriteData[256];
+}
+
+void load_arch() {
+    Engine::set_base_data_folder("data");
+	
+    load_render_data();
 
     world_bounds = { 0, 0, (int)gw, (int)gh };
 
@@ -620,26 +641,78 @@ void update_arch() {
     FrameLog::log("Targets: " + std::to_string(targets.length));
 }
 
+// template<class T>
+// void ExportSpriteData(const T& go, sprite_data_t& spr)
+// {
+//     // write out their Position & Sprite data into destination buffer that will be rendered later on.
+//     //
+//     // Using a smaller global scale "zooms out" the rendering, so to speak.
+//     float globalScale = 0.05f;
+//     spr.posX = go.pos.x * globalScale;
+//     spr.posY = go.pos.y * globalScale;
+//     spr.scale = go.sprite.scale * globalScale;
+//     spr.colR = go.sprite.colorR;
+//     spr.colG = go.sprite.colorG;
+//     spr.colB = go.sprite.colorB;
+//     spr.sprite = (float)go.sprite.spriteIndex;
+// }
+
+void export_sprite_data(const Position &pos, const SDL_Color &color, const float &radius, SpriteData &spr) {
+    spr.type = SpriteData::Circle;
+    spr.x = (int16_t)pos.x;
+    spr.y = (int16_t)pos.y;
+    spr.color = color;
+    spr.radius = (int16_t)radius;
+}
+
+void export_sprite_data(const Position &pos, const int &sprite_sheet_index, const std::string &sprite, const float &rotation, SpriteData &spr) {
+    spr.type = SpriteData::Sprite;
+    spr.x = (int16_t)pos.x;
+    spr.y = (int16_t)pos.y;
+    spr.sprite_index = sprite_sheet_index;
+    spr.sprite_name = sprite;
+    spr.rotation = rotation;
+}
+
+void draw_buffer(SpriteData *spr, int length) {
+    // This is where we can use camera and zoom and scale etc
+    for(int i = 0; i < length; i++) {
+        if(spr[i].type == SpriteData::Circle) {
+            draw_g_circe_color(spr[i].x, spr[i].y, spr[i].radius, spr[i].color);
+        } else if(spr[i].type == SpriteData::Sprite) {
+            draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
+        }
+    }
+}
+
 void render_arch() {
+    int sprite_count = 0;
+
     for(int i = 0; i < players.length; i++) {
-        Position &p = players.position[i];
         Direction &d = players.direction[i];
-        draw_spritesheet_name_centered_rotated(the_sheet, "player_1", (int)p.x, (int)p.y, d.angle + 90);
+        export_sprite_data(players.position[i], 0, "player_1", d.angle + 90, sprite_data_buffer[sprite_count++]);
+        // draw_spritesheet_name_centered_rotated(the_sheet, "player_1", (int)p.x, (int)p.y, d.angle + 90);
         // SDL_Color c = Colors::white;
         // draw_g_circe_color((int16_t)p.x, (int16_t)p.y, 4, c);
     }
-    
+
+    SDL_Color projectile_color = { 0, 255, 0, 255 };
     for(int i = 0; i < projectiles.length; ++i) {
-		Position &p = projectiles.position[i];
-		SDL_Color c = { 0, 255, 0, 255 };
-		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)projectiles.radius, c);
+        export_sprite_data(projectiles.position[i], projectile_color, (int16_t)projectiles.radius, sprite_data_buffer[sprite_count++]);
+		// Position &p = projectiles.position[i];
+		// SDL_Color c = { 0, 255, 0, 255 };
+		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)projectiles.radius, c);
 	}
 
+    SDL_Color target_color = { 255, 0, 0, 255 };
     for(int i = 0; i < targets.length; ++i) {
-		Position &p = targets.position[i];
-		SDL_Color c = { 255, 0, 0, 255 };
-		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
+        export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
+		// Position &p = targets.position[i];
+		// SDL_Color c = { 255, 0, 0, 255 };
+		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
 	}
+
+    draw_buffer(sprite_data_buffer, sprite_count);
 
     FrameLog::render(5, 5);
 }
