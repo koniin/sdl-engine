@@ -1,0 +1,8 @@
+shooter_spritesheet.png
+6
+00 player_1 0 0 16 16
+01 player_1_turn_1 0 16 16 16
+02 player_1_turn_2 0 32 16 16
+03 player_2 16 0 16 16
+04 player_2_turn_1 16 16 16 16
+05 player_2_turn_2 16 32 16 16

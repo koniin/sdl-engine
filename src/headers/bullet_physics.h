@@ -5,43 +5,6 @@
 #include "engine.h"
 #include "renderer.h"
 
-// Game Feel TODO:
-/* ==========================
-
-All gfx can be found in shooter_spritesheet.png
-* Bullet gfx (big)
-* Ship gfx
-* Enemy gfx
-* Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
-* Bullet spread (accuracy)
-* Impact effect (hit effect, like a little marker on the side we hit)
-* Hit animation (Blink)
-* Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
-* Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
-* Screen shake on fire weapon
-* Screen shake on hit enemy
-* player knockback on fire weapon (if player is too far back move to start pos for demo)
-* Sleep on hit an enemy (20ms)
-* Shells or something fly out on fire weapon (make it a "machine gun")
-* BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
-* Smoke on explosion
-* Smoke on fire gun
-
-Do movement and then:
-* Area larger than the screen with camera
-* Camera lerp - follow player
-* Camera towards where player is aiming
-* Camera kick - move camera back on firing (moves back to player automatically if following)
-
-Then:
-* Sound and animatons
-* More base in sound effects
-
-* Gun gfx
-* Gun kick - make it smaller or something when firing
-
-*/
-
 struct PlayerInput {
 	// Input
 	float move_x = 0;

@@ -641,24 +641,48 @@ void renderer_destroy() {
 	SDL_DestroyWindow(renderer.sdl_window);
 }
 
+namespace FrameLog {
+	const int max_messages = 20;
+    static std::vector<std::string> messages;
+	
+    void log(const std::string message) {
+        if(messages.size() == max_messages) {
+            return;
+        }
+        messages.push_back(message);
+    }
+
+    void reset() {
+        messages.clear();
+    }
+	
+	void render(int x, int y) {
+        int y_start = y;
+        for(auto m : messages) {
+            draw_text_str(x, y_start, Colors::white, m);
+            y_start += 15;
+        }
+    }
+}
+
 // GPU_Camera *getCamera() {
 // 	return &camera;
 // }
 
-void renderer_clearCamera() {
-	//GPU_SetCamera(renderer.target, NULL);
-}
+// void renderer_clearCamera() {
+// 	//GPU_SetCamera(renderer.target, NULL);
+// }
 
-void renderer_resetCamera() {
-	//camera = GPU_GetDefaultCamera();
-}
+// void renderer_resetCamera() {
+// 	//camera = GPU_GetDefaultCamera();
+// }
 
-void camera_lookat(int x, int y) {
-	// camera.x = x - (static_cast<int>(gw) / 2);
-	// camera.y = y - (static_cast<int>(gh) / 2);
-}
+// void camera_lookat(int x, int y) {
+// 	// camera.x = x - (static_cast<int>(gw) / 2);
+// 	// camera.y = y - (static_cast<int>(gh) / 2);
+// }
 
-void camera_move(int x, int y) {
-	// camera.x += x;
-	// camera.y += y;
-}
+// void camera_move(int x, int y) {
+// 	// camera.x += x;
+// 	// camera.y += y;
+// }

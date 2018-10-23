@@ -133,6 +133,12 @@ void renderer_draw_render_target();
 void renderer_flip();
 void renderer_destroy();
 
+namespace FrameLog {
+	void log(const std::string message);
+	void reset();
+    void render(int x, int y);
+};
+
 // GPU_Camera *getCamera();
 // void renderer_clearCamera();
 // void renderer_resetCamera();

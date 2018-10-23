@@ -1,3 +1,41 @@
+
+// Game Feel TODO:
+/* ==========================
+
+All gfx can be found in shooter_spritesheet.png
+* Bullet gfx (big)
+* Ship gfx
+* Enemy gfx
+* Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
+* Bullet spread (accuracy)
+* Impact effect (hit effect, like a little marker on the side we hit)
+* Hit animation (Blink)
+* Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
+* Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
+* Screen shake on fire weapon
+* Screen shake on hit enemy
+* player knockback on fire weapon (if player is too far back move to start pos for demo)
+* Sleep on hit an enemy (20ms)
+* Shells or something fly out on fire weapon (make it a "machine gun")
+* BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
+* Smoke on explosion
+* Smoke on fire gun
+
+Do movement and then:
+* Area larger than the screen with camera
+* Camera lerp - follow player
+* Camera towards where player is aiming
+* Camera kick - move camera back on firing (moves back to player automatically if following)
+
+Then:
+* Sound and animatons
+* More base in sound effects
+
+* Gun gfx
+* Gun kick - make it smaller or something when firing
+
+*/
+
 #ifndef COMPONENT_ARCHITECTURE_H
 #define COMPONENT_ARCHITECTURE_H
 
@@ -64,22 +102,27 @@ namespace Entities {
     struct EntityData {
         int length;
         int size;
-        EntityId *entity;
+        Entity *entity;
         std::unordered_map<EntityId, unsigned> _map;
         int container_count = 0;
         int max_container_count = 0;
         void **containers;
+        size_t *container_sizes;
     
         void allocate_entities(size_t count, int max_containers) {
             size = count;
-            entity = new EntityId[count];
+            entity = new Entity[count];
             containers = new void*[max_containers];
+            container_sizes = new size_t[max_containers];
             max_container_count = max_containers;
         }
 
-        void add(void *container) {
+        template<typename T>
+        void add(T *container) {
             ASSERT_WITH_MSG(container_count < max_container_count, "Maximum container count reached, more components than containers");
-            containers[container_count++] = container;
+            containers[container_count] = container;
+            container_sizes[container_count] = sizeof(T);
+            container_count++;
         }
 
         static const int invalid_handle = -1;
@@ -96,7 +139,7 @@ namespace Entities {
             return { invalid_handle };
         }
 
-        bool is_alive(Entity e) {
+        bool contains(Entity e) {
             auto a = _map.find(e.id);
             return a != _map.end();
         }
@@ -107,15 +150,16 @@ namespace Entities {
 
         void create(Entity e) {
             ASSERT_WITH_MSG(length <= size, "Component storage is full, n:" + std::to_string(length));
-            ASSERT_WITH_MSG(!is_alive(e), "Entity already has component");
+            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
             
             unsigned int index = length;
             _map[e.id] = index;
+            entity[index] = e;
             length++;
         }
 
-        void remove_component(Entity e) {
-            if(!is_alive(e))
+        void remove(Entity e) {
+            if(!contains(e))
                 return;
 
             auto a = _map.find(e.id);
@@ -124,21 +168,24 @@ namespace Entities {
 
             if (lastIndex >= 0) {
                 // Get the entity at the index to destroy
-                EntityId entityToDestroy = entity[index];
+                Entity entityToDestroy = entity[index];
                 // Get the entity at the end of the array
-                EntityId lastEntity = entity[lastIndex];
+                Entity lastEntity = entity[lastIndex];
 
                 // Move last entity's data
                 entity[index] = entity[lastIndex];
 
                 for(int i = 0; i < container_count; i++) {
-                    ((char*)containers[i])[index] = ((char*)containers[i])[lastIndex];
+                    std::memcpy((char*)containers[i] + (index * container_sizes[i]), 
+                        (char*)containers[i] + (lastIndex * container_sizes[i]), 
+                        container_sizes[i]);
+                    //((char*)containers[i])[index] = ((char*)containers[i])[lastIndex];
                 }
 
                 // Update map entry for the swapped entity
-                _map[lastEntity] = index;
+                _map[lastEntity.id] = index;
                 // Remove the map entry for the destroyed entity
-                _map.erase(entityToDestroy);
+                _map.erase(entityToDestroy.id);
 
                 // Decrease count
                 length--;
@@ -205,17 +252,11 @@ struct Player : Entities::EntityData {
     }
 };
 
-struct Bullet : Entities::EntityData {
+struct Projectile : Entities::EntityData {
     Position *position;
     Velocity *velocity;
 
     const int radius = 8;
-
-    struct SpawnBullet {
-        Position position;
-        Velocity velocity;
-    };
-    std::vector<SpawnBullet> bullet_queue;
 
     void allocate(size_t n) {
         position = new Position[n];
@@ -223,33 +264,41 @@ struct Bullet : Entities::EntityData {
         allocate_entities(n, 2);
         add(position);
         add(velocity);
-
-        bullet_queue.reserve(64);
     }
-    
-    void spawn_bullet(Position p, Direction direction, float speed) {
-        Velocity v = { direction.x * speed, direction.y * speed };
-        bullet_queue.push_back({ p, v });
+};
+
+struct Target : Entities::EntityData {
+    Position *position;
+    Velocity *velocity;
+
+    const int radius = 8;
+
+    void allocate(size_t n) {
+        position = new Position[n];
+        velocity = new Velocity[n];
+        allocate_entities(n, 2);
+        add(position);
+        add(velocity);
     }
 };
 
 template<typename T>
 Position &get_position(T &entity_data, Entity e) {
-    ASSERT_WITH_MSG(entity_data.is_alive(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     return entity_data.position[handle.i];
 }
 
 template<typename T>
 void set_position(T &entity_data, Entity e, Position p) {
-    ASSERT_WITH_MSG(entity_data.is_alive(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     entity_data.position[handle.i] = p;
 }
 
 template<typename T>
 void set_velocity(T &entity_data, Entity e, Velocity v) {
-    ASSERT_WITH_MSG(entity_data.is_alive(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     entity_data.velocity[handle.i] = v;
 }
@@ -300,7 +349,29 @@ InputMapping input_maps[2] = {
 
 EntityManager entity_manager;
 Player players;
-Bullet bullets;
+Projectile projectiles;
+Target targets;
+
+Rectangle world_bounds;
+
+struct SpawnProjectile {
+    Position position;
+    Velocity velocity;
+};
+std::vector<SpawnProjectile> projectile_queue;
+void queue_projectile(Position p, Direction direction, float speed) {
+    Velocity v = { direction.x * speed, direction.y * speed };
+    projectile_queue.push_back({ p, v });
+}
+void spawn_projectiles() {
+    for(size_t i = 0; i < projectile_queue.size(); i++) {
+        Entity e = entity_manager.create();
+        projectiles.create(e);
+        set_position(projectiles, e, projectile_queue[i].position);
+        set_velocity(projectiles, e, projectile_queue[i].velocity);
+    }
+    projectile_queue.clear();
+}
 
 void spawn_player() {
     Entity e = entity_manager.create();
@@ -308,17 +379,16 @@ void spawn_player() {
     set_position(players, e, { 100, 200 });
 }
 
-static SpriteSheet the_sheet;
-void load_arch() {
-    Engine::set_base_data_folder("data");
-	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
-	set_default_font(font);
-	Resources::font_load("gameover", "pixeltype.ttf", 85);
-	Resources::sprite_sheet_load("shooter.data", the_sheet);
+void spawn_target() {
+    Entity e = entity_manager.create();
+    targets.create(e);
+    set_position(targets, e, { 400, 200 });
+    set_velocity(targets, e, { 0, 0 });
+}
 
-    players.allocate(2);
-    bullets.allocate(128);
-    spawn_player();
+std::vector<Entity> entities_to_destroy;
+void queue_remove_entity(Entity entity) {
+    entities_to_destroy.push_back(entity);
 }
 
 void system_player_get_input() {
@@ -371,77 +441,219 @@ void system_player_handle_input() {
 	    velocity.x += direction.x * pi.move_y * config.acceleration;
 	    velocity.y += direction.y * pi.move_y * config.acceleration;
 
-        
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            bullets.spawn_bullet(players.position[i], direction, config.player_bullet_speed);
-
-            // d->position = position;
-            // d->rotation.x = direction_x;
-            // d->rotation.y = direction_y;
-            // d->time_to_live = config.bullet_time_to_live;
-            // d->faction = sdata.faction;
-            // e.data = d;
-            // queue_event(e);
+            queue_projectile(players.position[i], direction, config.player_bullet_speed);
             pi.fire_cooldown = config.fire_cooldown;
         }
     }
 }
 
 template<typename T>
-void update_positions(T &entityData) {
+void move_forward(T &entityData) {
     for(int i = 0; i < entityData.length; i++) {
         entityData.position[i].x += entityData.velocity[i].x;
         entityData.position[i].y += entityData.velocity[i].y;
     }
 }
 
-void system_move() {
-    update_positions(players);
-    update_positions(bullets);
+template<typename T>
+void keep_in_bounds(T &entityData, Rectangle &bounds) {
+    for(int i = 0; i < entityData.length; i++) {
+        if(entityData.position[i].x < bounds.x) { 
+            entityData.position[i].x = (float)bounds.x; 
+        }
+        if(entityData.position[i].x > bounds.right()) { 
+            entityData.position[i].x = (float)bounds.right(); 
+        }
+        if(entityData.position[i].y < bounds.y) { 
+            entityData.position[i].y = (float)bounds.y; 
+        }
+        if(entityData.position[i].y > bounds.bottom()) { 
+            entityData.position[i].y = (float)bounds.bottom(); 
+        }
+    } 
+}
+
+template<typename T>
+void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
+    for(int i = 0; i < entityData.length; i++) {
+        if(!bounds.contains((int)entityData.position[i].x, (int)entityData.position[i].y)) {
+            Engine::logn("Queueing destroy entity: %d, at pos: %d, %d", entityData.entity[i].id, (int)entityData.position[i].x, (int)entityData.position[i].y);
+            queue_remove_entity(entityData.entity[i]);
+        }
+    } 
 }
 
 void system_player_drag() {
     for(int i = 0; i < players.length; i++) {
         Velocity &velocity = players.velocity[i];
-	    // Use Stokes' law to apply drag to the object
 	    velocity.x = velocity.x - velocity.x * config.drag;
 	    velocity.y = velocity.y - velocity.y * config.drag;
     }
 }
 
-void system_spawn() {
-    for(size_t i = 0; i < bullets.bullet_queue.size(); i++) {
-        Entity e = entity_manager.create();
-        bullets.create(e);
-        set_position(bullets, e, bullets.bullet_queue[i].position);
-        set_velocity(bullets, e, bullets.bullet_queue[i].velocity);
+void system_move() {
+    move_forward(players);
+    keep_in_bounds(players, world_bounds);
+    move_forward(targets);
+    keep_in_bounds(targets, world_bounds);
+    move_forward(projectiles);
+    remove_out_of_bounds(projectiles, world_bounds);
+    system_player_drag();
+}
+
+struct CollisionPairs {
+    Entity *first;
+    Entity *second;
+
+    unsigned int count = 0;
+
+    void allocate(size_t size) {
+        first = new Entity[size];
+        second = new Entity[size];
     }
-    bullets.bullet_queue.clear();
+
+    void push(Entity a, Entity b) {
+        first[count] = a;
+        second[count] = b;
+        ++count;
+    }
+
+    void clear() {
+        count = 0;
+    }
+};
+
+void system_collisions(CollisionPairs &collision_pairs) {
+    // struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
+    //     ComponentArray<Position> position;
+    //     ComponentArray<SizeComponent> collision_data;
+    // };
+    // CollisionGroup a, b;
+    // world->fill_entity_data(a, a.entities, a.position, a.collision_data);
+    // world->fill_entity_data(b, b.entities, b.position, b.collision_data);
+    for(int i = 0; i < projectiles.length; ++i) {
+        for(int j = 0; j < targets.length; ++j) {
+            const Position &first_position = projectiles.position[i];
+            const Position &second_position = targets.position[i];
+            const float first_radius = (float)projectiles.radius;
+            const float second_radius = (float)targets.radius;
+            if(Math::intersect_circles(first_position.x, first_position.y, first_radius, second_position.x, second_position.y, second_radius)) {
+                collision_pairs.push(projectiles.entity[i], targets.entity[j]);
+            }
+        }
+    }
+
+    for(unsigned i = 0; i < collision_pairs.count; ++i) {
+        Entity first = collision_pairs.first[i];
+        // Entity second = collisions.second[i];
+        queue_remove_entity(first);
+    }
+    collision_pairs.clear();
+
+    // collisions.clear();
+    // for(unsigned i = 0; i < a.length; ++i) {
+    //     const Vector2 first_position = a.position[i].value;
+    //     const float first_radius = a.collision_data[i].radius;
+    //     const Entity first_entity = a.entities[i];
+    //     for(unsigned j = 0; j < b.length; ++j) {
+    //         const Vector2 second_position = b.position[j].value;
+    //         const float second_radius = b.collision_data[j].radius;
+    //         const Entity second_entity = b.entities[j];
+    //         if(i != j 
+    //             && Math::intersect_circles(first_position.x, first_position.y, first_radius, 
+    //                 second_position.x, second_position.y, second_radius)) {
+    //             collisions.push(first_entity, second_entity);
+	// 		}
+    //     }
+
+    //     if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square)) {
+    //         debug_data.bullets_to_rect++;
+    //     }
+    // }
+
+    // for(unsigned i = 0; i < collisions.count; ++i) {
+    //     Entity first = collisions.first[i];
+    //     Entity second = collisions.second[i];
+    //     if(entity_manager->has_component<Damage>(first)) {
+    //         debug_data.bullets_collided++;
+    //         DestroyEntityData *de = new DestroyEntityData { first };
+    //         queue_event(de);
+    //     }
+    // }
+}
+
+void remove_destroyed_entities() {
+    for(size_t i = 0; i < entities_to_destroy.size(); i++) {
+        Engine::logn("destroying: %d", entities_to_destroy[i].id);
+        players.remove(entities_to_destroy[i]);
+        projectiles.remove(entities_to_destroy[i]);
+        targets.remove(entities_to_destroy[i]);
+        entity_manager.destroy(entities_to_destroy[i]);
+    }
+    entities_to_destroy.clear();
+}
+
+static CollisionPairs collisions;
+static SpriteSheet the_sheet;
+void load_arch() {
+    Engine::set_base_data_folder("data");
+	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
+	set_default_font(font);
+	Resources::font_load("gameover", "pixeltype.ttf", 85);
+	Resources::sprite_sheet_load("shooter_spritesheet.data", the_sheet);
+
+    world_bounds = { 0, 0, (int)gw, (int)gh };
+
+    players.allocate(2);
+    projectiles.allocate(128);
+    targets.allocate(128);
+    projectile_queue.reserve(64);
+    entities_to_destroy.reserve(64);
+    collisions.allocate(128);
+
+    spawn_player();
+    spawn_target();
 }
 
 void update_arch() {
+    FrameLog::reset();
+
     system_player_get_input();
     system_player_handle_input();
     system_move();
-    system_player_drag();
+    system_collisions(collisions);
+    spawn_projectiles();
 
-    system_spawn();
+    remove_destroyed_entities();
+    
+    FrameLog::log("Players: " + std::to_string(players.length));
+    FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
+    FrameLog::log("Targets: " + std::to_string(targets.length));
 }
 
 void render_arch() {
     for(int i = 0; i < players.length; i++) {
         Position &p = players.position[i];
         Direction &d = players.direction[i];
-        draw_spritesheet_name_centered_rotated(the_sheet, "player", (int)p.x, (int)p.y, d.angle + 90);
+        draw_spritesheet_name_centered_rotated(the_sheet, "player_1", (int)p.x, (int)p.y, d.angle + 90);
         // SDL_Color c = Colors::white;
         // draw_g_circe_color((int16_t)p.x, (int16_t)p.y, 4, c);
     }
     
-    for(int i = 0; i < bullets.length; ++i) {
-		Position &p = bullets.position[i];
-		SDL_Color c = { 255, 0, 0, 255 };
-		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)bullets.radius, c);
+    for(int i = 0; i < projectiles.length; ++i) {
+		Position &p = projectiles.position[i];
+		SDL_Color c = { 0, 255, 0, 255 };
+		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)projectiles.radius, c);
 	}
+
+    for(int i = 0; i < targets.length; ++i) {
+		Position &p = targets.position[i];
+		SDL_Color c = { 255, 0, 0, 255 };
+		draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
+	}
+
+    FrameLog::render(5, 5);
 }
 
 #endif

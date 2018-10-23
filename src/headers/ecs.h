@@ -697,29 +697,4 @@ struct EventQueue {
 };
 size_t EventQueue::Evt::counter = 1;
 
-namespace FrameLog {
-    const int max_messages = 20;
-    static std::vector<std::string> messages;
-    
-    static void log(const std::string message) {
-        if(messages.size() == max_messages) {
-            return;
-        }
-        messages.push_back(message);
-    }
-
-    static void render(int x, int y) {
-        int y_start = y;
-        for(auto m : messages) {
-            draw_text_str(x, y_start, Colors::white, m);
-            y_start += 15;
-        }
-    }
-
-    static void reset() {
-        messages.clear();
-    }
-};
-
-
 #endif
