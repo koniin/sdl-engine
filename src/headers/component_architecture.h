@@ -3,9 +3,9 @@
 /* ==========================
 
 All gfx can be found in shooter_spritesheet.png
-* Bullet gfx (big)
-* Ship gfx
-* Enemy gfx
+[X] Bullet gfx (big)
+[X] Ship gfx
+[X] Enemy gfx
 * Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
 * Bullet spread (accuracy)
 * Impact effect (hit effect, like a little marker on the side we hit)
@@ -29,6 +29,7 @@ Do movement and then:
 
 Then:
 * Sound and animatons
+[ ] Player ship rotation animation (exists in sheet)
 * More base in sound effects
 
 * Gun gfx
@@ -529,11 +530,10 @@ void system_collisions(CollisionPairs &collision_pairs) {
             if(Math::intersect_circles(first_position.x, first_position.y, first_radius, second_position.x, second_position.y, second_radius)) {
                 collision_pairs.push(projectiles.entity[i], targets.entity[j]);
             }
+
+            // if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square))
         }
     }
-
-    if(collision_pairs.count > 0)
-        Engine::logn("detected %d collisions", collision_pairs.count);
 
     for(unsigned i = 0; i < collision_pairs.count; ++i) {
         //ECS::Entity first = ;
@@ -541,37 +541,6 @@ void system_collisions(CollisionPairs &collision_pairs) {
         queue_remove_entity(collision_pairs.first[i]);
     }
     collision_pairs.clear();
-
-    // collisions.clear();
-    // for(unsigned i = 0; i < a.length; ++i) {
-    //     const Vector2 first_position = a.position[i].value;
-    //     const float first_radius = a.collision_data[i].radius;
-    //     const Entity first_entity = a.entities[i];
-    //     for(unsigned j = 0; j < b.length; ++j) {
-    //         const Vector2 second_position = b.position[j].value;
-    //         const float second_radius = b.collision_data[j].radius;
-    //         const Entity second_entity = b.entities[j];
-    //         if(i != j 
-    //             && Math::intersect_circles(first_position.x, first_position.y, first_radius, 
-    //                 second_position.x, second_position.y, second_radius)) {
-    //             collisions.push(first_entity, second_entity);
-	// 		}
-    //     }
-
-    //     if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square)) {
-    //         debug_data.bullets_to_rect++;
-    //     }
-    // }
-
-    // for(unsigned i = 0; i < collisions.count; ++i) {
-    //     Entity first = collisions.first[i];
-    //     Entity second = collisions.second[i];
-    //     if(entity_manager->has_component<Damage>(first)) {
-    //         debug_data.bullets_collided++;
-    //         DestroyEntityData *de = new DestroyEntityData { first };
-    //         queue_event(de);
-    //     }
-    // }
 }
 
 void remove_destroyed_entities() {
@@ -703,6 +672,7 @@ void render_arch() {
 
     SDL_Color projectile_color = { 0, 255, 0, 255 };
     for(int i = 0; i < projectiles.length; ++i) {
+        export_sprite_data(projectiles.position[i], 0, "bullet_2", 0, sprite_data_buffer[sprite_count++]);
         export_sprite_data(projectiles.position[i], projectile_color, (int16_t)projectiles.radius, sprite_data_buffer[sprite_count++]);
 		// Position &p = projectiles.position[i];
 		// SDL_Color c = { 0, 255, 0, 255 };
@@ -711,7 +681,8 @@ void render_arch() {
 
     SDL_Color target_color = { 255, 0, 0, 255 };
     for(int i = 0; i < targets.length; ++i) {
-        export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
+        export_sprite_data(targets.position[i], 0, "enemy_1", 0, sprite_data_buffer[sprite_count++]);
+        //export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
 		// Position &p = targets.position[i];
 		// SDL_Color c = { 255, 0, 0, 255 };
 		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
