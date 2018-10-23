@@ -43,62 +43,62 @@ Then:
 #include "renderer.h"
 #include <queue>
 
-const unsigned ENTITY_INDEX_BITS = 22;
-const unsigned ENTITY_INDEX_MASK = (1<<ENTITY_INDEX_BITS)-1;
+namespace ECS {
+    const unsigned ENTITY_INDEX_BITS = 22;
+    const unsigned ENTITY_INDEX_MASK = (1<<ENTITY_INDEX_BITS)-1;
 
-const unsigned ENTITY_GENERATION_BITS = 8;
-const unsigned ENTITY_GENERATION_MASK = (1<<ENTITY_GENERATION_BITS)-1;
+    const unsigned ENTITY_GENERATION_BITS = 8;
+    const unsigned ENTITY_GENERATION_MASK = (1<<ENTITY_GENERATION_BITS)-1;
 
-typedef unsigned EntityId;
-struct Entity {
-    EntityId id;
+    typedef unsigned EntityId;
+    struct Entity {
+        EntityId id;
 
-    unsigned index() const { return id & ENTITY_INDEX_MASK; }
-    unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
-};
+        unsigned index() const { return id & ENTITY_INDEX_MASK; }
+        unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
+    };
 
-const unsigned MINIMUM_FREE_INDICES = 1024;
+    const unsigned MINIMUM_FREE_INDICES = 1024;
 
-struct EntityManager {
-    std::vector<unsigned char> _generation;
-    std::queue<unsigned> _free_indices;
+    struct EntityManager {
+        std::vector<unsigned char> _generation;
+        std::queue<unsigned> _free_indices;
 
-    Entity create() {
-        unsigned idx;
-        if (_free_indices.size() > MINIMUM_FREE_INDICES) {
-            idx = _free_indices.front();
-            _free_indices.pop();
-        } else {
-            _generation.push_back(0);
-            idx = _generation.size() - 1;
-            ASSERT_WITH_MSG(idx < (1 << ENTITY_INDEX_BITS), "idx is malformed, larger than 22 bits?");
+        Entity create() {
+            unsigned idx;
+            if (_free_indices.size() > MINIMUM_FREE_INDICES) {
+                idx = _free_indices.front();
+                _free_indices.pop();
+            } else {
+                _generation.push_back(0);
+                idx = _generation.size() - 1;
+                ASSERT_WITH_MSG(idx < (1 << ENTITY_INDEX_BITS), "idx is malformed, larger than 22 bits?");
+            }
+
+            return make_entity(idx, _generation[idx]);
         }
 
-        return make_entity(idx, _generation[idx]);
-    }
+        Entity make_entity(unsigned idx, unsigned char generation) {
+            Entity e;
+            auto id = generation << ENTITY_INDEX_BITS | idx;
+            e.id = id;
+            return e;
+        }
 
-    Entity make_entity(unsigned idx, unsigned char generation) {
-        Entity e;
-        auto id = generation << ENTITY_INDEX_BITS | idx;
-        e.id = id;
-        return e;
-    }
+        bool alive(Entity e) const {
+            return _generation[e.index()] == e.generation();
+        }
 
-    bool alive(Entity e) const {
-        return _generation[e.index()] == e.generation();
-    }
+        void destroy(Entity e) {
+            if(!alive(e))
+                return;
 
-    void destroy(Entity e) {
-        if(!alive(e))
-            return;
+            const unsigned idx = e.index();
+            ++_generation[idx];
+            _free_indices.push(idx);
+        }
+    };
 
-        const unsigned idx = e.index();
-        ++_generation[idx];
-        _free_indices.push(idx);
-    }
-};
-
-namespace Entities {
     struct EntityData {
         int length;
         int size;
@@ -233,7 +233,7 @@ struct CollisionData {
     float radius;
 };
 
-struct Player : Entities::EntityData {
+struct Player : ECS::EntityData {
     Position *position;
     Velocity *velocity;
     Direction *direction;
@@ -252,7 +252,7 @@ struct Player : Entities::EntityData {
     }
 };
 
-struct Projectile : Entities::EntityData {
+struct Projectile : ECS::EntityData {
     Position *position;
     Velocity *velocity;
 
@@ -267,7 +267,7 @@ struct Projectile : Entities::EntityData {
     }
 };
 
-struct Target : Entities::EntityData {
+struct Target : ECS::EntityData {
     Position *position;
     Velocity *velocity;
 
@@ -283,37 +283,25 @@ struct Target : Entities::EntityData {
 };
 
 template<typename T>
-Position &get_position(T &entity_data, Entity e) {
+Position &get_position(T &entity_data, ECS::Entity e) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     return entity_data.position[handle.i];
 }
 
 template<typename T>
-void set_position(T &entity_data, Entity e, Position p) {
+void set_position(T &entity_data, ECS::Entity e, Position p) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     entity_data.position[handle.i] = p;
 }
 
 template<typename T>
-void set_velocity(T &entity_data, Entity e, Velocity v) {
+void set_velocity(T &entity_data, ECS::Entity e, Velocity v) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     entity_data.velocity[handle.i] = v;
 }
-
-/*
-const int MAX_ENEMIES = 128;
-struct Enemy {
-    int n;
-    int size;
-    EntityId entity[MAX_ENEMIES];
-    Position positions[MAX_ENEMIES];
-    Velocity velocity[MAX_ENEMIES];
-    std::unordered_map<EntityId, unsigned> _map;
-};
-*/
 
 struct AsteroidsConfig {
 	float rotation_speed = 5.0f; 
@@ -347,7 +335,7 @@ InputMapping input_maps[2] = {
 	{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
 };
 
-EntityManager entity_manager;
+ECS::EntityManager entity_manager;
 Player players;
 Projectile projectiles;
 Target targets;
@@ -363,9 +351,10 @@ void queue_projectile(Position p, Direction direction, float speed) {
     Velocity v = { direction.x * speed, direction.y * speed };
     projectile_queue.push_back({ p, v });
 }
+
 void spawn_projectiles() {
     for(size_t i = 0; i < projectile_queue.size(); i++) {
-        Entity e = entity_manager.create();
+        auto e = entity_manager.create();
         projectiles.create(e);
         set_position(projectiles, e, projectile_queue[i].position);
         set_velocity(projectiles, e, projectile_queue[i].velocity);
@@ -374,20 +363,20 @@ void spawn_projectiles() {
 }
 
 void spawn_player() {
-    Entity e = entity_manager.create();
+    auto e = entity_manager.create();
     players.create(e);
     set_position(players, e, { 100, 200 });
 }
 
 void spawn_target() {
-    Entity e = entity_manager.create();
+    auto e = entity_manager.create();
     targets.create(e);
     set_position(targets, e, { 400, 200 });
     set_velocity(targets, e, { 0, 0 });
 }
 
-std::vector<Entity> entities_to_destroy;
-void queue_remove_entity(Entity entity) {
+std::vector<ECS::Entity> entities_to_destroy;
+void queue_remove_entity(ECS::Entity entity) {
     entities_to_destroy.push_back(entity);
 }
 
@@ -478,7 +467,6 @@ template<typename T>
 void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
     for(int i = 0; i < entityData.length; i++) {
         if(!bounds.contains((int)entityData.position[i].x, (int)entityData.position[i].y)) {
-            Engine::logn("Queueing destroy entity: %d, at pos: %d, %d", entityData.entity[i].id, (int)entityData.position[i].x, (int)entityData.position[i].y);
             queue_remove_entity(entityData.entity[i]);
         }
     } 
@@ -503,17 +491,17 @@ void system_move() {
 }
 
 struct CollisionPairs {
-    Entity *first;
-    Entity *second;
+    ECS::Entity *first;
+    ECS::Entity *second;
 
     unsigned int count = 0;
 
     void allocate(size_t size) {
-        first = new Entity[size];
-        second = new Entity[size];
+        first = new ECS::Entity[size];
+        second = new ECS::Entity[size];
     }
 
-    void push(Entity a, Entity b) {
+    void push(ECS::Entity a, ECS::Entity b) {
         first[count] = a;
         second[count] = b;
         ++count;
@@ -545,9 +533,9 @@ void system_collisions(CollisionPairs &collision_pairs) {
     }
 
     for(unsigned i = 0; i < collision_pairs.count; ++i) {
-        Entity first = collision_pairs.first[i];
+        //ECS::Entity first = ;
         // Entity second = collisions.second[i];
-        queue_remove_entity(first);
+        queue_remove_entity(collision_pairs.first[i]);
     }
     collision_pairs.clear();
 
