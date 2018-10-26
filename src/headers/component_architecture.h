@@ -230,6 +230,27 @@ struct Direction {
     }
 };
 
+struct SpriteComponent {
+    float scale;
+    float rotation;
+    int16_t color_r;
+    int16_t color_g;
+    int16_t color_b;
+    int16_t color_a;
+    size_t sprite_sheet_index;
+    std::string sprite_name;
+    int layer;
+
+    SpriteComponent() {}
+
+    SpriteComponent(size_t sprite_sheet, std::string name) : sprite_sheet_index(sprite_sheet), sprite_name(name) {
+        scale = 1.0f;
+        rotation = 1.0f;
+        color_r = color_g = color_b = color_a = 255;
+        layer = 0;
+    }
+};
+
 struct CollisionData {
     float radius;
 };
@@ -239,40 +260,70 @@ struct Player : ECS::EntityData {
     Velocity *velocity;
     Direction *direction;
     PlayerInput *input;
+    SpriteComponent *sprite;
 
-    void allocate(size_t pn) {
-        position = new Position[pn];
-        velocity = new Velocity[pn];
-        direction = new Direction[pn];
-        input = new PlayerInput[pn];
-        allocate_entities(pn, 4);
+    void allocate(size_t n) {
+        position = new Position[n];
+        velocity = new Velocity[n];
+        direction = new Direction[n];
+        input = new PlayerInput[n];
+        sprite = new SpriteComponent[n];
+
+        allocate_entities(n, 5);
+
         add(position);
         add(velocity);
         add(direction);
         add(input);
+        add(sprite);
     }
 };
 
 struct Projectile : ECS::EntityData {
     Position *position;
     Velocity *velocity;
+    SpriteComponent *sprite;
 
     const int radius = 8;
 
     void allocate(size_t n) {
         position = new Position[n];
         velocity = new Velocity[n];
-        allocate_entities(n, 2);
+        sprite = new SpriteComponent[n];
+
+        allocate_entities(n, 3);
+
         add(position);
         add(velocity);
+        add(sprite);
     }
 };
 
 struct Target : ECS::EntityData {
     Position *position;
     Velocity *velocity;
+    SpriteComponent *sprite;
 
     const int radius = 8;
+
+    // Here you can put a list of base data for different targets
+
+    void allocate(size_t n) {
+        position = new Position[n];
+        velocity = new Velocity[n];
+        sprite = new SpriteComponent[n];
+
+        allocate_entities(n, 3);
+
+        add(position);
+        add(velocity);
+        add(sprite);
+    }
+};
+
+struct Effect : ECS::EntityData {
+    Position *position;
+    Velocity *velocity;
 
     void allocate(size_t n) {
         position = new Position[n];
@@ -302,6 +353,13 @@ void set_velocity(T &entity_data, ECS::Entity e, Velocity v) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     entity_data.velocity[handle.i] = v;
+}
+
+template<typename T>
+void set_sprite(T &entity_data, ECS::Entity e, SpriteComponent s) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    auto handle = entity_data.get_handle(e);
+    entity_data.sprite[handle.i] = s;
 }
 
 struct AsteroidsConfig {
@@ -340,6 +398,7 @@ ECS::EntityManager entity_manager;
 Player players;
 Projectile projectiles;
 Target targets;
+Effect effects;
 
 Rectangle world_bounds;
 
@@ -359,6 +418,8 @@ void spawn_projectiles() {
         projectiles.create(e);
         set_position(projectiles, e, projectile_queue[i].position);
         set_velocity(projectiles, e, projectile_queue[i].velocity);
+        SpriteComponent s = SpriteComponent(0, "bullet_2");
+        set_sprite(projectiles, e, s);
     }
     projectile_queue.clear();
 }
@@ -367,6 +428,8 @@ void spawn_player() {
     auto e = entity_manager.create();
     players.create(e);
     set_position(players, e, { 100, 200 });
+    SpriteComponent s = SpriteComponent(0, "player_1");
+    set_sprite(players, e, s);
 }
 
 void spawn_target() {
@@ -374,6 +437,8 @@ void spawn_target() {
     targets.create(e);
     set_position(targets, e, { 400, 200 });
     set_velocity(targets, e, { 0, 0 });
+    SpriteComponent s = SpriteComponent(0, "enemy_1");
+    set_sprite(targets, e, s);
 }
 
 std::vector<ECS::Entity> entities_to_destroy;
@@ -558,15 +623,20 @@ static CollisionPairs collisions;
 
 static std::vector<SpriteSheet> sprite_sheets;
 struct SpriteData {
-    enum Type { Circle, Sprite } type;
     int16_t x, y;
     SDL_Color color;
-    int16_t radius;
     int sprite_index;
     std::string sprite_name;
     float rotation;
+    int layer;
 };
-SpriteData *sprite_data_buffer;
+struct RenderBuffer {    
+    int sprite_count = 0;
+    SpriteData *sprite_data_buffer;
+};
+static const size_t RENDER_BUFFER_MAX = 256;
+
+RenderBuffer render_buffer;
 
 void load_render_data() {
     Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
@@ -576,7 +646,87 @@ void load_render_data() {
     SpriteSheet the_sheet;
 	Resources::sprite_sheet_load("shooter_spritesheet.data", the_sheet);
     sprite_sheets.push_back(the_sheet);
-    sprite_data_buffer = new SpriteData[256];
+    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
+}
+
+// template<class T>
+// void ExportSpriteData(const T& go, sprite_data_t& spr)
+// {
+//     // write out their Position & Sprite data into destination buffer that will be rendered later on.
+//     //
+//     // Using a smaller global scale "zooms out" the rendering, so to speak.
+//     float globalScale = 0.05f;
+//     spr.posX = go.pos.x * globalScale;
+//     spr.posY = go.pos.y * globalScale;
+//     spr.scale = go.sprite.scale * globalScale;
+//     spr.colR = go.sprite.colorR;
+//     spr.colG = go.sprite.colorG;
+//     spr.colB = go.sprite.colorB;
+//     spr.sprite = (float)go.sprite.spriteIndex;
+// }
+
+template<typename T>
+void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
+    // handle camera, zoom and stuff here
+
+    // float globalScale = 0.05f;
+    // spr.x = go.pos.x * globalScale;
+    // spr.y = go.pos.y * globalScale;
+    // spr.scale = go.sprite.scale * globalScale;
+
+    // spr.x = entity_data.position[i].x - camera.x;
+    // spr.x = entity_data.position[i].y - camera.y;
+
+    spr.x = (int16_t)entity_data.position[i].x;
+    spr.y = (int16_t)entity_data.position[i].y;
+    spr.sprite_index = entity_data.sprite[i].sprite_sheet_index;
+    spr.sprite_name = entity_data.sprite[i].sprite_name;
+    spr.rotation = entity_data.sprite[i].rotation;
+    spr.layer = entity_data.sprite[i].layer;
+}
+
+bool sprite_data_sorter(SpriteData const& lhs, SpriteData const& rhs) {
+    return lhs.layer < rhs.layer;
+}
+
+void export_render_info() {
+    render_buffer.sprite_count = 0;
+    auto sprite_data_buffer = render_buffer.sprite_data_buffer;
+    auto &sprite_count = render_buffer.sprite_count;
+
+    for(int i = 0; i < players.length; i++) {
+        Direction &d = players.direction[i];
+        players.sprite[i].rotation = d.angle + 90;
+        export_sprite_data(players, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(players.position[i], 0, "player_1", d.angle + 90, sprite_data_buffer[sprite_count++]);
+        // draw_spritesheet_name_centered_rotated(the_sheet, "player_1", (int)p.x, (int)p.y, d.angle + 90);
+        // SDL_Color c = Colors::white;
+        // draw_g_circe_color((int16_t)p.x, (int16_t)p.y, 4, c);
+    }
+
+    // SDL_Color projectile_color = { 0, 255, 0, 255 };
+    for(int i = 0; i < projectiles.length; ++i) {
+        export_sprite_data(projectiles, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(projectiles.position[i], 0, "bullet_2", 0, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(projectiles.position[i], projectile_color, (int16_t)projectiles.radius, sprite_data_buffer[sprite_count++]);
+		// Position &p = projectiles.position[i];
+		// SDL_Color c = { 0, 255, 0, 255 };
+		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)projectiles.radius, c);
+	}
+
+    // SDL_Color target_color = { 255, 0, 0, 255 };
+    for(int i = 0; i < targets.length; ++i) {
+        export_sprite_data(targets, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(targets.position[i], 0, "enemy_1", 0, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
+		// Position &p = targets.position[i];
+		// SDL_Color c = { 255, 0, 0, 255 };
+		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
+	}
+
+    // ASSERT_WITH_MSG(render_buffer.sprite_count < RENDER_BUFFER_MAX, "More sprites exported than buffer can hold");
+
+    std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count, sprite_data_sorter);
 }
 
 void load_arch() {
@@ -589,6 +739,7 @@ void load_arch() {
     players.allocate(2);
     projectiles.allocate(128);
     targets.allocate(128);
+    effects.allocate(128);
     projectile_queue.reserve(64);
     entities_to_destroy.reserve(64);
     collisions.allocate(128);
@@ -608,88 +759,27 @@ void update_arch() {
 
     remove_destroyed_entities();
     
+    export_render_info();
+
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
 }
 
-// template<class T>
-// void ExportSpriteData(const T& go, sprite_data_t& spr)
-// {
-//     // write out their Position & Sprite data into destination buffer that will be rendered later on.
-//     //
-//     // Using a smaller global scale "zooms out" the rendering, so to speak.
-//     float globalScale = 0.05f;
-//     spr.posX = go.pos.x * globalScale;
-//     spr.posY = go.pos.y * globalScale;
-//     spr.scale = go.sprite.scale * globalScale;
-//     spr.colR = go.sprite.colorR;
-//     spr.colG = go.sprite.colorG;
-//     spr.colB = go.sprite.colorB;
-//     spr.sprite = (float)go.sprite.spriteIndex;
-// }
-
-void export_sprite_data(const Position &pos, const SDL_Color &color, const float &radius, SpriteData &spr) {
-    spr.type = SpriteData::Circle;
-    spr.x = (int16_t)pos.x;
-    spr.y = (int16_t)pos.y;
-    spr.color = color;
-    spr.radius = (int16_t)radius;
-}
-
-void export_sprite_data(const Position &pos, const int &sprite_sheet_index, const std::string &sprite, const float &rotation, SpriteData &spr) {
-    spr.type = SpriteData::Sprite;
-    spr.x = (int16_t)pos.x;
-    spr.y = (int16_t)pos.y;
-    spr.sprite_index = sprite_sheet_index;
-    spr.sprite_name = sprite;
-    spr.rotation = rotation;
-}
-
 void draw_buffer(SpriteData *spr, int length) {
-    // This is where we can use camera and zoom and scale etc
     for(int i = 0; i < length; i++) {
-        if(spr[i].type == SpriteData::Circle) {
-            draw_g_circe_color(spr[i].x, spr[i].y, spr[i].radius, spr[i].color);
-        } else if(spr[i].type == SpriteData::Sprite) {
-            draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
-        }
+        draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
+        // if(spr[i].type == SpriteData::Circle) {
+        //     draw_g_circe_color(spr[i].x, spr[i].y, spr[i].radius, spr[i].color);
+        // } else if(spr[i].type == SpriteData::Sprite) {
+        //     draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
+        // }
     }
 }
 
 void render_arch() {
-    int sprite_count = 0;
-
-    draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
-
-    for(int i = 0; i < players.length; i++) {
-        Direction &d = players.direction[i];
-        export_sprite_data(players.position[i], 0, "player_1", d.angle + 90, sprite_data_buffer[sprite_count++]);
-        // draw_spritesheet_name_centered_rotated(the_sheet, "player_1", (int)p.x, (int)p.y, d.angle + 90);
-        // SDL_Color c = Colors::white;
-        // draw_g_circe_color((int16_t)p.x, (int16_t)p.y, 4, c);
-    }
-
-    SDL_Color projectile_color = { 0, 255, 0, 255 };
-    for(int i = 0; i < projectiles.length; ++i) {
-        export_sprite_data(projectiles.position[i], 0, "bullet_2", 0, sprite_data_buffer[sprite_count++]);
-        export_sprite_data(projectiles.position[i], projectile_color, (int16_t)projectiles.radius, sprite_data_buffer[sprite_count++]);
-		// Position &p = projectiles.position[i];
-		// SDL_Color c = { 0, 255, 0, 255 };
-		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)projectiles.radius, c);
-	}
-
-    SDL_Color target_color = { 255, 0, 0, 255 };
-    for(int i = 0; i < targets.length; ++i) {
-        export_sprite_data(targets.position[i], 0, "enemy_1", 0, sprite_data_buffer[sprite_count++]);
-        //export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
-		// Position &p = targets.position[i];
-		// SDL_Color c = { 255, 0, 0, 255 };
-		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
-	}
-
-    draw_buffer(sprite_data_buffer, sprite_count);
-
+    // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
+    draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     FrameLog::render(5, 5);
 }
 
