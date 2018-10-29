@@ -362,23 +362,22 @@ void set_sprite(T &entity_data, ECS::Entity e, SpriteComponent s) {
     entity_data.sprite[handle.i] = s;
 }
 
-struct AsteroidsConfig {
-	float rotation_speed = 5.0f; 
-	float acceleration = 0.2f;
-	float brake_speed = -0.05f;
-	float drag = 0.02f;
-	float fire_cooldown = 0.25f; // s
-	float player_bullet_speed = 5;
-	float player_bullet_size = 1;
-	int player_faction_1 = 0;
-	int player_faction_2 = 1;
-	int enemy_faction = 2;
-	float bullet_time_to_live = 20.5f; // really high because we don't care
-	float player_death_inactive_time = 1.0f;
-	float player_shield_time = 2.0f;
-	float player_shield_inactive_time = 6.0f;
-	int asteroid_count_increase_per_level = 2;
-} config;
+// Pixels per frame
+constexpr float player_bullet_speed() {
+    return 8.0f / 0.016667f;
+}
+
+constexpr float player_move_acceleration() {
+    return 10.0f / 0.016667f;
+}
+
+struct PlayerConfiguration {
+	float rotation_speed = 3.0f;
+	float move_acceleration = player_move_acceleration();
+	float drag = 0.04f;
+	float fire_cooldown = 0.15f; // s
+	float bullet_speed = player_bullet_speed();
+} player_config;
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -489,17 +488,17 @@ void system_player_handle_input() {
         
         // Update rotation based on rotational speed
         // for other objects than player input once
-        direction.angle += pi.move_x * config.rotation_speed;
+        direction.angle += pi.move_x * player_config.rotation_speed;
         float rotation = direction.angle / Math::RAD_TO_DEGREE;
         direction.x = cos(rotation);
         direction.y = sin(rotation);
         
-	    velocity.x += direction.x * pi.move_y * config.acceleration;
-	    velocity.y += direction.y * pi.move_y * config.acceleration;
+	    velocity.x += direction.x * pi.move_y * player_config.move_acceleration * Time::deltaTime;
+	    velocity.y += direction.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            queue_projectile(players.position[i], direction, config.player_bullet_speed);
-            pi.fire_cooldown = config.fire_cooldown;
+            queue_projectile(players.position[i], direction, player_config.bullet_speed);
+            pi.fire_cooldown = player_config.fire_cooldown;
         }
     }
 }
@@ -507,8 +506,8 @@ void system_player_handle_input() {
 template<typename T>
 void move_forward(T &entityData) {
     for(int i = 0; i < entityData.length; i++) {
-        entityData.position[i].x += entityData.velocity[i].x;
-        entityData.position[i].y += entityData.velocity[i].y;
+        entityData.position[i].x += entityData.velocity[i].x * Time::deltaTime;
+        entityData.position[i].y += entityData.velocity[i].y * Time::deltaTime;
     }
 }
 
@@ -542,8 +541,8 @@ void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
 void system_player_drag() {
     for(int i = 0; i < players.length; i++) {
         Velocity &velocity = players.velocity[i];
-	    velocity.x = velocity.x - velocity.x * config.drag;
-	    velocity.y = velocity.y - velocity.y * config.drag;
+	    velocity.x = velocity.x - velocity.x * player_config.drag;
+	    velocity.y = velocity.y - velocity.y * player_config.drag;
     }
 }
 
