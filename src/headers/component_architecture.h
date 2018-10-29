@@ -6,8 +6,8 @@ All gfx can be found in shooter_spritesheet.png
 [X] Bullet gfx (big)
 [X] Ship gfx
 [X] Enemy gfx
-* Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
-* Bullet spread (accuracy)
+[X] Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
+[ ] Bullet spread (accuracy)
 * Hit animation (Blink)
 * Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
 * Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
@@ -566,11 +566,21 @@ void system_player_handle_input() {
 	    velocity.y += direction.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            auto pos = players.position[i];
-            pos.x += direction.x * player_config.gun_barrel_distance;
-            pos.y += direction.y * player_config.gun_barrel_distance;
-            queue_projectile(pos, direction, player_config.bullet_speed);
-            spawn_muzzle_flash(pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
+            auto projectile_pos = players.position[i];
+            projectile_pos.x += direction.x * player_config.gun_barrel_distance;
+            projectile_pos.y += direction.y * player_config.gun_barrel_distance;        
+            auto muzzle_pos = projectile_pos;
+            // Accuracy
+            
+            ONE CORNER BIASED
+
+            float r_x = RNG::range_f(-2, 8);
+            float r_y = RNG::range_f(-2, 8);
+            projectile_pos.x += r_x;
+            projectile_pos.y += r_y;
+
+            queue_projectile(projectile_pos, direction, player_config.bullet_speed);
+            spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             pi.fire_cooldown = player_config.fire_cooldown;
         }
     }
@@ -683,15 +693,6 @@ void system_collisions(CollisionPairs &collision_pairs) {
 
 void system_effects() {
     for(int i = 0; i < effects.length; ++i) {
-        effects.effect[i].frame_counter++;
-        if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
-            queue_remove_entity(effects.entity[i]);
-        }
-    }
-}
-
-void system_update_followers() {
-    for(int i = 0; i < effects.length; ++i) {
         if(players.contains(effects.effect[i].follow)) {
             auto handle = players.get_handle(effects.effect[i].follow);
             Position pos = players.position[handle.i];
@@ -702,6 +703,13 @@ void system_update_followers() {
         }
         if(targets.contains(effects.effect[i].follow)) {
             Engine::logn("following a target - not implemented");
+        }
+    }
+
+    for(int i = 0; i < effects.length; ++i) {
+        effects.effect[i].frame_counter++;
+        if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
+            queue_remove_entity(effects.entity[i]);
         }
     }
 }
@@ -869,16 +877,13 @@ void update_arch() {
     system_player_get_input();
     system_player_handle_input();
     system_move();
-    system_update_followers();
     system_collisions(collisions);
-
     system_effects();
 
     spawn_projectiles();
     spawn_effects();
-
     remove_destroyed_entities();
-    
+
     export_render_info();
     render_buffer_sort();
 
