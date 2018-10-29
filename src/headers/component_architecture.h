@@ -8,7 +8,6 @@ All gfx can be found in shooter_spritesheet.png
 [X] Enemy gfx
 * Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
 * Bullet spread (accuracy)
-* Impact effect (hit effect, like a little marker on the side we hit)
 * Hit animation (Blink)
 * Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
 * Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
@@ -20,6 +19,9 @@ All gfx can be found in shooter_spritesheet.png
 * BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
 * Smoke on explosion
 * Smoke on fire gun
+
+When solid objects that are unbreakable:
+* Impact effect (hit effect, like a little marker on the side we hit)
 
 Do movement and then:
 * Area larger than the screen with camera
@@ -53,7 +55,7 @@ namespace ECS {
 
     typedef unsigned EntityId;
     struct Entity {
-        EntityId id;
+        EntityId id = 0;
 
         unsigned index() const { return id & ENTITY_INDEX_MASK; }
         unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
@@ -321,16 +323,51 @@ struct Target : ECS::EntityData {
     }
 };
 
+/*
+Position and Velocity 
+Copy Velocity if followed entity and apply
+Render data - primitive or sprite, color etc
+
+Frame lifetime - how many frames it lives for
+Frame counter - just counts how many frames an object has lived (maybe bake into frame lifetime or use frame counter instead)
+Change render data at specific timings if any
+- change things in render data or have complete render data to set when a certain frame is set
+
+*/
+
+struct EffectData {
+    int frames_to_live;
+    int frame_counter;
+    bool has_target = false;
+    ECS::Entity follow;
+    Vector2 local_position;
+    
+    EffectData(){};
+    EffectData(int frames) : frames_to_live(frames) {
+        frame_counter = 0;
+    }
+};
+
 struct Effect : ECS::EntityData {
     Position *position;
     Velocity *velocity;
+    SpriteComponent *sprite;
+    EffectData *effect;
+
+    const int effect_layer = 2;
 
     void allocate(size_t n) {
         position = new Position[n];
         velocity = new Velocity[n];
-        allocate_entities(n, 2);
+        sprite = new SpriteComponent[n];
+        effect = new EffectData[n];
+
+        allocate_entities(n, 4);
+
         add(position);
         add(velocity);
+        add(sprite);
+        add(effect);
     }
 };
 
@@ -377,6 +414,7 @@ struct PlayerConfiguration {
 	float drag = 0.04f;
 	float fire_cooldown = 0.15f; // s
 	float bullet_speed = player_bullet_speed();
+    float gun_barrel_distance = 11.0f;
 } player_config;
 
 struct InputMapping {
@@ -441,6 +479,37 @@ void spawn_target() {
     set_sprite(targets, e, s);
 }
 
+struct SpawnEffect {
+    Position position;
+    Velocity velocity;
+    SpriteComponent sprite;
+    EffectData effect;
+};
+std::vector<SpawnEffect> effect_queue;
+void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
+    auto spr = SpriteComponent(0, "bullet_1");
+    spr.layer = effects.effect_layer;
+    auto effect = EffectData(2);
+    effect.follow = parent;
+    effect.local_position = local_position;
+    effect.has_target = true;
+    effect_queue.push_back({ p, Velocity(), SpriteComponent(0, "bullet_1"), effect });
+}
+
+void spawn_effects() {
+    for(size_t i = 0; i < effect_queue.size(); i++) {
+        auto e = entity_manager.create();
+        effects.create(e);
+        set_position(effects, e, effect_queue[i].position);
+        set_velocity(effects, e, effect_queue[i].velocity);
+        set_sprite(effects, e, effect_queue[i].sprite);
+        
+        auto handle = effects.get_handle(e);
+        effects.effect[handle.i] = effect_queue[i].effect;
+    }
+    effect_queue.clear();
+}
+
 std::vector<ECS::Entity> entities_to_destroy;
 void queue_remove_entity(ECS::Entity entity) {
     entities_to_destroy.push_back(entity);
@@ -497,7 +566,11 @@ void system_player_handle_input() {
 	    velocity.y += direction.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            queue_projectile(players.position[i], direction, player_config.bullet_speed);
+            auto pos = players.position[i];
+            pos.x += direction.x * player_config.gun_barrel_distance;
+            pos.y += direction.y * player_config.gun_barrel_distance;
+            queue_projectile(pos, direction, player_config.bullet_speed);
+            spawn_muzzle_flash(pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             pi.fire_cooldown = player_config.fire_cooldown;
         }
     }
@@ -608,12 +681,39 @@ void system_collisions(CollisionPairs &collision_pairs) {
     collision_pairs.clear();
 }
 
+void system_effects() {
+    for(int i = 0; i < effects.length; ++i) {
+        effects.effect[i].frame_counter++;
+        if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
+            queue_remove_entity(effects.entity[i]);
+        }
+    }
+}
+
+void system_update_followers() {
+    for(int i = 0; i < effects.length; ++i) {
+        if(players.contains(effects.effect[i].follow)) {
+            auto handle = players.get_handle(effects.effect[i].follow);
+            Position pos = players.position[handle.i];
+            const Direction &direction = players.direction[handle.i];
+            pos.x += direction.x * effects.effect[i].local_position.x;
+            pos.y += direction.y * effects.effect[i].local_position.y;
+            effects.position[i] = pos;
+        }
+        if(targets.contains(effects.effect[i].follow)) {
+            Engine::logn("following a target - not implemented");
+        }
+    }
+}
+
 void remove_destroyed_entities() {
     for(size_t i = 0; i < entities_to_destroy.size(); i++) {
         Engine::logn("destroying: %d", entities_to_destroy[i].id);
         players.remove(entities_to_destroy[i]);
         projectiles.remove(entities_to_destroy[i]);
         targets.remove(entities_to_destroy[i]);
+        effects.remove(entities_to_destroy[i]);
+
         entity_manager.destroy(entities_to_destroy[i]);
     }
     entities_to_destroy.clear();
@@ -724,6 +824,15 @@ void export_render_info() {
 		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
 	}
 
+    for(int i = 0; i < effects.length; ++i) {
+        export_sprite_data(effects, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(targets.position[i], 0, "enemy_1", 0, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
+		// Position &p = targets.position[i];
+		// SDL_Color c = { 255, 0, 0, 255 };
+		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
+	}
+
     // ASSERT_WITH_MSG(render_buffer.sprite_count < RENDER_BUFFER_MAX, "More sprites exported than buffer can hold");
 }
 
@@ -736,6 +845,8 @@ void render_buffer_sort() {
 void load_arch() {
     Engine::set_base_data_folder("data");
 	
+    renderer_set_clear_color({ 8, 0, 18, 255 });
+
     load_render_data();
 
     world_bounds = { 0, 0, (int)gw, (int)gh };
@@ -758,8 +869,13 @@ void update_arch() {
     system_player_get_input();
     system_player_handle_input();
     system_move();
+    system_update_followers();
     system_collisions(collisions);
+
+    system_effects();
+
     spawn_projectiles();
+    spawn_effects();
 
     remove_destroyed_entities();
     
