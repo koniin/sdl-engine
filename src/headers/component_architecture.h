@@ -570,13 +570,11 @@ void system_player_handle_input() {
             projectile_pos.x += direction.x * player_config.gun_barrel_distance;
             projectile_pos.y += direction.y * player_config.gun_barrel_distance;        
             auto muzzle_pos = projectile_pos;
+
             // Accuracy
-            
-            // ONE CORNER BIASED
-            float r_x = RNG::range_f(-8, 8) * direction.y;
-            float r_y = RNG::range_f(-8, 8) * direction.x;
-            projectile_pos.x += r_x;
-            projectile_pos.y += r_y;
+            const float accuracy = 8;
+            projectile_pos.x += RNG::range_f(-accuracy, accuracy) * direction.y;
+            projectile_pos.y += RNG::range_f(-accuracy, accuracy) * direction.x;
 
             queue_projectile(projectile_pos, direction, player_config.bullet_speed);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
