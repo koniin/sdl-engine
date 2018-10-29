@@ -572,10 +572,9 @@ void system_player_handle_input() {
             auto muzzle_pos = projectile_pos;
             // Accuracy
             
-            ONE CORNER BIASED
-
-            float r_x = RNG::range_f(-2, 8);
-            float r_y = RNG::range_f(-2, 8);
+            // ONE CORNER BIASED
+            float r_x = RNG::range_f(-8, 8) * direction.y;
+            float r_y = RNG::range_f(-8, 8) * direction.x;
             projectile_pos.x += r_x;
             projectile_pos.y += r_y;
 
