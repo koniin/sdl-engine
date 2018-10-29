@@ -429,6 +429,7 @@ void spawn_player() {
     players.create(e);
     set_position(players, e, { 100, 200 });
     SpriteComponent s = SpriteComponent(0, "player_1");
+    s.layer = 1;
     set_sprite(players, e, s);
 }
 
@@ -725,7 +726,11 @@ void export_render_info() {
 	}
 
     // ASSERT_WITH_MSG(render_buffer.sprite_count < RENDER_BUFFER_MAX, "More sprites exported than buffer can hold");
+}
 
+void render_buffer_sort() {
+    auto sprite_data_buffer = render_buffer.sprite_data_buffer;
+    auto &sprite_count = render_buffer.sprite_count;
     std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count, sprite_data_sorter);
 }
 
@@ -760,6 +765,7 @@ void update_arch() {
     remove_destroyed_entities();
     
     export_render_info();
+    render_buffer_sort();
 
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
