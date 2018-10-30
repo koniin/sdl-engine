@@ -12,7 +12,7 @@ All gfx can be found in shooter_spritesheet.png
 [X] Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
 [X] Screen shake on fire weapon
 [X] Screen shake on hit enemy
-* player knockback on fire weapon (if player is too far back move to start pos for demo)
+[X] player knockback on fire weapon (if player is too far back move to start pos for demo)
 * Sleep on hit an enemy (20ms)
 * Shells or something fly out on fire weapon (make it a "machine gun")
 * Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
@@ -571,7 +571,11 @@ void system_player_get_input() {
         }
 
         if(Input::key_pressed(SDLK_k)) {
-            camera_shake(0.5f);
+            camera_shake(0.8f);
+        }
+
+        if(Input::key_pressed(SDLK_p)) {
+            Engine::pause(1.0f);
         }
     }
 }
@@ -694,6 +698,8 @@ struct CollisionPairs {
     }
 };
 
+static bool hit_sleep = true;
+
 void system_collisions(CollisionPairs &collision_pairs) {
     // struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
     //     ComponentArray<Position> position;
@@ -731,6 +737,9 @@ void system_collisions(CollisionPairs &collision_pairs) {
             second_pos.y += dir.y * 3;
             
             camera_shake(0.2f);
+
+            if(hit_sleep)
+                Engine::pause(0.03f);
         }
     }
     collision_pairs.clear();
@@ -929,6 +938,13 @@ void load_arch() {
 
 void update_arch() {
     FrameLog::reset();
+    if(Input::key_pressed(SDLK_u)) {
+        hit_sleep = !hit_sleep;
+        Engine::logn("hit sleep change");
+    }
+    std::string hit = hit_sleep ? "yes" : "no";
+    FrameLog::log("Hit sleep: " + hit);
+
 
     system_player_get_input();
     system_player_handle_input();
@@ -947,6 +963,7 @@ void update_arch() {
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
+    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
 }
 
 void draw_buffer(SpriteData *spr, int length) {

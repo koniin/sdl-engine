@@ -39,6 +39,26 @@ namespace Engine {
 	std::string get_base_data_folder() {
 		return base_data_folder;
 	}
+
+	static float pause_timer = 0.0f;
+	bool is_paused() {
+		return pause_timer > 0.0f;
+	}
+
+	void pause(float time) {
+		pause_timer = time;
+	}
+
+	float paused_for = 0.0f;
+	void update() {
+		if(pause_timer > 0.0f) {
+			paused_for += Time::deltaTime;
+			pause_timer -= Time::deltaTime;
+			Engine::logn("%f  |  %f", pause_timer, paused_for);
+		} else {
+			paused_for = 0.0f;
+		}
+	}
 }
 
 const Vector2 Vector2::Zero = Vector2(0, 0);

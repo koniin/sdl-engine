@@ -50,6 +50,7 @@ inline float easing_sine_in_out(float t) {
 typedef float (*easing_t)(float);
 
 namespace Engine {
+	static int32_t current_fps = 0;
 	static bool _is_running = true;
 	inline void exit() {
 		_is_running = false;
@@ -57,12 +58,17 @@ namespace Engine {
 	inline bool is_running() {
 		return _is_running;
 	}
+	bool is_paused();
 	void toggle_logging();
 	void log(const char* fmt, ...);
 	void logn(const char* fmt, ...);
 
 	void set_base_data_folder(const std::string &name);
 	inline std::string get_base_data_folder();
+
+	void pause(float time);
+
+	void update();
 }
 
 namespace Text {

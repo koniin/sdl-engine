@@ -82,7 +82,10 @@ int main(int argc, char* argv[]) {
 		
         while (timer.accumulator >= timer.fixed_dt) {	
 			input();
-			game_update();
+			Engine::update();
+			if(!Engine::is_paused()) {
+				game_update();
+			}
             timer.accumulator -= timer.fixed_dt;
         }
 		
@@ -95,7 +98,7 @@ int main(int argc, char* argv[]) {
 			fps_lasttime = SDL_GetTicks();
 			fps_current = fps_frames;
 			fps_frames = 0;
-			printf("\nFPS: %d", fps_current);
+			Engine::current_fps = fps_current;
 		}
 	}
 	

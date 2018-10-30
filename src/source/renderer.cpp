@@ -778,7 +778,6 @@ void camera_shake(float t) {
 	camera.shake_duration = 0.7f;
 }
 
-
 static const float traumaDropOff = 0.8f; // trauma reduction per 60 frames
 static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
 static const float maxOffsetX = 10; // pixels
@@ -805,7 +804,7 @@ void camera_update() {
 	camera.offset_x = static_cast<int>(offsetX);
 	camera.offset_y = static_cast<int>(offsetY);
 
-	// Special case for shake in corners
+	// Special case for shake in top left
 	if(camera.offset_x < 0) {
 		camera.offset_x *= -1;
 	}
