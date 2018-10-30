@@ -49,14 +49,9 @@ namespace Engine {
 		pause_timer = time;
 	}
 
-	float paused_for = 0.0f;
 	void update() {
 		if(pause_timer > 0.0f) {
-			paused_for += Time::deltaTime;
 			pause_timer -= Time::deltaTime;
-			Engine::logn("%f  |  %f", pause_timer, paused_for);
-		} else {
-			paused_for = 0.0f;
 		}
 	}
 }

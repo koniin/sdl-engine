@@ -13,10 +13,15 @@ All gfx can be found in shooter_spritesheet.png
 [X] Screen shake on fire weapon
 [X] Screen shake on hit enemy
 [X] player knockback on fire weapon (if player is too far back move to start pos for demo)
-* Sleep on hit an enemy (20ms)
-* Shells or something fly out on fire weapon (make it a "machine gun")
-* Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
+[X] Sleep on hit an enemy (20ms)
+* Leave something behind when something is killed
+    - destroy hit enemy
+    - respawn after some time at random pos on screen
+    - debris at spawn site that doesn't move away
 * BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
+* Shells or something fly out on fire weapon (make it a "machine gun")
+    - check the clip from dropbox
+
 * Smoke on explosion
 * Smoke on fire gun
 
@@ -738,8 +743,7 @@ void system_collisions(CollisionPairs &collision_pairs) {
             
             camera_shake(0.2f);
 
-            if(hit_sleep)
-                Engine::pause(0.03f);
+            Engine::pause(0.03f);
         }
     }
     collision_pairs.clear();
