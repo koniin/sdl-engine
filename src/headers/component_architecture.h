@@ -7,15 +7,15 @@ All gfx can be found in shooter_spritesheet.png
 [X] Ship gfx
 [X] Enemy gfx
 [X] Muzzle flash (circular filled white first frame or something or display bullet as circle first frame)
-[ ] Bullet spread (accuracy)
-* Hit animation (Blink)
-* Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
-* Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
+[X] Bullet spread (accuracy)
+[X] Hit animation (Blink)
+[X] Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
 * Screen shake on fire weapon
 * Screen shake on hit enemy
 * player knockback on fire weapon (if player is too far back move to start pos for demo)
 * Sleep on hit an enemy (20ms)
 * Shells or something fly out on fire weapon (make it a "machine gun")
+* Leave something behind when something is killed (just destroy the hit entity, spawn something else and then respawn an enemy)
 * BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
 * Smoke on explosion
 * Smoke on fire gun
@@ -301,10 +301,19 @@ struct Projectile : ECS::EntityData {
     }
 };
 
+struct BlinkEffect {
+    int frames_to_live = 0;
+    int frame_counter = 0;
+    int interval;
+    size_t original_sheet;
+    size_t white_sheet;
+};
+
 struct Target : ECS::EntityData {
     Position *position;
     Velocity *velocity;
     SpriteComponent *sprite;
+    BlinkEffect* blink;
 
     const int radius = 8;
 
@@ -314,26 +323,16 @@ struct Target : ECS::EntityData {
         position = new Position[n];
         velocity = new Velocity[n];
         sprite = new SpriteComponent[n];
+        blink = new BlinkEffect[n];
 
-        allocate_entities(n, 3);
+        allocate_entities(n, 4);
 
         add(position);
         add(velocity);
         add(sprite);
+        add(blink);
     }
 };
-
-/*
-Position and Velocity 
-Copy Velocity if followed entity and apply
-Render data - primitive or sprite, color etc
-
-Frame lifetime - how many frames it lives for
-Frame counter - just counts how many frames an object has lived (maybe bake into frame lifetime or use frame counter instead)
-Change render data at specific timings if any
-- change things in render data or have complete render data to set when a certain frame is set
-
-*/
 
 struct EffectData {
     int frames_to_live;
@@ -379,6 +378,13 @@ Position &get_position(T &entity_data, ECS::Entity e) {
 }
 
 template<typename T>
+Velocity &get_velocity(T &entity_data, ECS::Entity e) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    auto handle = entity_data.get_handle(e);
+    return entity_data.velocity[handle.i];
+}
+
+template<typename T>
 void set_position(T &entity_data, ECS::Entity e, Position p) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
@@ -397,6 +403,24 @@ void set_sprite(T &entity_data, ECS::Entity e, SpriteComponent s) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
     entity_data.sprite[handle.i] = s;
+}
+
+template<typename T>
+void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    auto handle = entity_data.get_handle(e);
+
+    if(entity_data.blink[handle.i].frame_counter > 0)
+        return;
+
+    BlinkEffect b;
+    b.frames_to_live = frames;
+    b.interval = interval;
+    b.original_sheet = entity_data.sprite[handle.i].sprite_sheet_index;
+    // We assume the next sheet is the white version
+    b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
+    entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
+    entity_data.blink[handle.i] = b;
 }
 
 // Pixels per frame
@@ -546,6 +570,10 @@ void system_player_get_input() {
         if(Input::key_down(key_map.shield)) {
             pi.shield = true;
         }
+
+        if(Input::key_pressed(SDLK_k)) {
+            camera_shake(0.5f);
+        }
     }
 }
 
@@ -567,12 +595,13 @@ void system_player_handle_input() {
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
             auto projectile_pos = players.position[i];
+            // set the projectile position to be gun_barrel_distance infront of the ship
             projectile_pos.x += direction.x * player_config.gun_barrel_distance;
             projectile_pos.y += direction.y * player_config.gun_barrel_distance;        
             auto muzzle_pos = projectile_pos;
 
             // Accuracy
-            const float accuracy = 8;
+            const float accuracy = 8; // how far from initial position it can maximaly spawn
             projectile_pos.x += RNG::range_f(-accuracy, accuracy) * direction.y;
             projectile_pos.y += RNG::range_f(-accuracy, accuracy) * direction.x;
 
@@ -680,10 +709,22 @@ void system_collisions(CollisionPairs &collision_pairs) {
         }
     }
 
+    // Collision resolution
     for(unsigned i = 0; i < collision_pairs.count; ++i) {
-        //ECS::Entity first = ;
-        // Entity second = collisions.second[i];
         queue_remove_entity(collision_pairs.first[i]);
+
+        if(targets.contains(collision_pairs.second[i])) {
+            blink_sprite(targets, collision_pairs.second[i], 29, 5);
+
+            // Knockback
+            auto &velocity = get_velocity(projectiles, collision_pairs.first[i]);
+            auto &second_pos = get_position(targets, collision_pairs.second[i]);
+            Vector2 dir = vector_norm(Vector2(velocity.x, velocity.y));
+            second_pos.x += dir.x * 3;
+            second_pos.y += dir.y * 3;
+            
+            camera_shake(0.3f);
+        }
     }
     collision_pairs.clear();
 }
@@ -707,6 +748,27 @@ void system_effects() {
         effects.effect[i].frame_counter++;
         if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
             queue_remove_entity(effects.entity[i]);
+        }
+    }
+}
+
+template<typename T>
+void system_blink_effect(T &entity_data) {
+    for(int i = 0; i < entity_data.length; ++i) {
+        ++entity_data.blink[i].frame_counter;
+        if(entity_data.blink[i].frame_counter > entity_data.blink[i].frames_to_live) {
+            entity_data.blink[i].frame_counter = 0;
+            if(entity_data.blink[i].frames_to_live > 0) {
+                entity_data.sprite[i].sprite_sheet_index = entity_data.blink[i].original_sheet;
+            }
+            entity_data.blink[i].frames_to_live = 0;
+            continue;
+        }
+        
+        if(!(entity_data.blink[i].frame_counter % entity_data.blink[i].interval)) {
+            entity_data.sprite[i].sprite_sheet_index = 
+                entity_data.sprite[i].sprite_sheet_index == entity_data.blink[i].original_sheet 
+                    ? entity_data.blink[i].white_sheet : entity_data.blink[i].original_sheet;
         }
     }
 }
@@ -744,6 +806,8 @@ static const size_t RENDER_BUFFER_MAX = 256;
 RenderBuffer render_buffer;
 
 void load_render_data() {
+    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
+
     Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
@@ -751,24 +815,12 @@ void load_render_data() {
     SpriteSheet the_sheet;
 	Resources::sprite_sheet_load("shooter_spritesheet.data", the_sheet);
     sprite_sheets.push_back(the_sheet);
-    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
-}
 
-// template<class T>
-// void ExportSpriteData(const T& go, sprite_data_t& spr)
-// {
-//     // write out their Position & Sprite data into destination buffer that will be rendered later on.
-//     //
-//     // Using a smaller global scale "zooms out" the rendering, so to speak.
-//     float globalScale = 0.05f;
-//     spr.posX = go.pos.x * globalScale;
-//     spr.posY = go.pos.y * globalScale;
-//     spr.scale = go.sprite.scale * globalScale;
-//     spr.colR = go.sprite.colorR;
-//     spr.colG = go.sprite.colorG;
-//     spr.colB = go.sprite.colorB;
-//     spr.sprite = (float)go.sprite.spriteIndex;
-// }
+    // Set up a white copy of the sprites
+    Resources::sprite_load_white("shooterwhite", "shooter_spritesheet.png");
+    the_sheet.sprite_sheet_name = "shooterwhite";
+    sprite_sheets.push_back(the_sheet);
+}
 
 template<typename T>
 void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
@@ -876,6 +928,7 @@ void update_arch() {
     system_move();
     system_collisions(collisions);
     system_effects();
+    system_blink_effect(targets);
 
     spawn_projectiles();
     spawn_effects();
@@ -892,11 +945,6 @@ void update_arch() {
 void draw_buffer(SpriteData *spr, int length) {
     for(int i = 0; i < length; i++) {
         draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
-        // if(spr[i].type == SpriteData::Circle) {
-        //     draw_g_circe_color(spr[i].x, spr[i].y, spr[i].radius, spr[i].color);
-        // } else if(spr[i].type == SpriteData::Sprite) {
-        //     draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
-        // }
     }
 }
 

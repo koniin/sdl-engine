@@ -55,6 +55,7 @@ struct Font {
 
 namespace Resources {
     Sprite *sprite_load(const std::string &name, const std::string &filename);
+    Sprite *sprite_load_white(const std::string &name, const std::string &filename);
     Sprite *sprite_get(const std::string &name);
     void sprite_remove(const std::string &name);
 
@@ -130,6 +131,7 @@ void renderer_set_clear_color(const SDL_Color &color);
 void renderer_set_color(const SDL_Color &color);
 void renderer_clear();
 void renderer_draw_render_target();
+void renderer_draw_render_target_camera();
 void renderer_flip();
 void renderer_destroy();
 
@@ -139,9 +141,8 @@ namespace FrameLog {
     void render(int x, int y);
 };
 
-// GPU_Camera *getCamera();
-// void renderer_clearCamera();
-// void renderer_resetCamera();
-// void camera_lookat(int x, int y);
-// void camera_move(int x, int y);
+/*! Trauma should be between 0 and 1. */
+void camera_shake(float t);
+void camera_update();
+
 #endif

@@ -186,21 +186,21 @@ inline const Vector2 operator*(float lhs, Vector2 const &rhs) {
 }
 
 //Returns dot product
-inline const float dot(Vector2 const &lhs,Vector2 const &rhs) {
+inline const float vector_dot(Vector2 const &lhs,Vector2 const &rhs) {
 	return lhs.x*rhs.x+lhs.y*rhs.y; 
 }
 //Returns length squared
-inline const float lsq(Vector2 const &rhs) {
-	return dot(rhs, rhs);
+inline const float vector_lsq(Vector2 const &rhs) {
+	return vector_dot(rhs, rhs);
 }
 //Returns magnitude (length)
-inline const float mag(Vector2 const &rhs) {
+inline const float vector_mag(Vector2 const &rhs) {
 	//return sqrtf(dot(rhs, rhs));
-	return sqrt(dot(rhs, rhs));
+	return sqrt(vector_dot(rhs, rhs));
 }
 //Returns normalized Vector2
-inline Vector2 norm(Vector2 const &lhs){
-	return (1.f /(mag(lhs))) * lhs;
+inline Vector2 vector_norm(Vector2 const &lhs){
+	return (1.f /(vector_mag(lhs))) * lhs;
 }
 
 struct Rectangle {

@@ -73,8 +73,8 @@ inline void game_render() {
 	// bullet_render();
 
 	render_arch();
-
-	renderer_draw_render_target();
+	camera_update();
+	renderer_draw_render_target_camera();
 	renderer_flip();
 }
 

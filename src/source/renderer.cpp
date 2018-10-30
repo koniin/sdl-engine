@@ -12,11 +12,23 @@ int windowPos;
 Font *default_font;
 gfx renderer;
 
+static const float traumaDropOff = 0.001F; // trauma per frame - reduction
+static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
+static const float maxOffsetX = 20; // pixels
+static const float maxOffsetY = 20; // pixels
+struct Camera {
+	float trauma = 0.0f;
+	int x = 0;
+	int y = 0;
+	int offset_x = 0;
+	int offset_y = 0;
+} camera;
+
 namespace Resources {
-	std::map<std::string, Sprite*> sprites;
-	std::map<std::string, Font*> fonts;
+	std::unordered_map<std::string, Sprite*> sprites;
+	std::unordered_map<std::string, Font*> fonts;
 	
-	static SDL_Texture* load_texture(const std::string &path) { 
+	static SDL_Texture* load_texture(const std::string &path, int &w, int &h) { 
 		//The final texture 
 		SDL_Texture* newTexture = NULL; 
 		//Load image at specified path 
@@ -29,17 +41,95 @@ namespace Resources {
 			if( newTexture == NULL ) { 
 				printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() ); 
 			} 
+
+			w = loadedSurface->w;
+			h = loadedSurface->h;
+
 			//Get rid of old loaded surface 
 			SDL_FreeSurface( loadedSurface ); 
 		} 
 		return newTexture; 
 	}
+	
+    static SDL_Texture* load_streaming_texture(const std::string &path, int &w, int &h) {
+		//The final texture 
+		SDL_Texture* newTexture = NULL; 
+		//Load image at specified path 
+		SDL_Surface* loadedSurface = IMG_Load( path.c_str() ); 
+		if( loadedSurface == NULL ) { 
+			printf( "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() ); 
+		} else { 
+			SDL_Surface *formattedSurface = SDL_ConvertSurfaceFormat(loadedSurface, SDL_PIXELFORMAT_ARGB8888, 0);
+            newTexture = SDL_CreateTexture( renderer.renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, formattedSurface->w, formattedSurface->h );
+			SDL_SetTextureBlendMode(newTexture, SDL_BLENDMODE_BLEND);
+			if( newTexture == NULL ) { 
+				printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() ); 
+			} 
+			w = formattedSurface->w; 
+            h = formattedSurface->h;
+			
+            //Lock texture for manipulation 
+            void* pixels; 
+            int pitch; 
+            SDL_LockTexture( newTexture, NULL, &pixels, &pitch ); 
+            //Copy loaded/formatted surface pixels 
+            memcpy( pixels, formattedSurface->pixels, formattedSurface->pitch * formattedSurface->h ); 
+
+            //Unlock texture to update 
+            SDL_UnlockTexture( newTexture ); 
+            pixels = NULL; 
+
+			//Get rid of old loaded surface 
+			SDL_FreeSurface( loadedSurface ); 
+            SDL_FreeSurface( formattedSurface );
+		}
+
+        return newTexture;
+	}
+
+    void transform_non_transparent_to_white(SDL_Texture* texture, int height) {
+        void* texture_pixels; 
+        int pitch; 
+        SDL_LockTexture( texture, NULL, &texture_pixels, &pitch );
+		
+        //Uint32 format = SDL_GetWindowPixelFormat( renderer.sdl_window ); 
+        SDL_PixelFormat* mappingFormat = SDL_AllocFormat( SDL_PIXELFORMAT_ARGB8888 ); 
+
+        //Get pixel data 
+        Uint32* pixels = (Uint32*)texture_pixels; 
+        int pixelCount = ( pitch / 4 ) * height;
+
+        //Map colors 
+        Uint32 transparent = SDL_MapRGBA( mappingFormat, 0x0, 0x0, 0x0, 0x0 ); 
+        Uint32 white = SDL_MapRGBA( mappingFormat, 0xFF, 0xFF, 0xFF, 0xFF ); 
+		
+        // Change transparent pixels to white
+        for( int i = 0; i < pixelCount; ++i ) { 
+            if(pixels[i] != transparent) {
+                pixels[i] = white;
+			} 
+        } 
+
+        //Unlock texture 
+        SDL_UnlockTexture( texture ); 
+
+        pixels = NULL; 
+        pitch = 0;
+    }
 
     Sprite *sprite_load(const std::string &name, const std::string &filename) {
 		std::string path = Engine::get_base_data_folder() + filename;
 		Sprite *s = new Sprite;
-    	s->image = load_texture(path);
-		SDL_QueryTexture(s->image, NULL, NULL, &s->w, &s->h);
+    	s->image = load_texture(path, s->w, s->h);
+		sprites[name] = s;
+		return s;
+	}
+
+	Sprite *sprite_load_white(const std::string &name, const std::string &filename) {
+		std::string path = Engine::get_base_data_folder() + filename;
+		Sprite *s = new Sprite;
+    	s->image = load_streaming_texture(path, s->w, s->h);
+		transform_non_transparent_to_white(s->image, s->h);
 		sprites[name] = s;
 		return s;
 	}
@@ -119,12 +209,12 @@ namespace Resources {
 	}
 
     void cleanup() {
-		for(std::map<std::string, Sprite*>::iterator itr = sprites.begin(); itr != sprites.end(); itr++) {
+		for(std::unordered_map<std::string, Sprite*>::iterator itr = sprites.begin(); itr != sprites.end(); itr++) {
 			SDL_DestroyTexture(itr->second->image);
         	delete itr->second;
     	}
 		sprites.clear();
-		for(std::map<std::string, Font*>::iterator itr = fonts.begin(); itr != fonts.end(); itr++) {
+		for(std::unordered_map<std::string, Font*>::iterator itr = fonts.begin(); itr != fonts.end(); itr++) {
 			TTF_CloseFont(itr->second->font);
 			delete itr->second;
     	}
@@ -629,6 +719,17 @@ void renderer_draw_render_target() {
 	// SDL_RenderCopy(renderer.renderer, renderer.renderTarget, NULL, NULL);
 }
 
+void renderer_draw_render_target_camera() {
+	SDL_SetRenderTarget(renderer.renderer, NULL);
+
+	SDL_Rect destination_rect;
+	destination_rect.x = (window_w / 2) - (gw * step_scale / 2) - camera.x + camera.offset_x;
+ 	destination_rect.y = (window_h / 2) - (gh * step_scale / 2) - camera.y + camera.offset_y;
+  	destination_rect.w = gw * step_scale;
+  	destination_rect.h = gh * step_scale;
+	SDL_RenderCopy(renderer.renderer, renderer.renderTarget, NULL, &destination_rect);
+}
+
 void renderer_flip() {
     //GPU_Flip(renderer.screen);
 	SDL_RenderPresent(renderer.renderer);
@@ -665,24 +766,38 @@ namespace FrameLog {
     }
 }
 
-// GPU_Camera *getCamera() {
-// 	return &camera;
-// }
+void camera_shake(float t) {
+	camera.trauma += t;
+	camera.trauma = Math::clamp(camera.trauma, 0.0f, 1.0f);
+}
 
-// void renderer_clearCamera() {
-// 	//GPU_SetCamera(renderer.target, NULL);
-// }
+void camera_update() {
+	camera.offset_x = camera.offset_y = 0;
 
-// void renderer_resetCamera() {
-// 	//camera = GPU_GetDefaultCamera();
-// }
+	if(camera.trauma <= 0.0f) {
+		camera.trauma = 0.0f;
+		return;
+	}
 
-// void camera_lookat(int x, int y) {
-// 	// camera.x = x - (static_cast<int>(gw) / 2);
-// 	// camera.y = y - (static_cast<int>(gh) / 2);
-// }
+	float shake = camera.trauma * camera.trauma; // trauma^2 (or trauma^3)
 
-// void camera_move(int x, int y) {
-// 	// camera.x += x;
-// 	// camera.y += y;
-// }
+	// translational shake - offset is between -maxOffset and maxOffset
+	float offsetX = maxOffsetX * shake * RNG::range_f(-1, 1);
+	float offsetY = maxOffsetY * shake * RNG::range_f(-1, 1);
+
+// #if PIXEL_ART_OPTIMIZATIONS
+	// Angle doesnt look good with pixel art
+	camera.offset_x = static_cast<int>(offsetX);
+	camera.offset_y = static_cast<int>(offsetY);
+	//c.x += offsetX;
+	//c.y += offsetY;
+// #else 
+// 	// rotational shake - angle result is between -maxAngle and maxAngle
+// 	float angle = maxAngle * shake * RNG::frange(-1, 1);
+// 	c.angle = camera.angle + angle;
+// 	c.x += offsetX;
+// 	c.y += offsetY;
+// #endif
+
+	camera.trauma -= traumaDropOff;
+}
