@@ -594,6 +594,8 @@ void system_player_handle_input() {
 	    velocity.y += direction.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
+            pi.fire_cooldown = player_config.fire_cooldown;
+
             auto projectile_pos = players.position[i];
             // set the projectile position to be gun_barrel_distance infront of the ship
             projectile_pos.x += direction.x * player_config.gun_barrel_distance;
@@ -607,7 +609,8 @@ void system_player_handle_input() {
 
             queue_projectile(projectile_pos, direction, player_config.bullet_speed);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
-            pi.fire_cooldown = player_config.fire_cooldown;
+            
+            camera_shake(0.2f);
         }
     }
 }
@@ -723,7 +726,7 @@ void system_collisions(CollisionPairs &collision_pairs) {
             second_pos.x += dir.x * 3;
             second_pos.y += dir.y * 3;
             
-            camera_shake(0.3f);
+            camera_shake(0.2f);
         }
     }
     collision_pairs.clear();

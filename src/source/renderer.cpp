@@ -12,16 +12,16 @@ int windowPos;
 Font *default_font;
 gfx renderer;
 
-static const float traumaDropOff = 0.001F; // trauma per frame - reduction
+static const float traumaDropOff = 1.0f; // trauma reduction per 60 frames
 static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
-static const float maxOffsetX = 20; // pixels
-static const float maxOffsetY = 20; // pixels
+static const float maxOffsetX = 8; // pixels
+static const float maxOffsetY = 8; // pixels
 struct Camera {
 	float trauma = 0.0f;
 	int x = 0;
 	int y = 0;
-	int offset_x = 0;
-	int offset_y = 0;
+	float offset_x = 0;
+	float offset_y = 0;
 } camera;
 
 namespace Resources {
@@ -720,6 +720,8 @@ void renderer_draw_render_target() {
 }
 
 void renderer_draw_render_target_camera() {
+	camera_update();
+
 	SDL_SetRenderTarget(renderer.renderer, NULL);
 
 	SDL_Rect destination_rect;
@@ -772,32 +774,27 @@ void camera_shake(float t) {
 }
 
 void camera_update() {
-	camera.offset_x = camera.offset_y = 0;
-
 	if(camera.trauma <= 0.0f) {
 		camera.trauma = 0.0f;
+		camera.offset_x = camera.offset_y = 0;
 		return;
 	}
 
-	float shake = camera.trauma * camera.trauma; // trauma^2 (or trauma^3)
-
+	// float shake = camera.trauma * camera.trauma; // trauma^2 (or trauma^3)
+	float shake = camera.trauma; // trauma^2 (or trauma^3)
 	// translational shake - offset is between -maxOffset and maxOffset
 	float offsetX = maxOffsetX * shake * RNG::range_f(-1, 1);
 	float offsetY = maxOffsetY * shake * RNG::range_f(-1, 1);
 
-// #if PIXEL_ART_OPTIMIZATIONS
-	// Angle doesnt look good with pixel art
-	camera.offset_x = static_cast<int>(offsetX);
-	camera.offset_y = static_cast<int>(offsetY);
-	//c.x += offsetX;
-	//c.y += offsetY;
-// #else 
-// 	// rotational shake - angle result is between -maxAngle and maxAngle
-// 	float angle = maxAngle * shake * RNG::frange(-1, 1);
-// 	c.angle = camera.angle + angle;
-// 	c.x += offsetX;
-// 	c.y += offsetY;
-// #endif
+	Engine::logn("%f    |   %f   |   %f", shake, offsetX, offsetY);
 
-	camera.trauma -= traumaDropOff;
+	camera.offset_x += offsetX;
+	camera.offset_y += offsetY;
+	
+	// camera.offset_x = Math::clamp(camera.offset_x, -maxOffsetX, maxOffsetX);
+	// camera.offset_y = Math::clamp(camera.offset_y, -maxOffsetY, maxOffsetY);
+
+	// Engine::logn("camera offset; %f    |   %f", camera.offset_x, camera.offset_y);
+
+	camera.trauma -= traumaDropOff * Time::deltaTime;
 }
