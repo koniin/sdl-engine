@@ -13,6 +13,7 @@ Font *default_font;
 gfx renderer;
 
 struct Camera {
+	float shake_duration = 0.0f;
 	float trauma = 0.0f;
 	int x = 0;
 	int y = 0;
@@ -774,17 +775,19 @@ namespace FrameLog {
 void camera_shake(float t) {
 	camera.trauma += t;
 	camera.trauma = Math::clamp(camera.trauma, 0.0f, 1.0f);
+	camera.shake_duration = 0.7f;
 }
 
 
 static const float traumaDropOff = 0.8f; // trauma reduction per 60 frames
 static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
-static const float maxOffsetX = 15; // pixels
-static const float maxOffsetY = 15; // pixels
+static const float maxOffsetX = 10; // pixels
+static const float maxOffsetY = 10; // pixels
 
 void camera_update() {
-	if(camera.trauma <= 0.0f) {
+	if(camera.shake_duration <= 0.0f) {
 		camera.trauma = 0.0f;
+		camera.shake_duration = 0.0f;
 		camera.offset_x = camera.offset_y = 0;
 		return;
 	}
@@ -811,6 +814,6 @@ void camera_update() {
 	}
 
 	// Engine::logn("trauma: %f   |   offset: %d , %d", camera.trauma, camera.offset_x, camera.offset_y);
-
-	camera.trauma -= traumaDropOff * Time::deltaTime;
+	camera.shake_duration -= Time::deltaTime;
+	//camera.trauma -= traumaDropOff * Time::deltaTime;
 }

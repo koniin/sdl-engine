@@ -10,8 +10,8 @@ All gfx can be found in shooter_spritesheet.png
 [X] Bullet spread (accuracy)
 [X] Hit animation (Blink)
 [X] Enemy knockback (3 pixels per frame in the direction of the bullet, would be countered by movement in normal cases)
-* Screen shake on fire weapon
-* Screen shake on hit enemy
+[X] Screen shake on fire weapon
+[X] Screen shake on hit enemy
 * player knockback on fire weapon (if player is too far back move to start pos for demo)
 * Sleep on hit an enemy (20ms)
 * Shells or something fly out on fire weapon (make it a "machine gun")
@@ -468,9 +468,8 @@ struct SpawnProjectile {
     Velocity velocity;
 };
 std::vector<SpawnProjectile> projectile_queue;
-void queue_projectile(Position p, Direction direction, float speed) {
-    Velocity v = { direction.x * speed, direction.y * speed };
-    projectile_queue.push_back({ p, v });
+void queue_projectile(Position p, Vector2 velocity) {
+    projectile_queue.push_back({ p, {velocity.x, velocity.y} });
 }
 
 void spawn_projectiles() {
@@ -607,10 +606,15 @@ void system_player_handle_input() {
             projectile_pos.x += RNG::range_f(-accuracy, accuracy) * direction.y;
             projectile_pos.y += RNG::range_f(-accuracy, accuracy) * direction.x;
 
-            queue_projectile(projectile_pos, direction, player_config.bullet_speed);
+            Vector2 bullet_velocity = Vector2(direction.x * player_config.bullet_speed, direction.y * player_config.bullet_speed);
+            queue_projectile(projectile_pos, bullet_velocity);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
-            camera_shake(0.2f);
+            camera_shake(0.1f);
+
+            // Player knockback
+            players.position[i].x -= direction.x * 3;
+            players.position[i].y -= direction.y * 3;
         }
     }
 }
