@@ -17,7 +17,7 @@ All gfx can be found in shooter_spritesheet.png
 * Leave something behind when something is killed
     - destroy hit enemy
     - respawn after some time at random pos on screen
-    - debris at spawn site that doesn't move away
+    - debris at spawn site that doesn't move away - how it looks does not matter now
 * BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
 * Shells or something fly out on fire weapon (make it a "machine gun")
     - check the clip from dropbox
