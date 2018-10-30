@@ -703,8 +703,6 @@ struct CollisionPairs {
     }
 };
 
-static bool hit_sleep = true;
-
 void system_collisions(CollisionPairs &collision_pairs) {
     // struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
     //     ComponentArray<Position> position;
@@ -741,7 +739,7 @@ void system_collisions(CollisionPairs &collision_pairs) {
             second_pos.x += dir.x * 3;
             second_pos.y += dir.y * 3;
             
-            camera_shake(0.2f);
+            camera_shake(0.1f);
 
             Engine::pause(0.03f);
         }
@@ -942,14 +940,7 @@ void load_arch() {
 
 void update_arch() {
     FrameLog::reset();
-    if(Input::key_pressed(SDLK_u)) {
-        hit_sleep = !hit_sleep;
-        Engine::logn("hit sleep change");
-    }
-    std::string hit = hit_sleep ? "yes" : "no";
-    FrameLog::log("Hit sleep: " + hit);
-
-
+    
     system_player_get_input();
     system_player_handle_input();
     system_move();
