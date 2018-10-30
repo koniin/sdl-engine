@@ -37,6 +37,9 @@ inline void game_load() {
 	// bullet_load();
 
 	load_arch();
+	int a = -5;
+	a *= -1;
+	Engine::logn("%d", a);
 
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
