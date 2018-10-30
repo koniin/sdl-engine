@@ -18,9 +18,11 @@ All gfx can be found in shooter_spritesheet.png
     - destroy hit enemy
     - respawn after some time at random pos on screen
     - debris at spawn site that doesn't move away - how it looks does not matter now
-* BIG random explosions / explosion on kill (circle that flashes from black/grey to white to disappear for one update each)
+* BIG random explosion/s on kill (circle that flashes from black/grey to white to disappear for one update each)
 * Shells or something fly out on fire weapon (make it a "machine gun")
     - check the clip from dropbox
+
+* BIG random explosions
 
 * Smoke on explosion
 * Smoke on fire gun
