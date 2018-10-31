@@ -56,8 +56,16 @@ namespace Engine {
 	}
 }
 
+Vector2 Point::to_vector2() const {
+	return Vector2((float)x, (float)y);
+}
+
 const Vector2 Vector2::Zero = Vector2(0, 0);
 const Vector2 Vector2::One = Vector2(1, 1);
+
+Point Vector2::to_point() const {
+	return Point((int)x, (int)y);
+}
 
 namespace Time {
 	float deltaTime = 0.0f;

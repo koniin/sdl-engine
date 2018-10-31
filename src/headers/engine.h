@@ -85,6 +85,7 @@ namespace Text {
     }
 };
 
+struct Vector2;
 struct Point {
 	int x;
 	int y;
@@ -93,6 +94,19 @@ struct Point {
 		x = xPos;
 		y = yPos;
 	}
+	
+	template<class T>
+	inline Point operator=(const T &v) const {
+		return Point((int)v.x, (int)v.y);
+	}
+	inline Point operator-(Point const& point) const {
+		return Point(x - point.x, y - point.y);
+	}
+	inline Point Point::operator*(int const &num) const {
+		return Point(x * num, y * num);
+	}
+	
+	Vector2 to_vector2() const;
 };
 inline Point operator+( Point const& lhs, Point const& rhs ) {
 	return Point(lhs.x + rhs.x, lhs.y + rhs.y);
@@ -106,6 +120,13 @@ inline Point operator+=(Point const& lhs, int const& rhs){
 inline Point operator-=(Point const& lhs, int const& rhs){
 	return Point(lhs.x - rhs, lhs.y - rhs);
 }
+inline const Point operator*(int lhs, Point const &rhs) {
+	Point result;
+	result.x=rhs.x * lhs;
+	result.y=rhs.y * lhs;
+	return result;
+}
+
 struct Vector2 {
 	float x;
 	float y;
@@ -182,8 +203,13 @@ struct Vector2 {
 	inline bool Vector2::operator!=(const Vector2& vector) const {
 		return x != vector.x || y != vector.y;
 	}
+
+	Point to_point() const;
 };
 
+inline Vector2 operator+( Vector2 const& lhs, Vector2 const& rhs ) {
+	return Vector2(lhs.x + rhs.x, lhs.y + rhs.y);
+}
 inline const Vector2 operator*(float lhs, Vector2 const &rhs) {
 	Vector2 result;
 	result.x=rhs.x * lhs;

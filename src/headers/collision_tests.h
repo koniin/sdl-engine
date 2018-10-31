@@ -10,8 +10,14 @@ struct Circle {
     Vector2 velocity;
 };
 
+struct Line {
+    Point a;
+    Point b;
+};
+
 struct Gun {
     Vector2 position;
+    Point forward;
     float angle;
 } gun;
 
@@ -26,13 +32,18 @@ Circle *circles;
 const int max_bullets = 10;
 static int bullet_n = 0;
 Circle *bullets;
+
 float bullet_velocity_delta = player_bullet_speed();
 float bullet_velocity = 8.0f;
 uint16_t bullet_radius = 4;
-bool use_delta_time_speed = true;
+bool use_delta_time_speed = false;
 Rectangle world_bounds;
 
 float bullet_life = 0.0f;
+
+std::vector<Line> lines;
+Line master_line;
+Point global_gun_collision;
 
 void spawn_circles() {
     int circle_max_size = 12;
@@ -63,6 +74,15 @@ void fire_bullet() {
     }
 }
 
+void update_gun() {
+    float x_direction, y_direction;
+    float rotation = gun.angle / Math::RAD_TO_DEGREE;
+    x_direction = cos(rotation);
+    y_direction = sin(rotation);
+    gun.forward.x = (int)(gun.position.x + x_direction * 10);
+    gun.forward.y = (int)(gun.position.y + y_direction * 10);
+}
+
 void collision_test_load() {
     Engine::set_base_data_folder("data");
     Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
@@ -75,9 +95,120 @@ void collision_test_load() {
     bullets = new Circle[max_bullets];
 
     gun.position = Vector2(200, (float)gh / 2);
+    update_gun();
     gun.angle = 0;
 
     world_bounds = { 0, 0, (int)gw, (int)gh };
+
+    master_line.a = Point(100, (int)gh / 2);
+    master_line.b = Point(100, (int)gh / 2 + 20);
+    for(int i = 0; i < 10; ++i) {
+        Line l;
+        RNG::random_point_i((int)gw - 100, gh - 100, l.a.x, l.a.y);
+        l.b.x = l.a.x + RNG::range_i(-20, 20);
+        l.b.y = l.a.y + RNG::range_i(-20, 20);
+        lines.push_back(l);
+    }
+    
+    global_gun_collision.x = -100;
+    global_gun_collision.y = -100;
+}
+
+bool intersect_ray_circle() {
+    return false;
+}
+
+template<class PointXY>
+bool intersect_lines(const PointXY &lineA1, const PointXY &lineA2, const PointXY &lineB1, const PointXY &lineB2, PointXY &collision_point) {
+//     LineLineCollision
+// Input
+// 	LineA1	Point	First point on line A
+// 	LineA2	Point	Second point on line A
+// 	LineB1	Point	First point on line B
+// 	LineB2	Point	Second point on line B
+// Output
+// 	The point of the collision, or null if no collision exists.
+// Method
+// 	denom = ((LineB2.Y – LineB1.Y) * (LineA2.X – LineA1.X)) –
+// 		((LineB2.X – LineB1.X) * (LineA2.Y - LineA1.Y))
+// 	if (denom == 0)
+// 		return null
+// 	else
+// 		ua = (((LineB2.X – LineB1.X) * (LineA1.Y – LineB1.Y)) –
+// 			((LineB2.Y – LineB1.Y) * (LineA1.X – LineB1.X))) / denom
+// 		/* The following 3 lines are only necessary if we are checking line
+// 			segments instead of infinite-length lines */
+// 		ub = (((LineA2.X – LineA1.X) * (LineA1.Y – LineB1.Y)) –
+// 			((LineA2.Y – LineA1.Y) * (LineA1.X – LineB1.X))) / denom
+// 		if (ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)
+// 			return null
+
+// 		return LineA1 + ua * (LineA2 – LineA1)
+    int denom = ((lineB2.y - lineB1.y) * (lineA2.x - lineA1.x)) -
+        ((lineB2.x - lineB1.x) * (lineA2.y - lineA1.y));
+    
+    if (denom == 0) {
+		return false;
+    }
+	
+	int ua = (((lineB2.x - lineB1.x) * (lineA1.y - lineB1.y)) -
+		((lineB2.y - lineB1.y) * (lineA1.x - lineB1.x))) / denom;
+	/* The following 3 lines are only necessary if we are checking line
+		segments instead of infinite-length lines */
+	int ub = (((lineA2.x - lineA1.x) * (lineA1.y - lineB1.y)) -
+		((lineA2.y - lineA1.y) * (lineA1.x - lineB1.x))) / denom;
+	if ((ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)) {
+		return false;
+    }
+
+    collision_point = lineA1 + ua * (lineA2 - lineA1);
+    return true;
+}
+
+bool intersect_lines_vector(const Vector2 &lineA1, const Vector2 &lineA2, const Vector2 &lineB1, const Vector2 &lineB2, Vector2 &collision_point) {
+//     LineLineCollision
+// Input
+// 	LineA1	Point	First point on line A
+// 	LineA2	Point	Second point on line A
+// 	LineB1	Point	First point on line B
+// 	LineB2	Point	Second point on line B
+// Output
+// 	The point of the collision, or null if no collision exists.
+// Method
+// 	denom = ((LineB2.Y – LineB1.Y) * (LineA2.X – LineA1.X)) –
+// 		((LineB2.X – LineB1.X) * (LineA2.Y - LineA1.Y))
+// 	if (denom == 0)
+// 		return null
+// 	else
+// 		ua = (((LineB2.X – LineB1.X) * (LineA1.Y – LineB1.Y)) –
+// 			((LineB2.Y – LineB1.Y) * (LineA1.X – LineB1.X))) / denom
+// 		/* The following 3 lines are only necessary if we are checking line
+// 			segments instead of infinite-length lines */
+// 		ub = (((LineA2.X – LineA1.X) * (LineA1.Y – LineB1.Y)) –
+// 			((LineA2.Y – LineA1.Y) * (LineA1.X – LineB1.X))) / denom
+// 		if (ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)
+// 			return null
+
+// 		return LineA1 + ua * (LineA2 – LineA1)
+    float denom = ((lineB2.y - lineB1.y) * (lineA2.x - lineA1.x)) -
+        ((lineB2.x - lineB1.x) * (lineA2.y - lineA1.y));
+    
+    if (denom == 0) {
+		return false;
+    }
+	
+	float ua = (((lineB2.x - lineB1.x) * (lineA1.y - lineB1.y)) -
+		((lineB2.y - lineB1.y) * (lineA1.x - lineB1.x))) / denom;
+	/* The following 3 lines are only necessary if we are checking line
+		segments instead of infinite-length lines */
+	float ub = (((lineA2.x - lineA1.x) * (lineA1.y - lineB1.y)) -
+		((lineA2.y - lineA1.y) * (lineA1.x - lineB1.x))) / denom;
+	if ((ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)) {
+		return false;
+    }
+
+    collision_point = lineA1 + ua * (lineA2 - lineA1);
+    return true;
 }
 
 void collision_test_update() {
@@ -85,8 +216,26 @@ void collision_test_update() {
     
     if(Input::key_down(SDL_SCANCODE_A)) {
         gun.angle -= 5;
+        update_gun();
     } else if(Input::key_down(SDL_SCANCODE_D)) {
         gun.angle += 5;
+        update_gun();
+    }
+    if(Input::key_pressed(SDLK_w)) {
+        float rotation = gun.angle / Math::RAD_TO_DEGREE;
+        float x_direction, y_direction;
+        x_direction = cos(rotation);
+        y_direction = sin(rotation);
+        gun.position.x += x_direction * 1;
+        gun.position.y += y_direction * 1;
+        update_gun();
+    } 
+
+    if(Input::key_pressed(SDLK_u)) {
+        bullet_velocity += 2;
+    }
+    if(Input::key_pressed(SDLK_j)) {
+        bullet_velocity -= 1;
     }
 
     if(Input::key_pressed(SDLK_SPACE)) {
@@ -116,6 +265,26 @@ void collision_test_update() {
         }
     }
 
+    for(int ci = 0; ci < circle_n; ci++) {
+        for(int bi = 0; bi < bullet_n; bi++) {
+            const auto &circle_pos = circles[ci].position;
+            const float &circle_radius = circles[ci].radius;
+            const auto &bullet_pos = bullets[bi].position;
+            const float &b_radius = bullets[bi].radius;
+            if(Math::intersect_circles(circle_pos.x, circle_pos.y, circle_radius, bullet_pos.x, bullet_pos.y, b_radius)) {
+                Engine::logn("circle intersects");
+            }
+
+        }
+    }
+
+    for(auto &l : lines) {
+        Vector2 collider;
+        if(intersect_lines_vector(gun.forward.to_vector2(), gun.position, l.a.to_vector2(), l.b.to_vector2(), collider)) {
+            global_gun_collision = collider.to_point();
+        }
+    }
+
     std::string delta = use_delta_time_speed ? "yes" : "no";
     FrameLog::log("Delta movement: " + delta);
     FrameLog::log("Bullet count: " + std::to_string(bullet_n));
@@ -126,15 +295,6 @@ void collision_test_update() {
 }
 
 void collision_test_render() {
-    float x_direction, y_direction;
-    float rotation = gun.angle / Math::RAD_TO_DEGREE;
-    x_direction = cos(rotation);
-    y_direction = sin(rotation);
-    int x2 = (int)(gun.position.x + x_direction * 10);
-    int y2 = (int)(gun.position.y + y_direction * 10);
-
-    SDL_SetRenderDrawColor(renderer.renderer, 0, 0, 255, 255);
-    SDL_RenderDrawLine(renderer.renderer, (int)gun.position.x, (int)gun.position.y, x2, y2);
     for(int i = 0; i < circle_n; i++) {
         const auto &pos = circles[i].position;
         draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, circles[i].radius, 0, 255, 0, 255);
@@ -143,6 +303,15 @@ void collision_test_render() {
         const auto &pos = bullets[i].position;
         draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, bullets[i].radius, 0, 255, 0, 255);
     }
+
+    SDL_SetRenderDrawColor(renderer.renderer, 0, 0, 255, 255);
+    SDL_RenderDrawLine(renderer.renderer, (int)gun.position.x, (int)gun.position.y, gun.forward.x, gun.forward.y);
+    for(auto &l : lines) {
+        SDL_SetRenderDrawColor(renderer.renderer, 128, 0, 255, 255);
+        SDL_RenderDrawLine(renderer.renderer, l.a.x, l.a.y, l.b.x, l.b.y);
+    }
+    draw_g_circe_RGBA((int)gun.position.x, (int)gun.position.y, 2, 255, 255, 0, 255);
+    draw_g_circe_RGBA((uint16_t)global_gun_collision.x, (uint16_t)global_gun_collision.y, 4, 255, 0, 0, 255);
 
     FrameLog::render(5, 5);
 }
