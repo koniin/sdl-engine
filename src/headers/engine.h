@@ -445,6 +445,27 @@ namespace Math {
 		return (delta_x * delta_x + delta_y * delta_y) < (radius * radius);
 	}
 
+	inline bool intersect_lines_vector(const Vector2 &lineA1, const Vector2 &lineA2, const Vector2 &lineB1, const Vector2 &lineB2, Vector2 &collision_point) {
+		float denom = ((lineB2.y - lineB1.y) * (lineA2.x - lineA1.x)) -
+			((lineB2.x - lineB1.x) * (lineA2.y - lineA1.y));
+		
+		if (denom == 0) {
+			return false;
+		}
+		
+		float ua = (((lineB2.x - lineB1.x) * (lineA1.y - lineB1.y)) -
+			((lineB2.y - lineB1.y) * (lineA1.x - lineB1.x))) / denom;
+		/* The following 3 lines are only necessary if we are checking line
+			segments instead of infinite-length lines */
+		float ub = (((lineA2.x - lineA1.x) * (lineA1.y - lineB1.y)) -
+			((lineA2.y - lineA1.y) * (lineA1.x - lineB1.x))) / denom;
+		if ((ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)) {
+			return false;
+		}
+
+		collision_point = lineA1 + ua * (lineA2 - lineA1);
+		return true;
+	}
 	// 	inline bool intersect_AABB(Rectangle &a, Rectangle &b) {
 	//   		return (a.minX <= b.maxX && a.maxX >= b.minX) 
 	// 			&& (a.minY <= b.maxY && a.maxY >= b.minY);

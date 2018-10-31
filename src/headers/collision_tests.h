@@ -118,99 +118,6 @@ bool intersect_ray_circle() {
     return false;
 }
 
-template<class PointXY>
-bool intersect_lines(const PointXY &lineA1, const PointXY &lineA2, const PointXY &lineB1, const PointXY &lineB2, PointXY &collision_point) {
-//     LineLineCollision
-// Input
-// 	LineA1	Point	First point on line A
-// 	LineA2	Point	Second point on line A
-// 	LineB1	Point	First point on line B
-// 	LineB2	Point	Second point on line B
-// Output
-// 	The point of the collision, or null if no collision exists.
-// Method
-// 	denom = ((LineB2.Y – LineB1.Y) * (LineA2.X – LineA1.X)) –
-// 		((LineB2.X – LineB1.X) * (LineA2.Y - LineA1.Y))
-// 	if (denom == 0)
-// 		return null
-// 	else
-// 		ua = (((LineB2.X – LineB1.X) * (LineA1.Y – LineB1.Y)) –
-// 			((LineB2.Y – LineB1.Y) * (LineA1.X – LineB1.X))) / denom
-// 		/* The following 3 lines are only necessary if we are checking line
-// 			segments instead of infinite-length lines */
-// 		ub = (((LineA2.X – LineA1.X) * (LineA1.Y – LineB1.Y)) –
-// 			((LineA2.Y – LineA1.Y) * (LineA1.X – LineB1.X))) / denom
-// 		if (ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)
-// 			return null
-
-// 		return LineA1 + ua * (LineA2 – LineA1)
-    int denom = ((lineB2.y - lineB1.y) * (lineA2.x - lineA1.x)) -
-        ((lineB2.x - lineB1.x) * (lineA2.y - lineA1.y));
-    
-    if (denom == 0) {
-		return false;
-    }
-	
-	int ua = (((lineB2.x - lineB1.x) * (lineA1.y - lineB1.y)) -
-		((lineB2.y - lineB1.y) * (lineA1.x - lineB1.x))) / denom;
-	/* The following 3 lines are only necessary if we are checking line
-		segments instead of infinite-length lines */
-	int ub = (((lineA2.x - lineA1.x) * (lineA1.y - lineB1.y)) -
-		((lineA2.y - lineA1.y) * (lineA1.x - lineB1.x))) / denom;
-	if ((ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)) {
-		return false;
-    }
-
-    collision_point = lineA1 + ua * (lineA2 - lineA1);
-    return true;
-}
-
-bool intersect_lines_vector(const Vector2 &lineA1, const Vector2 &lineA2, const Vector2 &lineB1, const Vector2 &lineB2, Vector2 &collision_point) {
-//     LineLineCollision
-// Input
-// 	LineA1	Point	First point on line A
-// 	LineA2	Point	Second point on line A
-// 	LineB1	Point	First point on line B
-// 	LineB2	Point	Second point on line B
-// Output
-// 	The point of the collision, or null if no collision exists.
-// Method
-// 	denom = ((LineB2.Y – LineB1.Y) * (LineA2.X – LineA1.X)) –
-// 		((LineB2.X – LineB1.X) * (LineA2.Y - LineA1.Y))
-// 	if (denom == 0)
-// 		return null
-// 	else
-// 		ua = (((LineB2.X – LineB1.X) * (LineA1.Y – LineB1.Y)) –
-// 			((LineB2.Y – LineB1.Y) * (LineA1.X – LineB1.X))) / denom
-// 		/* The following 3 lines are only necessary if we are checking line
-// 			segments instead of infinite-length lines */
-// 		ub = (((LineA2.X – LineA1.X) * (LineA1.Y – LineB1.Y)) –
-// 			((LineA2.Y – LineA1.Y) * (LineA1.X – LineB1.X))) / denom
-// 		if (ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)
-// 			return null
-
-// 		return LineA1 + ua * (LineA2 – LineA1)
-    float denom = ((lineB2.y - lineB1.y) * (lineA2.x - lineA1.x)) -
-        ((lineB2.x - lineB1.x) * (lineA2.y - lineA1.y));
-    
-    if (denom == 0) {
-		return false;
-    }
-	
-	float ua = (((lineB2.x - lineB1.x) * (lineA1.y - lineB1.y)) -
-		((lineB2.y - lineB1.y) * (lineA1.x - lineB1.x))) / denom;
-	/* The following 3 lines are only necessary if we are checking line
-		segments instead of infinite-length lines */
-	float ub = (((lineA2.x - lineA1.x) * (lineA1.y - lineB1.y)) -
-		((lineA2.y - lineA1.y) * (lineA1.x - lineB1.x))) / denom;
-	if ((ua < 0) || (ua > 1) || (ub < 0) || (ub > 1)) {
-		return false;
-    }
-
-    collision_point = lineA1 + ua * (lineA2 - lineA1);
-    return true;
-}
-
 void collision_test_update() {
     FrameLog::reset();
     
@@ -280,7 +187,7 @@ void collision_test_update() {
 
     for(auto &l : lines) {
         Vector2 collider;
-        if(intersect_lines_vector(gun.forward.to_vector2(), gun.position, l.a.to_vector2(), l.b.to_vector2(), collider)) {
+        if(Math::intersect_lines_vector(gun.forward.to_vector2(), gun.position, l.a.to_vector2(), l.b.to_vector2(), collider)) {
             global_gun_collision = collider.to_point();
         }
     }
