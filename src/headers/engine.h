@@ -484,6 +484,12 @@ namespace RNG {
 		xOut = xgen(RNG_generator);
 		yOut = ygen(RNG_generator);
 	}
+
+	inline Vector2 vector2(const float &x_min, const float &x_max, const float &y_min, const float &y_max) {
+		std::uniform_real_distribution<float> xgen(x_min, x_max);
+		std::uniform_real_distribution<float> ygen(y_min, y_max);
+		return Vector2(xgen(RNG_generator), ygen(RNG_generator));
+	}
 }
 
 namespace Localization {

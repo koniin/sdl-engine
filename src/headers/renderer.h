@@ -112,17 +112,17 @@ void draw_text_centered_str(int x, int y, const SDL_Color &color, std::string te
 void draw_text_font_centered(Font *font, int x, int y, const SDL_Color &color, const char *text);
 void draw_tilemap_ortho(const TileMap &t, const SpriteSheet &s, const int x_start, const int y_start);
 
-void draw_g_pixel(Sint16 x, Sint16 y);
-void draw_g_pixel_color(Sint16 x, Sint16 y, const SDL_Color &color);
-void draw_g_pixel_RGBA(Sint16 x, Sint16 y, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_horizontal_line(Sint16 x1, Sint16 x2, Sint16 y);
-void draw_g_horizontal_line_color(Sint16 x1, Sint16 x2, Sint16 y, SDL_Color &color);
-void draw_g_horizontal_line_RGBA(Sint16 x1, Sint16 x2, Sint16 y, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_vertical_line_color(Sint16 x, Sint16 y1, Sint16 y2, SDL_Color &color);
-void draw_g_vertical_line_RGBA(Sint16 x, Sint16 y1, Sint16 y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_circe_color(Sint16 x, Sint16 y, Sint16 rad, SDL_Color &color);
-void draw_g_circe_RGBA(Sint16 x, Sint16 y, Sint16 rad, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_ellipseRGBA(Sint16 x, Sint16 y, Sint16 rx, Sint16 ry, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void draw_g_pixel(int16_t x, int16_t y);
+void draw_g_pixel_color(int16_t x, int16_t y, const SDL_Color &color);
+void draw_g_pixel_RGBA(int16_t x, int16_t y, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void draw_g_horizontal_line(int16_t x1, int16_t x2, int16_t y);
+void draw_g_horizontal_line_color(int16_t x1, int16_t x2, int16_t y, SDL_Color &color);
+void draw_g_horizontal_line_RGBA(int16_t x1, int16_t x2, int16_t y, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void draw_g_vertical_line_color(int16_t x, int16_t y1, int16_t y2, SDL_Color &color);
+void draw_g_vertical_line_RGBA(int16_t x, int16_t y1, int16_t y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void draw_g_circe_color(int16_t x, int16_t y, int16_t rad, SDL_Color &color);
+void draw_g_circe_RGBA(int16_t x, int16_t y, int16_t rad, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void draw_g_ellipseRGBA(int16_t x, int16_t y, int16_t rx, int16_t ry, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 void draw_g_rectangle_filled(int x, int y, int w, int h, const SDL_Color &color);
 void draw_g_rectangle_filled_RGBA(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 

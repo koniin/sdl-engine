@@ -7,7 +7,8 @@
 // #include "tile_collisions.h"
 // #include "asteroids.h"
 // #include "bullet_physics.h"
-#include "component_architecture.h"
+// #include "component_architecture.h"
+#include "collision_tests.h"
 #include <chrono>
 
 // ECS UNITY MOTHERLOAD => https://forum.unity.com/threads/ecs-memory-layout.532028/
@@ -33,10 +34,10 @@
 
 inline void game_load() {
 	// asteroids_load();
-
 	// bullet_load();
+	// load_arch();
 
-	load_arch();
+	collision_test_load();
 
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
@@ -46,11 +47,12 @@ inline void game_load() {
 
 inline void game_update() {
 	// bullet_update();
-	
-	update_arch();
+	// update_arch();
 
 	// std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	
+	collision_test_update();
+
 	// // asteroids_update();
 	// // tile_collisions_update();
 	// std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
@@ -72,7 +74,9 @@ inline void game_render() {
 	// tile_collisions_render();
 	// bullet_render();
 
-	render_arch();
+	// render_arch();
+	collision_test_render();
+
 	renderer_draw_render_target_camera();
 	renderer_flip();
 }
