@@ -67,6 +67,14 @@ Point Vector2::to_point() const {
 	return Point((int)x, (int)y);
 }
 
+Vector2 Vector2::normal() const {
+	return (1.f /(vector_mag(*this))) * *this;
+}
+
+float Vector2::length2() const {
+	return x*x + y*y;
+}
+
 namespace Time {
 	float deltaTime = 0.0f;
 }

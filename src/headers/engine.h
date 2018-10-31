@@ -127,6 +127,7 @@ inline const Point operator*(int lhs, Point const &rhs) {
 	return result;
 }
 
+const float vector_mag(Vector2 const &rhs);
 struct Vector2 {
 	float x;
 	float y;
@@ -205,6 +206,8 @@ struct Vector2 {
 	}
 
 	Point to_point() const;
+	Vector2 normal() const;
+	float length2() const;
 };
 
 inline Vector2 operator+( Vector2 const& lhs, Vector2 const& rhs ) {
@@ -218,7 +221,7 @@ inline const Vector2 operator*(float lhs, Vector2 const &rhs) {
 }
 
 //Returns dot product
-inline const float vector_dot(Vector2 const &lhs,Vector2 const &rhs) {
+inline const float vector_dot(Vector2 const &lhs, Vector2 const &rhs) {
 	return lhs.x*rhs.x+lhs.y*rhs.y; 
 }
 //Returns length squared

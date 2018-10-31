@@ -44,6 +44,8 @@ float bullet_life = 0.0f;
 std::vector<Line> lines;
 Line master_line;
 Point global_gun_collision;
+Point global_circle_collision;
+Point global_circle_collision2;
 
 void spawn_circles() {
     int circle_max_size = 12;
@@ -79,8 +81,8 @@ void update_gun() {
     float rotation = gun.angle / Math::RAD_TO_DEGREE;
     x_direction = cos(rotation);
     y_direction = sin(rotation);
-    gun.forward.x = (int)(gun.position.x + x_direction * 10);
-    gun.forward.y = (int)(gun.position.y + y_direction * 10);
+    gun.forward.x = (int)(gun.position.x + x_direction * 30);
+    gun.forward.y = (int)(gun.position.y + y_direction * 30);
 }
 
 void collision_test_load() {
@@ -95,8 +97,8 @@ void collision_test_load() {
     bullets = new Circle[max_bullets];
 
     gun.position = Vector2(200, (float)gh / 2);
-    update_gun();
     gun.angle = 0;
+    update_gun();
 
     world_bounds = { 0, 0, (int)gw, (int)gh };
 
@@ -110,12 +112,92 @@ void collision_test_load() {
         lines.push_back(l);
     }
     
-    global_gun_collision.x = -100;
-    global_gun_collision.y = -100;
+    global_gun_collision.x = global_circle_collision.x = global_circle_collision2.x = -100;
+    global_gun_collision.y = global_circle_collision.y = global_circle_collision2.y = -100;
 }
 
-bool intersect_ray_circle() {
+bool Contains(Vector2 circle, float radius, Vector2 point) {
+    float circle_left = circle.x - radius;
+    float circle_right = circle.x + radius;
+    float circle_bottom = circle.y + radius;
+    float circle_top = circle.y - radius;
+    //  Check if point is inside bounds
+    if (radius > 0 && point.x >= circle_left && point.x <= circle_right && point.y >= circle_top && point.y <= circle_bottom) {
+        float dx = (circle.x - point.x) * (circle.x - point.x);
+        float dy = (circle.y - point.y) * (circle.y - point.y);
+        return (dx + dy) <= (radius * radius);
+    }
+    
     return false;
+}
+
+bool intersect_line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const Vector2 &circle_center, const float &radius, Vector2 &nearest) {
+//   function (line, circle, nearest)
+// {
+    if (Contains(circle_center, radius, lineP1)) {
+        nearest.x = lineP1.x;
+        nearest.y = lineP1.y;
+        Engine::logn("early exit 2");
+        return true;
+    }
+
+    if (Contains(circle_center, radius, lineP1)) {
+        nearest.x = lineP2.x;
+        nearest.y = lineP2.y;
+        Engine::logn("early exit 1");
+        return true;
+    }
+
+    float dx = lineP2.x - lineP1.x;
+    float dy = lineP2.y - lineP1.y;
+
+    float lcx = circle_center.x - lineP1.x;
+    float lcy = circle_center.y - lineP1.y;
+
+    //  project lc onto d, resulting in vector p
+    float dLen2 = (dx * dx) + (dy * dy);
+    float px = dx;
+    float py = dy;
+
+    if (dLen2 > 0) {
+        float dp = ((lcx * dx) + (lcy * dy)) / dLen2;
+        px *= dp;
+        py *= dp;
+    }
+
+    nearest.x = lineP1.x + px;
+    nearest.y = lineP1.y + py;
+    
+    //  len2 of p
+    float pLen2 = (px * px) + (py * py);
+    
+    return (
+        pLen2 <= dLen2 &&
+        ((px * dx) + (py * dy)) >= 0 &&
+        Contains(circle_center, radius, nearest)
+    );
+// };
+}
+
+bool intersect_line_circle2(const Vector2 &a, const Vector2 &b, const Vector2 &center, const float &radius, Vector2 &n, float &depth) {
+	Vector2 ap = center - a;
+	Vector2 ab = b - a;
+    //float dab = ab.dot(ab);
+    float dab = vector_dot(ab, ab);
+	
+	if (dab == 0.0f) { 
+        return false;
+    }
+
+    depth = Math::clamp(vector_dot(ap, ab) / dab, 0.0f, 1.0f);
+	n = center - (a + ab * depth);
+	depth = n.length2();
+	if (depth > radius * radius) {
+		return false;
+    }
+	n = n.normal();
+	depth = radius - sqrtf(depth);
+	return true;
 }
 
 void collision_test_update() {
@@ -173,15 +255,31 @@ void collision_test_update() {
     }
 
     for(int ci = 0; ci < circle_n; ci++) {
+        const auto &circle_pos = circles[ci].position;
+        const float &circle_radius = circles[ci].radius;
         for(int bi = 0; bi < bullet_n; bi++) {
-            const auto &circle_pos = circles[ci].position;
-            const float &circle_radius = circles[ci].radius;
             const auto &bullet_pos = bullets[bi].position;
             const float &b_radius = bullets[bi].radius;
             if(Math::intersect_circles(circle_pos.x, circle_pos.y, circle_radius, bullet_pos.x, bullet_pos.y, b_radius)) {
                 Engine::logn("circle intersects");
             }
-
+        }
+        // Vector2 collider, collider2;
+        // intersections = intersect_line_circle(gun.forward.to_vector2(), gun.position, circle_pos, circle_radius, collider, collider2);
+        // if(intersections) {
+        //     global_circle_collision = collider.to_point();
+        //     global_circle_collision2 = collider2.to_point();
+        // }
+        Vector2 collider;
+        // float t;
+        // if(intersect_line_circle2(gun.forward.to_vector2(), gun.position, circle_pos, circle_radius, collider, t)) {
+        //     global_circle_collision = collider.to_point();
+        //     Engine::logn("t? %.0f   \t collider x: %.4f , y: %.4f", t, collider.x, collider.y);
+        // }
+        if(intersect_line_circle(gun.forward.to_vector2(), gun.position, circle_pos, circle_radius, collider)) {
+            global_circle_collision = collider.to_point();
+            // Engine::logn("\t collider x: %.4f , y: %.4f", collider.x, collider.y);
+            Engine::logn("collision");
         }
     }
 
@@ -199,6 +297,7 @@ void collision_test_update() {
     FrameLog::log("Bullet velocity_delta: " + std::to_string(bullet_velocity_delta));
     FrameLog::log("Bullet radius: " + std::to_string(bullet_radius));
     FrameLog::log("Bullet life: " + std::to_string(bullet_life));
+    //FrameLog::log("Intersections: " + std::to_string(intersections));
 }
 
 void collision_test_render() {
@@ -210,15 +309,16 @@ void collision_test_render() {
         const auto &pos = bullets[i].position;
         draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, bullets[i].radius, 0, 255, 0, 255);
     }
-
-    SDL_SetRenderDrawColor(renderer.renderer, 0, 0, 255, 255);
-    SDL_RenderDrawLine(renderer.renderer, (int)gun.position.x, (int)gun.position.y, gun.forward.x, gun.forward.y);
     for(auto &l : lines) {
         SDL_SetRenderDrawColor(renderer.renderer, 128, 0, 255, 255);
         SDL_RenderDrawLine(renderer.renderer, l.a.x, l.a.y, l.b.x, l.b.y);
     }
-    draw_g_circe_RGBA((int)gun.position.x, (int)gun.position.y, 2, 255, 255, 0, 255);
+    SDL_SetRenderDrawColor(renderer.renderer, 0, 0, 255, 255);
+    SDL_RenderDrawLine(renderer.renderer, (int)gun.position.x, (int)gun.position.y, gun.forward.x, gun.forward.y);
+    draw_g_circe_RGBA((uint16_t)gun.position.x, (uint16_t)gun.position.y, 2, 255, 255, 0, 255);
     draw_g_circe_RGBA((uint16_t)global_gun_collision.x, (uint16_t)global_gun_collision.y, 4, 255, 0, 0, 255);
+    draw_g_circe_RGBA((uint16_t)global_circle_collision.x, (uint16_t)global_circle_collision.y, 4, 255, 0, 0, 255);
+    draw_g_circe_RGBA((uint16_t)global_circle_collision2.x, (uint16_t)global_circle_collision2.y, 4, 255, 0, 0, 255);
 
     FrameLog::render(5, 5);
 }
