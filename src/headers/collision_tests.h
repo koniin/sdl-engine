@@ -135,6 +135,8 @@ bool circle_contains_point(Vector2 circle, float radius, Vector2 point) {
     return false;
 }
 
+// From Phaser
+// Works well and can detect if a line is inside a circle also
 bool intersect_line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const Vector2 &circle_center, const float &radius, Vector2 &nearest) {
     if (circle_contains_point(circle_center, radius, lineP1)) {
         nearest.x = lineP1.x;
@@ -177,6 +179,7 @@ bool intersect_line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const V
     return pLen2 <= dLen2 && ((px * dx) + (py * dy)) >= 0 && circle_contains_point(circle_center, radius, nearest);
 }
 
+// It works for intersection, not much more to say
 bool intersect_line_circle2(const Vector2 &a, const Vector2 &b, const Vector2 &center, const float &radius, Vector2 &n, float &depth) {
 	Vector2 ap = center - a;
 	Vector2 ab = b - a;
@@ -199,6 +202,8 @@ bool intersect_line_circle2(const Vector2 &a, const Vector2 &b, const Vector2 &c
 }
 
 // Imaginary line through of inifinite length
+// Checks an infinite length line against a circle
+// Perhaps good with rays that pierce or something?
 size_t intersect_line_circle3(
     float cx, float cy, float radius,
     Vector2 point1, Vector2 point2,
@@ -238,6 +243,8 @@ size_t intersect_line_circle3(
     }
 }
 
+// Works good and finds the entry point of collision
+// Does not work if the line is inside the circle so that needs to be considered
 bool intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
     // if (circle_contains_point(center, radius, segment_start)) {
     //     return true;
@@ -385,7 +392,14 @@ void collision_test_update() {
             const auto &bullet_pos = bullets[bi].position;
             const float &b_radius = bullets[bi].radius;
             if(Math::intersect_circles(circle_pos.x, circle_pos.y, circle_radius, bullet_pos.x, bullet_pos.y, b_radius)) {
-                Engine::logn("circle intersects");
+                Engine::logn("circle intersection");
+                continue;
+            }
+
+            const auto &bullet_last_pos = bullets[bi].position - bullets[bi].velocity;
+            Vector2 nearest;
+            if(intersect_line_circle(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest)) {
+                Engine::logn("ray intersect");
             }
         }
         // Vector2 collider, collider2;
