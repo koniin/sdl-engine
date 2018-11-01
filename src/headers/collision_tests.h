@@ -198,6 +198,7 @@ bool intersect_line_circle2(const Vector2 &a, const Vector2 &b, const Vector2 &c
 	return true;
 }
 
+// Imaginary line through of inifinite length
 size_t intersect_line_circle3(
     float cx, float cy, float radius,
     Vector2 point1, Vector2 point2,
@@ -235,6 +236,89 @@ size_t intersect_line_circle3(
         intersection2 = Vector2(point1.x + t * dx, point1.y + t * dy);
         return 2;
     }
+}
+
+bool intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
+    // if (circle_contains_point(center, radius, segment_start)) {
+    //     return true;
+    // }
+
+    // if (circle_contains_point(center, radius, segment_end)) {
+    //     return true;
+    // }
+    
+    /*
+    Taking
+
+    E is the starting point of the ray,
+    L is the end point of the ray,
+    C is the center of sphere you're testing against
+    r is the radius of that sphere
+
+    Compute:
+    d = L - E ( Direction vector of ray, from start to end )
+    f = E - C ( Vector from center sphere to ray start ) 
+    */
+    Vector2 d = segment_end - segment_start;
+    Vector2 f = segment_start - center;
+    float r = radius;
+
+    float a = d.dot( d ) ;
+    float b = 2*f.dot( d ) ;
+    float c = f.dot( f ) - r*r ;
+
+    float discriminant = b*b-4*a*c;
+    if( discriminant < 0 ) {
+        // no intersection
+        return false;
+    }
+   
+    // ray didn't totally miss sphere,
+    // so there is a solution to
+    // the equation.
+    discriminant = Math::sqrt_f( discriminant );
+
+    // either solution may be on or off the ray so need to test both
+    // t1 is always the smaller value, because BOTH discriminant and
+    // a are nonnegative.
+    float t1 = (-b - discriminant)/(2*a);
+    float t2 = (-b + discriminant)/(2*a);
+    
+
+    intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
+    // 3x HIT cases:
+    //          -o->             --|-->  |            |  --|->
+    // Impale(t1 hit,t2 hit), Poke(t1 hit,t2>1), ExitWound(t1<0, t2 hit), 
+
+    // 3x MISS cases:
+    //       ->  o                     o ->              | -> |
+    // FallShort (t1>1,t2>1), Past (t1<0,t2<0), CompletelyInside(t1<0, t2>1)
+
+    // if(t1<0 && t2>1) {
+    //     // Completely inside
+    //     // we consider this a hit, not a miss
+    //     return true;
+    // }
+
+    if( t1 >= 0 && t1 <= 1 )
+    {
+        // t1 is the intersection, and it's closer than t2
+        // (since t1 uses -b - discriminant)
+        // Impale, Poke
+        return true ;
+    }
+
+    // here t1 didn't intersect so we are either started
+    // inside the sphere or completely past it
+    if( t2 >= 0 && t2 <= 1 )
+    {
+        // ExitWound
+        return true ;
+    }
+
+    // no intn: FallShort, Past, CompletelyInside
+    return false ;
+    
 }
 
 void collision_test_update() {
@@ -319,15 +403,11 @@ void collision_test_update() {
         // }
         
         Vector2 collider;
-        Vector2 collider2;
-        int points = intersect_line_circle3(circle_pos.x, circle_pos.y, circle_radius, gun.forward.to_vector2(), gun.position, collider, collider2);
-        if(points) {
+        float p1 = 0, p2 = 0;
+        if(intersect_line_circle4(gun.position, gun.forward.to_vector2(), circle_pos, circle_radius, collider)) {
             has_collision1 = true;
             global_circle_collision = collider.to_point();
-            if(points > 1) {
-                global_circle_collision3 = collider2.to_point();
-            }
-            // Engine::logn("t? %.0f", t);
+            Engine::logn("p? %.0f, %.0f", p1, p2);
         }
 
 
