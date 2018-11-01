@@ -128,6 +128,7 @@ inline const Point operator*(int lhs, Point const &rhs) {
 }
 
 const float vector_mag(Vector2 const &rhs);
+const float vector_dot(Vector2 const &lhs, Vector2 const &rhs);
 struct Vector2 {
 	float x;
 	float y;
@@ -207,7 +208,9 @@ struct Vector2 {
 
 	Point to_point() const;
 	Vector2 normal() const;
+	float length() const;
 	float length2() const;
+	float dot(const Vector2 &v) const;
 };
 
 inline Vector2 operator+( Vector2 const& lhs, Vector2 const& rhs ) {
@@ -224,14 +227,14 @@ inline const Vector2 operator*(float lhs, Vector2 const &rhs) {
 inline const float vector_dot(Vector2 const &lhs, Vector2 const &rhs) {
 	return lhs.x*rhs.x+lhs.y*rhs.y; 
 }
-//Returns length squared
+//Returns length squared (length2)
 inline const float vector_lsq(Vector2 const &rhs) {
 	return vector_dot(rhs, rhs);
 }
 //Returns magnitude (length)
 inline const float vector_mag(Vector2 const &rhs) {
 	//return sqrtf(dot(rhs, rhs));
-	return sqrt(vector_dot(rhs, rhs));
+	return sqrt(vector_lsq(rhs));
 }
 //Returns normalized Vector2
 inline Vector2 vector_norm(Vector2 const &lhs){
@@ -352,11 +355,19 @@ namespace Math {
 	inline int abs(int i) {
 		return std::abs(i);
 	}
-
+	
 	inline float abs_f(float f) {
 		return std::abs(f);
 	}
 	
+	inline int sqrt(int i) {
+		return (int)std::sqrt(i);
+	}
+	
+	inline float sqrt_f(float f) {
+		return std::sqrt(f);
+	}
+
 	inline float round(float f) {
 		return std::round(f);
 	}
@@ -372,7 +383,7 @@ namespace Math {
 	}
 
 	inline float length_vector_f(float x, float y) {
-		return sqrt(x*x + y*y);
+		return sqrt_f(x*x + y*y);
 	}
 
 	inline float interpolate(float from, float to, float amount, easing_t easing) {
@@ -392,13 +403,13 @@ namespace Math {
 	inline float distance_f(const float &x1, const float &y1, const float &x2, const float &y2) {
 		auto dx = x1 - x2;
     	auto dy = y1 - y2;
-		return sqrt(dx * dx + dy * dy);
+		return sqrt_f(dx * dx + dy * dy);
 	}
 
 	inline float distance_v(const Vector2 &a, const Vector2 &b) {
 		auto dx = a.x - b.x;
     	auto dy = a.y - b.y;
-		return sqrt(dx * dx + dy * dy);
+		return sqrt_f(dx * dx + dy * dy);
 	}
 
 	inline float rads_between_f(const float &x1, const float &y1, const float &x2, const float &y2) {
@@ -494,7 +505,7 @@ namespace Math {
 	inline bool move_to(float &x, float &y, float targetX, float targetY, float speed) {
 		float delta_x = targetX - x;
 		float delta_y = targetY - y;
-		float goal_dist = sqrt( (delta_x * delta_x) + (delta_y * delta_y) );
+		float goal_dist = Math::sqrt_f( (delta_x * delta_x) + (delta_y * delta_y) );
 		if (goal_dist > speed) {
 			float ratio = speed / goal_dist;
 			float x_move = ratio * delta_x;  

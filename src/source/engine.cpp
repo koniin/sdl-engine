@@ -68,11 +68,23 @@ Point Vector2::to_point() const {
 }
 
 Vector2 Vector2::normal() const {
-	return (1.f /(vector_mag(*this))) * *this;
+	float mag = vector_mag(*this);
+	if(mag == 0.0f) {
+		mag = 1.0f;
+	}
+	return (1.f / mag) * *this;
+}
+
+float Vector2::length() const {
+	return sqrt(length2());
 }
 
 float Vector2::length2() const {
 	return x*x + y*y;
+}
+
+float Vector2::dot(const Vector2 &v) const {
+	return vector_dot(v, *this);
 }
 
 namespace Time {
