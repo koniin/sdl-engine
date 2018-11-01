@@ -253,7 +253,6 @@ size_t intersect_line_circle3(
 }
 
 // Works good and finds the entry point of collision
-// Does not work if the line is inside the circle so that needs to be considered
 // return values:
 // 0: no collision
 // 1: collision but no entry/exit point
