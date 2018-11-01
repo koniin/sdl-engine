@@ -569,8 +569,6 @@ void asteroids_load() {
 }
 
 void asteroids_update() {
-    FrameLog::reset();
-
     if(game_state.inactive) {
 		game_state.inactive_timer -= Time::deltaTime;
 		// Remove all asteroids and bullets and ships

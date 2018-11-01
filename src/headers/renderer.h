@@ -112,17 +112,19 @@ void draw_text_centered_str(int x, int y, const SDL_Color &color, std::string te
 void draw_text_font_centered(Font *font, int x, int y, const SDL_Color &color, const char *text);
 void draw_tilemap_ortho(const TileMap &t, const SpriteSheet &s, const int x_start, const int y_start);
 
-void draw_g_pixel(int16_t x, int16_t y);
-void draw_g_pixel_color(int16_t x, int16_t y, const SDL_Color &color);
-void draw_g_pixel_RGBA(int16_t x, int16_t y, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_horizontal_line(int16_t x1, int16_t x2, int16_t y);
-void draw_g_horizontal_line_color(int16_t x1, int16_t x2, int16_t y, SDL_Color &color);
-void draw_g_horizontal_line_RGBA(int16_t x1, int16_t x2, int16_t y, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_vertical_line_color(int16_t x, int16_t y1, int16_t y2, SDL_Color &color);
-void draw_g_vertical_line_RGBA(int16_t x, int16_t y1, int16_t y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_circe_color(int16_t x, int16_t y, int16_t rad, SDL_Color &color);
-void draw_g_circe_RGBA(int16_t x, int16_t y, int16_t rad, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
-void draw_g_ellipseRGBA(int16_t x, int16_t y, int16_t rx, int16_t ry, Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+void draw_g_pixel(int x, int y);
+void draw_g_pixel_color(int x, int y, const SDL_Color &color);
+void draw_g_pixel_RGBA(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void draw_g_line(int x1, int y1, int x2, int y2);
+void draw_g_line_RGBA(int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void draw_g_horizontal_line(int x1, int x2, int y);
+void draw_g_horizontal_line_color(int x1, int x2, int y, SDL_Color &color);
+void draw_g_horizontal_line_RGBA(int x1, int x2, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void draw_g_vertical_line_color(int x, int y1, int y2, SDL_Color &color);
+void draw_g_vertical_line_RGBA(int x, int y1, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void draw_g_circe_color(int x, int y, int rad, SDL_Color &color);
+void draw_g_circe_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void draw_g_ellipseRGBA(int x, int y, int rx, int ry, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 void draw_g_rectangle_filled(int x, int y, int w, int h, const SDL_Color &color);
 void draw_g_rectangle_filled_RGBA(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
@@ -134,12 +136,6 @@ void renderer_draw_render_target();
 void renderer_draw_render_target_camera();
 void renderer_flip();
 void renderer_destroy();
-
-namespace FrameLog {
-	void log(const std::string message);
-	void reset();
-    void render(int x, int y);
-};
 
 /*! Trauma should be between 0 and 1. */
 void camera_shake(float t);

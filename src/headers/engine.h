@@ -71,6 +71,15 @@ namespace Engine {
 	void update();
 }
 
+struct Point;
+namespace FrameLog {
+	const bool &is_enabled();
+	void log(const std::string &message);
+    void enable_at(const int x, const int y);
+	const std::vector<std::string> &get_messages();
+	const Point &get_position();
+}
+
 namespace Text {
 	inline std::string format(const std::string format, ...) {
         va_list args;

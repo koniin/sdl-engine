@@ -415,55 +415,65 @@ void draw_tilemap_ortho(const TileMap &t, const SpriteSheet &s, const int x_star
 	}
 }
 
-void draw_g_pixel(int16_t x, int16_t y) {
+void draw_g_pixel(int x, int y) {
     SDL_RenderDrawPoint(renderer.renderer, x, y);
 }
 
-void draw_g_pixel_color(int16_t x, int16_t y, const SDL_Color &color) {
+void draw_g_pixel_color(int x, int y, const SDL_Color &color) {
     draw_g_pixel_RGBA(x, y, color.r, color.g, color.b, color.a);
 }
 
-void draw_g_pixel_RGBA(int16_t x, int16_t y, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void draw_g_pixel_RGBA(int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     SDL_SetRenderDrawBlendMode(renderer.renderer, (a == 255) ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer.renderer, r, g, b, a);
     SDL_RenderDrawPoint(renderer.renderer, x, y);
 }
 
-void draw_g_horizontal_line(int16_t x1, int16_t x2, int16_t y) {
+void draw_g_line(int x1, int y1, int x2, int y2) {
+    SDL_RenderDrawLine(renderer.renderer, x1, y1, x2, y2);
+}
+
+void draw_g_line_RGBA(int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+	SDL_SetRenderDrawBlendMode(renderer.renderer, (a == 255) ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer.renderer, r, g, b, a);
+	draw_g_line(x1, y1, x2, y2);
+}
+
+void draw_g_horizontal_line(int x1, int x2, int y) {
     SDL_RenderDrawLine(renderer.renderer, x1, y, x2, y);
 }
 
-void draw_g_horizontal_line_color(int16_t x1, int16_t x2, int16_t y, SDL_Color &color) {
+void draw_g_horizontal_line_color(int x1, int x2, int y, SDL_Color &color) {
 	draw_g_horizontal_line_RGBA(x1, x2, y, color.r, color.g, color.b, color.a);
 }
 
-void draw_g_horizontal_line_RGBA(int16_t x1, int16_t x2, int16_t y, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void draw_g_horizontal_line_RGBA(int x1, int x2, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     SDL_SetRenderDrawBlendMode(renderer.renderer, (a == 255) ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer.renderer, r, g, b, a);
     SDL_RenderDrawLine(renderer.renderer, x1, y, x2, y);        
 }
 
-void draw_g_vertical_line_color(int16_t x, int16_t y1, int16_t y2, SDL_Color &color) {
+void draw_g_vertical_line_color(int x, int y1, int y2, SDL_Color &color) {
 	draw_g_vertical_line_RGBA(x, y1, y2, color.r, color.g, color.b, color.a);
 }
 
-void draw_g_vertical_line_RGBA(int16_t x, int16_t y1, int16_t y2, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void draw_g_vertical_line_RGBA(int x, int y1, int y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     SDL_SetRenderDrawBlendMode(renderer.renderer, (a == 255) ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer.renderer, r, g, b, a);
     SDL_RenderDrawLine(renderer.renderer, x, y1, x, y2);
 }
 
-void draw_g_circe_color(int16_t x, int16_t y, int16_t rad, SDL_Color &color) {
+void draw_g_circe_color(int x, int y, int rad, SDL_Color &color) {
     draw_g_ellipseRGBA(x, y, rad, rad, color.r, color.g, color.b, color.a);
 }
 
-void draw_g_circe_RGBA(int16_t x, int16_t y, int16_t rad, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void draw_g_circe_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     draw_g_ellipseRGBA(x, y, rad, rad, r, g, b, a);
 }
 
 #pragma warning(push)
 #pragma warning(disable:4244)
-void draw_g_ellipseRGBA(int16_t x, int16_t y, int16_t rx, int16_t ry, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+void draw_g_ellipseRGBA(int x, int y, int rx, int ry, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
         int ix, iy;
         int h, i, j, k;
         int oh, oi, oj, ok;
@@ -696,14 +706,14 @@ void renderer_set_color(const SDL_Color &color) {
 }
 
 void renderer_clear() {
-	SDL_SetRenderTarget(renderer.renderer, renderer.renderTarget);
 	renderer_set_color(renderer.clearColor);
+	SDL_SetRenderTarget(renderer.renderer, renderer.renderTarget);
 	SDL_RenderClear(renderer.renderer);
 }
 
 void renderer_draw_render_target() {
 	SDL_SetRenderTarget(renderer.renderer, NULL);
-
+	
 	// USE TO CREATE BLACK BARS (That can be filled with other things if we want)
 	SDL_Rect destination_rect;
 	destination_rect.x = (window_w / 2) - (gw * step_scale / 2);
@@ -720,23 +730,32 @@ void renderer_draw_render_target_camera() {
 	camera_update();
 
 	SDL_Rect destination_rect;
-	destination_rect.x = (window_w / 2) - (gw * step_scale / 2) + camera.offset_x;
- 	destination_rect.y = (window_h / 2) - (gh * step_scale / 2) + camera.offset_y;
+	auto x_pos = (window_w / 2) - (int)(gw * step_scale / 2) + camera.offset_x;
+	auto y_pos = (window_h / 2) - (int)(gh * step_scale / 2) + camera.offset_y;
+	destination_rect.x = x_pos;
+ 	destination_rect.y = y_pos;
   	destination_rect.w = gw * step_scale;
   	destination_rect.h = gh * step_scale;
-
-	// if(camera.offset_x != 0) {
-	// 	std::string text = std::to_string(destination_rect.x) + " : " + std::to_string(destination_rect.y);
-	// 	std::string text2 = std::to_string(camera.offset_x) + " : " + std::to_string(camera.offset_y);
-	// 	Engine::logn("%s", text.c_str());
-	// 	Engine::logn("%s", text2.c_str());
-	// }
 
 	SDL_SetRenderTarget(renderer.renderer, NULL);
 	SDL_RenderCopy(renderer.renderer, renderer.renderTarget, NULL, &destination_rect);
 }
 
+static void framelog_render() {
+	if(!FrameLog::is_enabled()) {
+		return;
+	}
+	const auto &messages = FrameLog::get_messages();
+	const Point &p = FrameLog::get_position();
+	int y = p.y;
+    for(const auto &m : messages) {
+        draw_text_str(p.x, y, Colors::white, m);
+        y += 15;
+    }
+}
+
 void renderer_flip() {
+	framelog_render();
     //GPU_Flip(renderer.screen);
 	SDL_RenderPresent(renderer.renderer);
 }
@@ -746,30 +765,6 @@ void renderer_destroy() {
 	TTF_Quit();
 	SDL_DestroyRenderer(renderer.renderer);
 	SDL_DestroyWindow(renderer.sdl_window);
-}
-
-namespace FrameLog {
-	const int max_messages = 20;
-    static std::vector<std::string> messages;
-	
-    void log(const std::string message) {
-        if(messages.size() == max_messages) {
-            return;
-        }
-        messages.push_back(message);
-    }
-
-    void reset() {
-        messages.clear();
-    }
-	
-	void render(int x, int y) {
-        int y_start = y;
-        for(auto m : messages) {
-            draw_text_str(x, y_start, Colors::white, m);
-            y_start += 15;
-        }
-    }
 }
 
 void camera_shake(float t) {
@@ -805,12 +800,12 @@ void camera_update() {
 	camera.offset_y = static_cast<int>(offsetY);
 
 	// Special case for shake in top left
-	if(camera.offset_x < 0) {
-		camera.offset_x *= -1;
-	}
-	if(camera.offset_y < 0) {
-		camera.offset_y *= -1;
-	}
+	// if(camera.offset_x < 0) {
+	// 	camera.offset_x *= -1;
+	// }
+	// if(camera.offset_y < 0) {
+	// 	camera.offset_y *= -1;
+	// }
 
 	// Engine::logn("trauma: %f   |   offset: %d , %d", camera.trauma, camera.offset_x, camera.offset_y);
 	camera.shake_duration -= Time::deltaTime;

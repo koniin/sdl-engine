@@ -737,7 +737,7 @@ void system_collisions(CollisionPairs &collision_pairs) {
             // Knockback
             auto &velocity = get_velocity(projectiles, collision_pairs.first[i]);
             auto &second_pos = get_position(targets, collision_pairs.second[i]);
-            Vector2 dir = vector_norm(Vector2(velocity.x, velocity.y));
+            Vector2 dir = Math::normalize(Vector2(velocity.x, velocity.y));
             second_pos.x += dir.x * 3;
             second_pos.y += dir.y * 3;
             
@@ -921,7 +921,8 @@ void render_buffer_sort() {
 
 void load_arch() {
     Engine::set_base_data_folder("data");
-	
+    FrameLog::enable_at(5, 5);
+    
     renderer_set_clear_color({ 8, 0, 18, 255 });
 
     load_render_data();
@@ -941,8 +942,6 @@ void load_arch() {
 }
 
 void update_arch() {
-    FrameLog::reset();
-    
     system_player_get_input();
     system_player_handle_input();
     system_move();
@@ -972,7 +971,10 @@ void draw_buffer(SpriteData *spr, int length) {
 void render_arch() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-    FrameLog::render(5, 5);
+}
+
+void render_ui() {
+    draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
 }
 
 #endif

@@ -2,6 +2,10 @@
 #include <unordered_set>
 #include <fstream>
 
+namespace FrameLog {
+	void clear();
+}
+
 namespace Engine {
 	static bool logging_enabled = true;
 	void toggle_logging() {
@@ -50,9 +54,52 @@ namespace Engine {
 	}
 
 	void update() {
+		if(FrameLog::is_enabled()) {
+			FrameLog::clear();
+		}
 		if(pause_timer > 0.0f) {
 			pause_timer -= Time::deltaTime;
 		}
+	}
+}
+
+namespace FrameLog {
+	const int max_messages = 20;
+    static std::vector<std::string> messages;
+	static Point pos;
+	static bool enabled = false;
+
+	const bool &is_enabled() {
+		return enabled;
+	}
+
+    void log(const std::string &message) {
+		if(!enabled) {
+			return;
+		}
+
+		if(messages.size() == max_messages) {
+            return;
+        }
+        messages.push_back(message);
+    }
+
+	void enable_at(const int x, const int y) {
+        pos.x = x;
+		pos.y = y;
+		enabled = true;
+    }
+
+	const std::vector<std::string> &get_messages() {
+		return messages;
+	}
+
+	const Point &get_position() {
+		return pos;
+	}
+
+	void clear() {
+		messages.clear();
 	}
 }
 

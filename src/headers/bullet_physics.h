@@ -255,8 +255,6 @@ void bullet_load() {
 }
 
 void bullet_update() {
-    FrameLog::reset();
-
     // Input
     {
         ComponentArray<PlayerInput> fpi;

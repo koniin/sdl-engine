@@ -91,10 +91,13 @@ void update_gun() {
     gun.forward.y = (int)(gun.position.y + y_direction * 30);
 }
 
+SpriteSheet the_sheet;
 void collision_test_load() {
     Engine::set_base_data_folder("data");
     Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
+    FrameLog::enable_at(5, 5);
+	Resources::sprite_load("shooter", "shooter_spritesheet.png");
 
     circles = new Circle[max_circles];
     circles[0].position = Vector2((float)gw / 2, (float)gh / 2);
@@ -341,8 +344,6 @@ int intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_
 }
 
 void collision_test_update() {
-    FrameLog::reset();
-    
     if(Input::key_down(SDL_SCANCODE_A)) {
         gun.angle -= 5;
         update_gun();
@@ -350,7 +351,7 @@ void collision_test_update() {
         gun.angle += 5;
         update_gun();
     }
-    if(Input::key_pressed(SDLK_w)) {
+    if(Input::key_down(SDL_SCANCODE_W)) {
         float rotation = gun.angle / Math::RAD_TO_DEGREE;
         float x_direction, y_direction;
         x_direction = cos(rotation);
@@ -359,6 +360,10 @@ void collision_test_update() {
         gun.position.y += y_direction * 1;
         update_gun();
     } 
+
+    if(Input::key_pressed(SDLK_p)) {
+        camera_shake(0.2f);
+    }
 
     if(Input::key_pressed(SDLK_u)) {
         bullet_velocity += 2;
@@ -409,7 +414,7 @@ void collision_test_update() {
         Vector2 bullet_pos = b_pos + (bullets[bi].radius * bullets[bi].velocity.normal());
         */
 
-        float distance_to_closest = 0;
+        float distance_to_closest = (float)gw;
         Vector2 collision_point;
         bool collided = false;
         int collision_id = 0;
@@ -428,7 +433,7 @@ void collision_test_update() {
             if(result == 1 || result == 2) {
                 collided = true;
                 float dist = Math::distance_v(bullet_last_pos, circle_pos);
-                if(dist > distance_to_closest) {
+                if(dist < distance_to_closest) {
                     dist = distance_to_closest;
                     has_collision_point = false;
                     if(result == 2) {
@@ -523,37 +528,36 @@ void collision_test_update() {
 void collision_test_render() {
     for(int i = 0; i < circle_n; i++) {
         const auto &pos = circles[i].position;
-        draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, circles[i].radius, 123, 255, 123, 255);
+        draw_g_circe_RGBA((int)pos.x, (int)pos.y, circles[i].radius, 123, 255, 123, 255);
     }
     for(int i = 0; i < bullet_n; i++) {
         const auto &b_pos = bullets[i].position;
         Vector2 pos = b_pos + (bullets[i].radius * bullets[i].velocity.normal());
         const auto &last_pos = bullets[i].position - bullets[i].velocity;
         
-        SDL_SetRenderDrawColor(renderer.renderer, 0, 255, 0, 255);
-        SDL_RenderDrawLine(renderer.renderer, (int)pos.x, (int)pos.y, last_pos.x, last_pos.y);
-        draw_g_circe_RGBA((uint16_t)b_pos.x, (uint16_t)b_pos.y, bullets[i].radius, 0, 255, 0, 255);
+        draw_g_line_RGBA((int)pos.x, (int)pos.y, (int)last_pos.x, (int)last_pos.y, 0, 255, 0, 255);
+        draw_g_circe_RGBA((int)b_pos.x, (int)b_pos.y, bullets[i].radius, 0, 255, 0, 255);
     }
     for(auto &l : lines) {
-        SDL_SetRenderDrawColor(renderer.renderer, 128, 0, 255, 255);
-        SDL_RenderDrawLine(renderer.renderer, l.a.x, l.a.y, l.b.x, l.b.y);
+        draw_g_line_RGBA(l.a.x, l.a.y, l.b.x, l.b.y, 128, 0, 255, 255);
     }
-    SDL_SetRenderDrawColor(renderer.renderer, 0, 0, 255, 255);
-    SDL_RenderDrawLine(renderer.renderer, (int)gun.position.x, (int)gun.position.y, gun.forward.x, gun.forward.y);
-    draw_g_circe_RGBA((uint16_t)gun.position.x, (uint16_t)gun.position.y, 2, 255, 255, 0, 255);
-    draw_g_circe_RGBA((uint16_t)global_gun_collision.x, (uint16_t)global_gun_collision.y, 2, 255, 0, 0, 255);
+    draw_g_line_RGBA((int)gun.position.x, (int)gun.position.y, gun.forward.x, gun.forward.y, 0, 0, 255, 255);
+    draw_g_circe_RGBA((int)gun.position.x, (int)gun.position.y, 2, 255, 255, 0, 255);
+    draw_g_circe_RGBA(global_gun_collision.x, global_gun_collision.y, 2, 255, 0, 0, 255);
     if(has_collision1) {
-        draw_g_circe_RGBA((uint16_t)global_circle_collision.x, (uint16_t)global_circle_collision.y, 2, 255, 0, 0, 255);
-        draw_g_circe_RGBA((uint16_t)global_circle_collision3.x, (uint16_t)global_circle_collision3.y, 2, 255, 0, 0, 255);
+        draw_g_circe_RGBA(global_circle_collision.x, global_circle_collision.y, 2, 255, 0, 0, 255);
+        draw_g_circe_RGBA(global_circle_collision3.x, global_circle_collision3.y, 2, 255, 0, 0, 255);
     }
     if(has_collision2) {
-        draw_g_circe_RGBA((uint16_t)global_circle_collision2.x, (uint16_t)global_circle_collision2.y, 2, 255, 150, 150, 255);
+        draw_g_circe_RGBA(global_circle_collision2.x, global_circle_collision2.y, 2, 255, 150, 150, 255);
     }
     if(has_bullet_collision) {
-        draw_g_circe_RGBA((uint16_t)global_bullet_collision.x, (uint16_t)global_bullet_collision.y, 2, 255, 150, 150, 255);
+        draw_g_circe_RGBA(global_bullet_collision.x, global_bullet_collision.y, 2, 255, 150, 150, 255);
     }
+}
 
-    FrameLog::render(5, 5);
+void render_after_render_target() {
+    // draw_sprite_centered(Resources::sprite_get("shooter"), -10, -10);
 }
 
 #endif
