@@ -99,7 +99,11 @@ void collision_test_load() {
     circles = new Circle[max_circles];
     circles[0].position = Vector2((float)gw / 2, (float)gh / 2);
     circles[0].radius = 6;
-    circle_n = 1;
+    
+    circles[1].position = Vector2((float)gw / 2 - 40, (float)gh / 2);
+    circles[1].radius = 4;
+    circle_n = 2;
+
     bullets = new Circle[max_bullets];
 
     gun.position = Vector2(200, (float)gh / 2);
@@ -308,6 +312,7 @@ int intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_
     if(t1 <= 0 && t2 >= 1) {
         // Completely inside
         // we consider this a hit, not a miss
+        Engine::logn("inside");
         return 1;
     }
 
@@ -316,6 +321,7 @@ int intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_
         // t1 is the intersection, and it's closer than t2
         // (since t1 uses -b - discriminant)
         // Impale, Poke
+        Engine::logn("impale, poke");
         intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
         return 2;
     }
@@ -325,11 +331,12 @@ int intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_
     if(t2 >= 0 && t2 <= 1)
     {
         // ExitWound
+        Engine::logn("exit wound");
         intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
         return 2;
     }
 
-    // no intn: FallShort, Past, CompletelyInside
+    // no intn: FallShort, Past,  // CompletelyInside
     return 0;    
 }
 
@@ -419,8 +426,6 @@ void collision_test_update() {
             Vector2 nearest;
             int result = intersect_line_circle4(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest);
             if(result == 1 || result == 2) {
-                Engine::logn("ray intersect");
-
                 collided = true;
                 float dist = Math::distance_v(bullet_last_pos, circle_pos);
                 if(dist > distance_to_closest) {
@@ -453,6 +458,8 @@ void collision_test_update() {
                 has_bullet_collision = true;
                 global_bullet_collision = collision_point.to_point();
             }
+
+            bullets[bi].position.x = (float)gw * 2;
         }
     }
 
