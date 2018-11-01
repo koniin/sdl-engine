@@ -836,8 +836,8 @@ void load_render_data() {
 	Resources::sprite_sheet_load("shooter_spritesheet.data", the_sheet);
     sprite_sheets.push_back(the_sheet);
 
-    // Set up a white copy of the sprites
-    Resources::sprite_load_white("shooterwhite", "shooter_spritesheet.png");
+    // Set up a white copy of the sprite sheet
+    Resources::sprite_load_white("shooterwhite", the_sheet.sprite_sheet_name);
     the_sheet.sprite_sheet_name = "shooterwhite";
     sprite_sheets.push_back(the_sheet);
 }
@@ -850,7 +850,6 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     // spr.x = go.pos.x * globalScale;
     // spr.y = go.pos.y * globalScale;
     // spr.scale = go.sprite.scale * globalScale;
-
     // spr.x = entity_data.position[i].x - camera.x;
     // spr.x = entity_data.position[i].y - camera.y;
 
