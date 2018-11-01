@@ -867,35 +867,38 @@ void system_collisions(CollisionPairs &collision_pairs) {
     // world->fill_entity_data(a, a.entities, a.position, a.collision_data);
     // world->fill_entity_data(b, b.entities, b.position, b.collision_data);
     for(int i = 0; i < projectiles.length; ++i) {
-        const Position &projectile_position = projectiles.position[i];
+        const Vector2 &p_pos = projectiles.position[i].value;
         const float projectile_radius = (float)projectiles.radius;
         for(int j = 0; j < targets.length; ++j) {
-            const Position &target_position = targets.position[j];
-            const float target_radius = (float)targets.radius;
-            if(Math::intersect_circles(projectile_position.value.x, projectile_position.value.y, projectile_radius, 
-                    target_position.value.x, target_position.value.y, target_radius)) {
+            const Vector2 &t_pos = targets.position[j].value;
+            const float t_radius = (float)targets.radius;
+            if(Math::intersect_circles(p_pos.x, p_pos.y, projectile_radius, 
+                    t_pos.x, t_pos.y, t_radius)) {
                 collision_pairs.push(projectiles.entity[i], targets.entity[j]);
                 // Collision point is the point on the target circle 
                 // that is on the edge in the direction of the projectiles 
                 // reverse velocity
                 continue;
             }
-/*
-            const Vector2 &projectile_last_pos = projectile_position - Vector2(projectiles.velocity[i].x, projectiles.velocity[i].y);
-            int result = Intersects::line_circle_entry(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest);
+            
+            const Vector2 &p_last = projectiles.position[i].last;
+            Vector2 entry_point;
+            int result = Intersects::line_circle_entry(p_last, p_pos, t_pos, t_radius, entry_point);
             if(result == 1 || result == 2) {
-                collided = true;
-                float dist = Math::distance_v(bullet_last_pos, circle_pos);
-                if(dist < distance_to_closest) {
-                    dist = distance_to_closest;
-                    has_collision_point = false;
-                    if(result == 2) {
-                        collision_point = nearest;
-                        has_collision_point = true;
-                    }
-                }
-                collision_id += 2;
-            }*/
+                //collided = true;
+                collision_pairs.push(projectiles.entity[i], targets.entity[j]);
+                
+                // float dist = Math::distance_v(p_last, t_pos);
+                // if(dist < distance_to_closest) {
+                //     dist = distance_to_closest;
+                //     has_collision_point = false;
+                //     if(result == 2) {
+                //         collision_point = nearest;
+                //         has_collision_point = true;
+                //     }
+                // }
+                // collision_id += 2;
+            }
             // if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square))
         }
     }
@@ -911,8 +914,8 @@ void system_collisions(CollisionPairs &collision_pairs) {
             auto &velocity = get_velocity(projectiles, collision_pairs.first[i]);
             auto &second_pos = get_position(targets, collision_pairs.second[i]);
             Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-            second_pos.value.x += dir.x * 3;
-            second_pos.value.y += dir.y * 3;
+            second_pos.value.x += dir.x * 2;
+            second_pos.value.y += dir.y * 2;
             
             camera_shake(0.1f);
 
