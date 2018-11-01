@@ -47,9 +47,11 @@ Point global_gun_collision;
 Point global_circle_collision;
 Point global_circle_collision2;
 Point global_circle_collision3;
+Point global_bullet_collision;
 
 bool has_collision1 = false;
 bool has_collision2 = false;
+bool has_bullet_collision = false;
 
 void spawn_circles() {
     int circle_max_size = 12;
@@ -184,20 +186,20 @@ bool intersect_line_circle2(const Vector2 &a, const Vector2 &b, const Vector2 &c
 	Vector2 ap = center - a;
 	Vector2 ab = b - a;
     
-    float dab = vector_dot(ab, ab);
+    float dab = Math::dot_product(ab, ab);
 	
 	if (dab == 0.0f) { 
         return false;
     }
 
-    depth = Math::clamp(vector_dot(ap, ab) / dab, 0.0f, 1.0f);
+    depth = Math::clamp(Math::dot_product(ap, ab) / dab, 0.0f, 1.0f);
 	n = center - (a + ab * depth);
 	depth = n.length2();
 	if (depth > radius * radius) {
 		return false;
     }
 	n = n.normal();
-	depth = radius - sqrtf(depth);
+	depth = radius - Math::sqrt_f(depth);
 	return true;
 }
 
@@ -245,7 +247,11 @@ size_t intersect_line_circle3(
 
 // Works good and finds the entry point of collision
 // Does not work if the line is inside the circle so that needs to be considered
-bool intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
+// return values:
+// 0: no collision
+// 1: collision but no entry/exit point
+// 2: collision and entry/exit point closest to segment_start
+int intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
     // if (circle_contains_point(center, radius, segment_start)) {
     //     return true;
     // }
@@ -277,7 +283,7 @@ bool intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment
     float discriminant = b*b-4*a*c;
     if( discriminant < 0 ) {
         // no intersection
-        return false;
+        return 0;
     }
    
     // ray didn't totally miss sphere,
@@ -291,8 +297,6 @@ bool intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment
     float t1 = (-b - discriminant)/(2*a);
     float t2 = (-b + discriminant)/(2*a);
     
-
-    intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
     // 3x HIT cases:
     //          -o->             --|-->  |            |  --|->
     // Impale(t1 hit,t2 hit), Poke(t1 hit,t2>1), ExitWound(t1<0, t2 hit), 
@@ -301,31 +305,32 @@ bool intersect_line_circle4(const Vector2 &segment_start, const Vector2 &segment
     //       ->  o                     o ->              | -> |
     // FallShort (t1>1,t2>1), Past (t1<0,t2<0), CompletelyInside(t1<0, t2>1)
 
-    // if(t1<0 && t2>1) {
-    //     // Completely inside
-    //     // we consider this a hit, not a miss
-    //     return true;
-    // }
+    if(t1 <= 0 && t2 >= 1) {
+        // Completely inside
+        // we consider this a hit, not a miss
+        return 1;
+    }
 
-    if( t1 >= 0 && t1 <= 1 )
+    if(t1 >= 0 && t1 <= 1)
     {
         // t1 is the intersection, and it's closer than t2
         // (since t1 uses -b - discriminant)
         // Impale, Poke
-        return true ;
+        intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
+        return 2;
     }
 
     // here t1 didn't intersect so we are either started
     // inside the sphere or completely past it
-    if( t2 >= 0 && t2 <= 1 )
+    if(t2 >= 0 && t2 <= 1)
     {
         // ExitWound
-        return true ;
+        intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
+        return 2;
     }
 
     // no intn: FallShort, Past, CompletelyInside
-    return false ;
-    
+    return 0;    
 }
 
 void collision_test_update() {
@@ -367,6 +372,7 @@ void collision_test_update() {
         if(i == 0) {
             bullet_life += Time::deltaTime;
         }
+        
         if(use_delta_time_speed) {
             bullets[i].position += bullets[i].velocity * Time::deltaTime;
         } else {
@@ -385,24 +391,76 @@ void collision_test_update() {
     has_collision1 = false;
     has_collision2 = false;
 
+    for(int bi = 0; bi < bullet_n; bi++) {
+        const auto &bullet_pos = bullets[bi].position;
+        const auto &bullet_last_pos = bullets[bi].position - bullets[bi].velocity;
+        //const float &b_radius = bullets[bi].radius;
+        /*
+        This can be used to check the circle front, the current one only checks for circle center and last pos
+        const auto &b_pos = bullets[bi].position;
+        const auto &bullet_last_pos = bullets[bi].position - bullets[bi].velocity;
+        Vector2 bullet_pos = b_pos + (bullets[bi].radius * bullets[bi].velocity.normal());
+        */
+
+        float distance_to_closest = 0;
+        Vector2 collision_point;
+        bool collided = false;
+        int collision_id = 0;
+        bool has_collision_point = false;
+        for(int ci = 0; ci < circle_n; ci++) {
+            const auto &circle_pos = circles[ci].position;
+            const float &circle_radius = circles[ci].radius;
+        
+            // if(Math::intersect_circles(circle_pos.x, circle_pos.y, circle_radius, bullet_pos.x, bullet_pos.y, b_radius)) {
+            //     Engine::logn("circle intersection");
+            //     continue;
+            // }
+            
+            Vector2 nearest;
+            int result = intersect_line_circle4(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest);
+            if(result == 1 || result == 2) {
+                Engine::logn("ray intersect");
+
+                collided = true;
+                float dist = Math::distance_v(bullet_last_pos, circle_pos);
+                if(dist > distance_to_closest) {
+                    dist = distance_to_closest;
+                    has_collision_point = false;
+                    if(result == 2) {
+                        collision_point = nearest;
+                        has_collision_point = true;
+                    }
+                }
+                collision_id += 2;
+            }
+
+            Vector2 nearest_point;
+            if(intersect_line_circle(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest_point)) {
+                // global_circle_collision2 = nearest_point.to_point();
+                // Engine::logn("\t collider x: %.4f , y: %.4f", collider.x, collider.y);
+                //Engine::logn("collision");
+                
+                collision_id += 3;
+            }
+        }
+
+        if(collision_id == 2 || collision_id == 3) {
+            Engine::logn("only one collision check reported hit: %d", collision_id);
+        }
+
+        if(collided) {
+            if(has_collision_point) {
+                has_bullet_collision = true;
+                global_bullet_collision = collision_point.to_point();
+            }
+        }
+    }
+
     for(int ci = 0; ci < circle_n; ci++) {
         const auto &circle_pos = circles[ci].position;
         const float &circle_radius = circles[ci].radius;
-        for(int bi = 0; bi < bullet_n; bi++) {
-            const auto &bullet_pos = bullets[bi].position;
-            const float &b_radius = bullets[bi].radius;
-            if(Math::intersect_circles(circle_pos.x, circle_pos.y, circle_radius, bullet_pos.x, bullet_pos.y, b_radius)) {
-                Engine::logn("circle intersection");
-                continue;
-            }
-
-            const auto &bullet_last_pos = bullets[bi].position - bullets[bi].velocity;
-            Vector2 nearest;
-            if(intersect_line_circle(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest)) {
-                Engine::logn("ray intersect");
-            }
-        }
-        // Vector2 collider, collider2;
+        
+            // Vector2 collider, collider2;
         // intersections = intersect_line_circle(gun.forward.to_vector2(), gun.position, circle_pos, circle_radius, collider, collider2);
         // if(intersections) {
         //     global_circle_collision = collider.to_point();
@@ -418,7 +476,8 @@ void collision_test_update() {
         
         Vector2 collider;
         float p1 = 0, p2 = 0;
-        if(intersect_line_circle4(gun.position, gun.forward.to_vector2(), circle_pos, circle_radius, collider)) {
+        int a = intersect_line_circle4(gun.position, gun.forward.to_vector2(), circle_pos, circle_radius, collider);
+        if(a == 1 || a == 2) {
             has_collision1 = true;
             global_circle_collision = collider.to_point();
             Engine::logn("p? %.0f, %.0f", p1, p2);
@@ -457,11 +516,16 @@ void collision_test_update() {
 void collision_test_render() {
     for(int i = 0; i < circle_n; i++) {
         const auto &pos = circles[i].position;
-        draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, circles[i].radius, 0, 255, 0, 255);
+        draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, circles[i].radius, 123, 255, 123, 255);
     }
     for(int i = 0; i < bullet_n; i++) {
-        const auto &pos = bullets[i].position;
-        draw_g_circe_RGBA((uint16_t)pos.x, (uint16_t)pos.y, bullets[i].radius, 0, 255, 0, 255);
+        const auto &b_pos = bullets[i].position;
+        Vector2 pos = b_pos + (bullets[i].radius * bullets[i].velocity.normal());
+        const auto &last_pos = bullets[i].position - bullets[i].velocity;
+        
+        SDL_SetRenderDrawColor(renderer.renderer, 0, 255, 0, 255);
+        SDL_RenderDrawLine(renderer.renderer, (int)pos.x, (int)pos.y, last_pos.x, last_pos.y);
+        draw_g_circe_RGBA((uint16_t)b_pos.x, (uint16_t)b_pos.y, bullets[i].radius, 0, 255, 0, 255);
     }
     for(auto &l : lines) {
         SDL_SetRenderDrawColor(renderer.renderer, 128, 0, 255, 255);
@@ -475,8 +539,12 @@ void collision_test_render() {
         draw_g_circe_RGBA((uint16_t)global_circle_collision.x, (uint16_t)global_circle_collision.y, 2, 255, 0, 0, 255);
         draw_g_circe_RGBA((uint16_t)global_circle_collision3.x, (uint16_t)global_circle_collision3.y, 2, 255, 0, 0, 255);
     }
-    if(has_collision2)
+    if(has_collision2) {
         draw_g_circe_RGBA((uint16_t)global_circle_collision2.x, (uint16_t)global_circle_collision2.y, 2, 255, 150, 150, 255);
+    }
+    if(has_bullet_collision) {
+        draw_g_circe_RGBA((uint16_t)global_bullet_collision.x, (uint16_t)global_bullet_collision.y, 2, 255, 150, 150, 255);
+    }
 
     FrameLog::render(5, 5);
 }

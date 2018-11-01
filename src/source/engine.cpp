@@ -68,7 +68,7 @@ Point Vector2::to_point() const {
 }
 
 Vector2 Vector2::normal() const {
-	float mag = vector_mag(*this);
+	float mag = Math::magnitude(*this);
 	if(mag == 0.0f) {
 		mag = 1.0f;
 	}
@@ -76,7 +76,7 @@ Vector2 Vector2::normal() const {
 }
 
 float Vector2::length() const {
-	return sqrt(length2());
+	return Math::sqrt_f(length2());
 }
 
 float Vector2::length2() const {
@@ -84,7 +84,7 @@ float Vector2::length2() const {
 }
 
 float Vector2::dot(const Vector2 &v) const {
-	return vector_dot(v, *this);
+	return Math::dot_product(v, *this);
 }
 
 namespace Time {

@@ -127,8 +127,6 @@ inline const Point operator*(int lhs, Point const &rhs) {
 	return result;
 }
 
-const float vector_mag(Vector2 const &rhs);
-const float vector_dot(Vector2 const &lhs, Vector2 const &rhs);
 struct Vector2 {
 	float x;
 	float y;
@@ -221,24 +219,6 @@ inline const Vector2 operator*(float lhs, Vector2 const &rhs) {
 	result.x=rhs.x * lhs;
 	result.y=rhs.y * lhs;
 	return result;
-}
-
-//Returns dot product
-inline const float vector_dot(Vector2 const &lhs, Vector2 const &rhs) {
-	return lhs.x*rhs.x+lhs.y*rhs.y; 
-}
-//Returns length squared (length2)
-inline const float vector_lsq(Vector2 const &rhs) {
-	return vector_dot(rhs, rhs);
-}
-//Returns magnitude (length)
-inline const float vector_mag(Vector2 const &rhs) {
-	//return sqrtf(dot(rhs, rhs));
-	return sqrt(vector_lsq(rhs));
-}
-//Returns normalized Vector2
-inline Vector2 vector_norm(Vector2 const &lhs){
-	return (1.f /(vector_mag(lhs))) * lhs;
 }
 
 struct Rectangle {
@@ -410,6 +390,24 @@ namespace Math {
 		auto dx = a.x - b.x;
     	auto dy = a.y - b.y;
 		return sqrt_f(dx * dx + dy * dy);
+	}
+
+	//Returns dot product
+	inline const float dot_product(Vector2 const &lhs, Vector2 const &rhs) {
+		return lhs.x*rhs.x+lhs.y*rhs.y; 
+	}
+	//Returns length squared (length2)
+	inline const float length_squared(Vector2 const &rhs) {
+		return dot_product(rhs, rhs);
+	}
+	//Returns magnitude (length)
+	inline const float magnitude(Vector2 const &rhs) {
+		//return sqrtf(dot(rhs, rhs));
+		return sqrt_f(length_squared(rhs));
+	}
+	//Returns normalized Vector2
+	inline Vector2 normalize(Vector2 const &lhs){
+		return (1.f /(magnitude(lhs))) * lhs;
 	}
 
 	inline float rads_between_f(const float &x1, const float &y1, const float &x2, const float &y2) {
