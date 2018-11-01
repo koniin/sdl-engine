@@ -204,6 +204,158 @@ namespace ECS {
     };
 };
 
+namespace Intersects {
+    bool circle_contains_point(Vector2 circle, float radius, Vector2 point) {
+        float circle_left = circle.x - radius;
+        float circle_right = circle.x + radius;
+        float circle_bottom = circle.y + radius;
+        float circle_top = circle.y - radius;
+        //  Check if point is inside bounds
+        if (radius > 0 && point.x >= circle_left && point.x <= circle_right && point.y >= circle_top && point.y <= circle_bottom) {
+            float dx = (circle.x - point.x) * (circle.x - point.x);
+            float dy = (circle.y - point.y) * (circle.y - point.y);
+            return (dx + dy) <= (radius * radius);
+        }
+        
+        return false;
+    }
+
+    // From Phaser
+    // Works well and can detect if a line is inside a circle also
+    // Nearest is the point closest to the center
+    bool line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const Vector2 &circle_center, const float &radius, Vector2 &nearest) {
+        if (circle_contains_point(circle_center, radius, lineP1)) {
+            nearest.x = lineP1.x;
+            nearest.y = lineP1.y;
+            // furthest.x = lineP2.x;
+            // furthest.y = lineP2.y;
+            return true;
+        }
+
+        if (circle_contains_point(circle_center, radius, lineP2)) {
+            nearest.x = lineP2.x;
+            nearest.y = lineP2.y;
+            // furthest.x = lineP1.x;
+            // furthest.y = lineP1.y;
+            return true;
+        }
+
+        float dx = lineP2.x - lineP1.x;
+        float dy = lineP2.y - lineP1.y;
+
+        float lcx = circle_center.x - lineP1.x;
+        float lcy = circle_center.y - lineP1.y;
+
+        //  project lc onto d, resulting in vector p
+        float dLen2 = (dx * dx) + (dy * dy);
+        float px = dx;
+        float py = dy;
+
+        if (dLen2 > 0) {
+            float dp = ((lcx * dx) + (lcy * dy)) / dLen2;
+            px *= dp;
+            py *= dp;
+        }
+
+        nearest.x = lineP1.x + px;
+        nearest.y = lineP1.y + py;
+        
+        //  len2 of p
+        float pLen2 = (px * px) + (py * py);
+        return pLen2 <= dLen2 && ((px * dx) + (py * dy)) >= 0 && circle_contains_point(circle_center, radius, nearest);
+    }
+
+    // Works good and finds the entry point of collision
+    // return values:
+    // 0: no collision
+    // 1: collision but no entry/exit point
+    // 2: collision and entry/exit point closest to segment_start
+    int line_circle_entry(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
+        // if (circle_contains_point(center, radius, segment_start)) {
+        //     return true;
+        // }
+
+        // if (circle_contains_point(center, radius, segment_end)) {
+        //     return true;
+        // }
+        
+        /*
+        Taking
+
+        E is the starting point of the ray,
+        L is the end point of the ray,
+        C is the center of sphere you're testing against
+        r is the radius of that sphere
+
+        Compute:
+        d = L - E ( Direction vector of ray, from start to end )
+        f = E - C ( Vector from center sphere to ray start ) 
+        */
+        Vector2 d = segment_end - segment_start;
+        Vector2 f = segment_start - center;
+        float r = radius;
+
+        float a = d.dot( d ) ;
+        float b = 2*f.dot( d ) ;
+        float c = f.dot( f ) - r*r ;
+
+        float discriminant = b*b-4*a*c;
+        if( discriminant < 0 ) {
+            // no intersection
+            return 0;
+        }
+    
+        // ray didn't totally miss sphere,
+        // so there is a solution to
+        // the equation.
+        discriminant = Math::sqrt_f( discriminant );
+
+        // either solution may be on or off the ray so need to test both
+        // t1 is always the smaller value, because BOTH discriminant and
+        // a are nonnegative.
+        float t1 = (-b - discriminant)/(2*a);
+        float t2 = (-b + discriminant)/(2*a);
+        
+        // 3x HIT cases:
+        //          -o->             --|-->  |            |  --|->
+        // Impale(t1 hit,t2 hit), Poke(t1 hit,t2>1), ExitWound(t1<0, t2 hit), 
+
+        // 3x MISS cases:
+        //       ->  o                     o ->              | -> |
+        // FallShort (t1>1,t2>1), Past (t1<0,t2<0), CompletelyInside(t1<0, t2>1)
+
+        if(t1 <= 0 && t2 >= 1) {
+            // Completely inside
+            // we consider this a hit, not a miss
+            Engine::logn("inside");
+            return 1;
+        }
+
+        if(t1 >= 0 && t1 <= 1)
+        {
+            // t1 is the intersection, and it's closer than t2
+            // (since t1 uses -b - discriminant)
+            // Impale, Poke
+            Engine::logn("impale, poke");
+            intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
+            return 2;
+        }
+
+        // here t1 didn't intersect so we are either started
+        // inside the sphere or completely past it
+        if(t2 >= 0 && t2 <= 1)
+        {
+            // ExitWound
+            Engine::logn("exit wound");
+            intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
+            return 2;
+        }
+
+        // no intn: FallShort, Past,  // CompletelyInside
+        return 0;    
+    }
+}
+
 struct PlayerInput {
 	// Input
 	float move_x;
@@ -220,22 +372,23 @@ struct PlayerInput {
 };
 
 struct Position {
-    float x, y;
+    Vector2 value;
+    Vector2 last;
 };
 
 struct Velocity {
-    float x, y;
+    Vector2 value;
 
-    Velocity(): x(0), y(0) {}
-    Velocity(float xv, float yv): x(xv), y(yv) {}
+    Velocity() {}
+    Velocity(float xv, float yv): value(xv, yv) {}
 };
 
 struct Direction {
-    float x, y;
+    Vector2 value;
     float angle;
 
     Direction() {
-        x = y = angle = 0.0f;
+        angle = 0.0f;
     }
 };
 
@@ -494,7 +647,7 @@ void spawn_projectiles() {
 void spawn_player() {
     auto e = entity_manager.create();
     players.create(e);
-    set_position(players, e, { 100, 200 });
+    set_position(players, e, { Vector2(100, 200) });
     SpriteComponent s = SpriteComponent(0, "player_1");
     s.layer = 1;
     set_sprite(players, e, s);
@@ -503,7 +656,7 @@ void spawn_player() {
 void spawn_target() {
     auto e = entity_manager.create();
     targets.create(e);
-    set_position(targets, e, { 400, 200 });
+    set_position(targets, e, { Vector2(400, 200) });
     set_velocity(targets, e, { 0, 0 });
     SpriteComponent s = SpriteComponent(0, "enemy_1");
     set_sprite(targets, e, s);
@@ -597,35 +750,35 @@ void system_player_handle_input() {
         // for other objects than player input once
         direction.angle += pi.move_x * player_config.rotation_speed;
         float rotation = direction.angle / Math::RAD_TO_DEGREE;
-        direction.x = cos(rotation);
-        direction.y = sin(rotation);
+        direction.value.x = cos(rotation);
+        direction.value.y = sin(rotation);
         
-	    velocity.x += direction.x * pi.move_y * player_config.move_acceleration * Time::deltaTime;
-	    velocity.y += direction.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
+	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::deltaTime;
+	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
             pi.fire_cooldown = player_config.fire_cooldown;
 
             auto projectile_pos = players.position[i];
             // set the projectile position to be gun_barrel_distance infront of the ship
-            projectile_pos.x += direction.x * player_config.gun_barrel_distance;
-            projectile_pos.y += direction.y * player_config.gun_barrel_distance;        
+            projectile_pos.value.x += direction.value.x * player_config.gun_barrel_distance;
+            projectile_pos.value.y += direction.value.y * player_config.gun_barrel_distance;        
             auto muzzle_pos = projectile_pos;
 
             // Accuracy
             const float accuracy = 8; // how far from initial position it can maximaly spawn
-            projectile_pos.x += RNG::range_f(-accuracy, accuracy) * direction.y;
-            projectile_pos.y += RNG::range_f(-accuracy, accuracy) * direction.x;
+            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * direction.value.y;
+            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * direction.value.x;
 
-            Vector2 bullet_velocity = Vector2(direction.x * player_config.bullet_speed, direction.y * player_config.bullet_speed);
+            Vector2 bullet_velocity = Vector2(direction.value.x * player_config.bullet_speed, direction.value.y * player_config.bullet_speed);
             queue_projectile(projectile_pos, bullet_velocity);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
 
             // Player knockback
-            players.position[i].x -= direction.x * 3;
-            players.position[i].y -= direction.y * 3;
+            players.position[i].value.x -= direction.value.x * 3;
+            players.position[i].value.y -= direction.value.y * 3;
         }
     }
 }
@@ -633,25 +786,25 @@ void system_player_handle_input() {
 template<typename T>
 void move_forward(T &entityData) {
     for(int i = 0; i < entityData.length; i++) {
-        entityData.position[i].x += entityData.velocity[i].x * Time::deltaTime;
-        entityData.position[i].y += entityData.velocity[i].y * Time::deltaTime;
+        entityData.position[i].value.x += entityData.velocity[i].value.x * Time::deltaTime;
+        entityData.position[i].value.y += entityData.velocity[i].value.y * Time::deltaTime;
     }
 }
 
 template<typename T>
 void keep_in_bounds(T &entityData, Rectangle &bounds) {
     for(int i = 0; i < entityData.length; i++) {
-        if(entityData.position[i].x < bounds.x) { 
-            entityData.position[i].x = (float)bounds.x; 
+        if(entityData.position[i].value.x < bounds.x) { 
+            entityData.position[i].value.x = (float)bounds.x; 
         }
-        if(entityData.position[i].x > bounds.right()) { 
-            entityData.position[i].x = (float)bounds.right(); 
+        if(entityData.position[i].value.x > bounds.right()) { 
+            entityData.position[i].value.x = (float)bounds.right(); 
         }
-        if(entityData.position[i].y < bounds.y) { 
-            entityData.position[i].y = (float)bounds.y; 
+        if(entityData.position[i].value.y < bounds.y) { 
+            entityData.position[i].value.y = (float)bounds.y; 
         }
-        if(entityData.position[i].y > bounds.bottom()) { 
-            entityData.position[i].y = (float)bounds.bottom(); 
+        if(entityData.position[i].value.y > bounds.bottom()) { 
+            entityData.position[i].value.y = (float)bounds.bottom(); 
         }
     } 
 }
@@ -659,7 +812,7 @@ void keep_in_bounds(T &entityData, Rectangle &bounds) {
 template<typename T>
 void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
     for(int i = 0; i < entityData.length; i++) {
-        if(!bounds.contains((int)entityData.position[i].x, (int)entityData.position[i].y)) {
+        if(!bounds.contains((int)entityData.position[i].value.x, (int)entityData.position[i].value.y)) {
             queue_remove_entity(entityData.entity[i]);
         }
     } 
@@ -668,8 +821,8 @@ void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
 void system_player_drag() {
     for(int i = 0; i < players.length; i++) {
         Velocity &velocity = players.velocity[i];
-	    velocity.x = velocity.x - velocity.x * player_config.drag;
-	    velocity.y = velocity.y - velocity.y * player_config.drag;
+	    velocity.value.x = velocity.value.x - velocity.value.x * player_config.drag;
+	    velocity.value.y = velocity.value.y - velocity.value.y * player_config.drag;
     }
 }
 
@@ -714,15 +867,35 @@ void system_collisions(CollisionPairs &collision_pairs) {
     // world->fill_entity_data(a, a.entities, a.position, a.collision_data);
     // world->fill_entity_data(b, b.entities, b.position, b.collision_data);
     for(int i = 0; i < projectiles.length; ++i) {
+        const Position &projectile_position = projectiles.position[i];
+        const float projectile_radius = (float)projectiles.radius;
         for(int j = 0; j < targets.length; ++j) {
-            const Position &first_position = projectiles.position[i];
-            const Position &second_position = targets.position[j];
-            const float first_radius = (float)projectiles.radius;
-            const float second_radius = (float)targets.radius;
-            if(Math::intersect_circles(first_position.x, first_position.y, first_radius, second_position.x, second_position.y, second_radius)) {
+            const Position &target_position = targets.position[j];
+            const float target_radius = (float)targets.radius;
+            if(Math::intersect_circles(projectile_position.value.x, projectile_position.value.y, projectile_radius, 
+                    target_position.value.x, target_position.value.y, target_radius)) {
                 collision_pairs.push(projectiles.entity[i], targets.entity[j]);
+                // Collision point is the point on the target circle 
+                // that is on the edge in the direction of the projectiles 
+                // reverse velocity
+                continue;
             }
-
+/*
+            const Vector2 &projectile_last_pos = projectile_position - Vector2(projectiles.velocity[i].x, projectiles.velocity[i].y);
+            int result = Intersects::line_circle_entry(bullet_last_pos, bullet_pos, circle_pos, circle_radius, nearest);
+            if(result == 1 || result == 2) {
+                collided = true;
+                float dist = Math::distance_v(bullet_last_pos, circle_pos);
+                if(dist < distance_to_closest) {
+                    dist = distance_to_closest;
+                    has_collision_point = false;
+                    if(result == 2) {
+                        collision_point = nearest;
+                        has_collision_point = true;
+                    }
+                }
+                collision_id += 2;
+            }*/
             // if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square))
         }
     }
@@ -737,9 +910,9 @@ void system_collisions(CollisionPairs &collision_pairs) {
             // Knockback
             auto &velocity = get_velocity(projectiles, collision_pairs.first[i]);
             auto &second_pos = get_position(targets, collision_pairs.second[i]);
-            Vector2 dir = Math::normalize(Vector2(velocity.x, velocity.y));
-            second_pos.x += dir.x * 3;
-            second_pos.y += dir.y * 3;
+            Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
+            second_pos.value.x += dir.x * 3;
+            second_pos.value.y += dir.y * 3;
             
             camera_shake(0.1f);
 
@@ -755,8 +928,8 @@ void system_effects() {
             auto handle = players.get_handle(effects.effect[i].follow);
             Position pos = players.position[handle.i];
             const Direction &direction = players.direction[handle.i];
-            pos.x += direction.x * effects.effect[i].local_position.x;
-            pos.y += direction.y * effects.effect[i].local_position.y;
+            pos.value.x += direction.value.x * effects.effect[i].local_position.x;
+            pos.value.y += direction.value.y * effects.effect[i].local_position.y;
             effects.position[i] = pos;
         }
         if(targets.contains(effects.effect[i].follow)) {
@@ -853,8 +1026,8 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     // spr.x = entity_data.position[i].x - camera.x;
     // spr.x = entity_data.position[i].y - camera.y;
 
-    spr.x = (int16_t)entity_data.position[i].x;
-    spr.y = (int16_t)entity_data.position[i].y;
+    spr.x = (int16_t)entity_data.position[i].value.x;
+    spr.y = (int16_t)entity_data.position[i].value.y;
     spr.sprite_index = entity_data.sprite[i].sprite_sheet_index;
     spr.sprite_name = entity_data.sprite[i].sprite_name;
     spr.rotation = entity_data.sprite[i].rotation;
