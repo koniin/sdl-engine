@@ -138,4 +138,13 @@ void system_effects(Effect effects, Player players, Target targets) {
         }
     }
 }
+
+template<typename T>
+void system_drag(T &entity_data, float drag) {
+    for(int i = 0; i < entity_data.length; i++) {
+        Velocity &velocity = entity_data.velocity[i];
+	    velocity.value.x = velocity.value.x - velocity.value.x * drag;
+	    velocity.value.y = velocity.value.y - velocity.value.y * drag;
+    }
+}
 #endif

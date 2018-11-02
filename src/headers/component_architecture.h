@@ -232,27 +232,6 @@ void system_player_handle_input() {
     }
 }
 
-void system_player_drag() {
-    for(int i = 0; i < players.length; i++) {
-        Velocity &velocity = players.velocity[i];
-	    velocity.value.x = velocity.value.x - velocity.value.x * player_config.drag;
-	    velocity.value.y = velocity.value.y - velocity.value.y * player_config.drag;
-    }
-}
-
-void system_move() {
-    move_forward(players);
-    keep_in_bounds(players, world_bounds);
-    move_forward(targets);
-    keep_in_bounds(targets, world_bounds);
-    for(int i = 0; i < projectiles.length; ++i) {
-        projectiles.position[i].last = projectiles.position[i].value;
-    }
-    move_forward(projectiles);
-    remove_out_of_bounds(projectiles, world_bounds);
-    system_player_drag();
-}
-
 struct CollisionPair {
     ECS::Entity first;
     ECS::Entity second;
@@ -323,8 +302,9 @@ void system_collisions(CollisionPairs &collision_pairs) {
             }
         }
     }
-    
-    // Collision resolution
+}
+
+void system_collision_resolution(CollisionPairs &collision_pairs) {
     collision_pairs.sort_by_distance();
     std::unordered_set<ECS::EntityId> handled_collisions;
     for(int i = 0; i < collision_pairs.count; ++i) {
@@ -369,10 +349,8 @@ void remove_destroyed_entities() {
     entities_to_destroy.clear();
 }
 
-static CollisionPairs collisions;
 
 static std::vector<SpriteSheet> sprite_sheets;
-
 RenderBuffer render_buffer;
 
 void load_render_data() {
@@ -483,6 +461,8 @@ void debug() {
 	}
 }
 
+static CollisionPairs collisions;
+
 void load_arch() {
     Engine::set_base_data_folder("data");
     FrameLog::enable_at(5, 5);
@@ -506,11 +486,25 @@ void load_arch() {
     spawn_target(Vector2(350, 200));
 }
 
+void movement() {
+    move_forward(players);
+    keep_in_bounds(players, world_bounds);
+    move_forward(targets);
+    keep_in_bounds(targets, world_bounds);
+    for(int i = 0; i < projectiles.length; ++i) {
+        projectiles.position[i].last = projectiles.position[i].value;
+    }
+    move_forward(projectiles);
+    remove_out_of_bounds(projectiles, world_bounds);
+}
+
 void update_arch() {
     system_player_get_input(players);
     system_player_handle_input();
-    system_move();
+    movement();
+    system_drag(players, player_config.drag);
     system_collisions(collisions);
+    system_collision_resolution(collisions);
     system_effects(effects, players, targets);
     system_blink_effect(targets);
 
