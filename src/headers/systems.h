@@ -17,6 +17,11 @@ InputMapping input_maps[2] = {
 	{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
 };
 
+std::vector<ECS::Entity> entities_to_destroy;
+void queue_remove_entity(ECS::Entity entity) {
+    entities_to_destroy.push_back(entity);
+}
+
 void system_player_get_input(Player players) {
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
@@ -55,4 +60,59 @@ void system_player_get_input(Player players) {
     }
 }
 
+template<typename T>
+void move_forward(T &entityData) {
+    for(int i = 0; i < entityData.length; i++) {
+        entityData.position[i].value.x += entityData.velocity[i].value.x * Time::deltaTime;
+        entityData.position[i].value.y += entityData.velocity[i].value.y * Time::deltaTime;
+    }
+}
+
+template<typename T>
+void keep_in_bounds(T &entityData, Rectangle &bounds) {
+    for(int i = 0; i < entityData.length; i++) {
+        if(entityData.position[i].value.x < bounds.x) { 
+            entityData.position[i].value.x = (float)bounds.x; 
+        }
+        if(entityData.position[i].value.x > bounds.right()) { 
+            entityData.position[i].value.x = (float)bounds.right(); 
+        }
+        if(entityData.position[i].value.y < bounds.y) { 
+            entityData.position[i].value.y = (float)bounds.y; 
+        }
+        if(entityData.position[i].value.y > bounds.bottom()) { 
+            entityData.position[i].value.y = (float)bounds.bottom(); 
+        }
+    } 
+}
+
+template<typename T>
+void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
+    for(int i = 0; i < entityData.length; i++) {
+        if(!bounds.contains((int)entityData.position[i].value.x, (int)entityData.position[i].value.y)) {
+            queue_remove_entity(entityData.entity[i]);
+        }
+    } 
+}
+
+template<typename T>
+void system_blink_effect(T &entity_data) {
+    for(int i = 0; i < entity_data.length; ++i) {
+        ++entity_data.blink[i].frame_counter;
+        if(entity_data.blink[i].frame_counter > entity_data.blink[i].frames_to_live) {
+            entity_data.blink[i].frame_counter = 0;
+            if(entity_data.blink[i].frames_to_live > 0) {
+                entity_data.sprite[i].sprite_sheet_index = entity_data.blink[i].original_sheet;
+            }
+            entity_data.blink[i].frames_to_live = 0;
+            continue;
+        }
+        
+        if(!(entity_data.blink[i].frame_counter % entity_data.blink[i].interval)) {
+            entity_data.sprite[i].sprite_sheet_index = 
+                entity_data.sprite[i].sprite_sheet_index == entity_data.blink[i].original_sheet 
+                    ? entity_data.blink[i].white_sheet : entity_data.blink[i].original_sheet;
+        }
+    }
+}
 #endif
