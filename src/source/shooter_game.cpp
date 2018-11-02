@@ -1,16 +1,21 @@
 #include "shooter_game.h"
 
-
 #include <unordered_set>
-
-#include "engine.h"
-#include "renderer.h"
 
 #include "framework.h"
 #include "debug.h"
 #include "rendering.h"
 #include "entities.h"
 #include "systems.h"
+
+PlayerConfiguration player_config;
+TargetConfiguration target_config;
+ECS::EntityManager entity_manager;
+Player players;
+Projectile projectiles;
+Target targets;
+Effect effects;
+Rectangle world_bounds;
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -29,42 +34,6 @@ void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
     entity_data.blink[handle.i] = b;
 }
-
-// Pixels per frame
-constexpr float player_bullet_speed() {
-    return 8.0f / 0.016667f;
-}
-
-float movement_per_frame(float val) {
-    return val / 0.016667f;
-}
-
-constexpr float player_move_acceleration() {
-    return 10.0f / 0.016667f;
-}
-
-struct PlayerConfiguration {
-    int16_t radius = 8;
-	float rotation_speed = 3.0f; // degrees
-	float move_acceleration = player_move_acceleration();
-	float drag = 0.04f;
-	float fire_cooldown = 0.15f; // s
-	float bullet_speed = player_bullet_speed();
-    float gun_barrel_distance = 11.0f; // distance from center
-    float fire_knockback = 2.0f; // pixels
-} player_config;
-
-struct TargetConfiguration {
-    float knockback_on_hit = 2.0f;
-} target_config;
-
-ECS::EntityManager entity_manager;
-Player players;
-Projectile projectiles;
-Target targets;
-Effect effects;
-
-Rectangle world_bounds;
 
 struct SpawnProjectile {
     Position position;
@@ -354,7 +323,7 @@ void debug() {
     
     if(Input::key_pressed(SDLK_UP)) {
         bullet_speed++;
-        player_config.bullet_speed = movement_per_frame(bullet_speed);
+        player_config.bullet_speed = bullet_speed / 0.016667f;
     }
 
     if(Input::key_pressed(SDLK_l)) {
