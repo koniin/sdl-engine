@@ -588,6 +588,10 @@ constexpr float player_bullet_speed() {
     return 8.0f / 0.016667f;
 }
 
+float movement_per_frame(float val) {
+    return val / 0.016667f;
+}
+
 constexpr float player_move_acceleration() {
     return 10.0f / 0.016667f;
 }
@@ -1116,6 +1120,23 @@ void load_arch() {
     spawn_target();
 }
 
+
+void debug() {
+    static float bullet_speed = 8.0f;
+    
+    if(Input::key_pressed(SDLK_UP)) {
+        bullet_speed++;
+        player_config.bullet_speed = movement_per_frame(bullet_speed);
+    }
+
+    FrameLog::log("Players: " + std::to_string(players.length));
+    FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
+    FrameLog::log("Targets: " + std::to_string(targets.length));
+    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
+    FrameLog::log("Bullet speed: " + std::to_string(player_config.bullet_speed));
+    FrameLog::log("Bullet speed: " + std::to_string(bullet_speed));
+}
+
 void update_arch() {
     system_player_get_input();
     system_player_handle_input();
@@ -1131,10 +1152,7 @@ void update_arch() {
     export_render_info();
     render_buffer_sort();
 
-    FrameLog::log("Players: " + std::to_string(players.length));
-    FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
-    FrameLog::log("Targets: " + std::to_string(targets.length));
-    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
+    debug();
 }
 
 void draw_buffer(SpriteData *spr, int length) {
