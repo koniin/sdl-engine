@@ -327,7 +327,7 @@ namespace Intersects {
         if(t1 <= 0 && t2 >= 1) {
             // Completely inside
             // we consider this a hit, not a miss
-            Engine::logn("inside");
+            // Engine::logn("inside");
             return 1;
         }
 
@@ -336,7 +336,7 @@ namespace Intersects {
             // t1 is the intersection, and it's closer than t2
             // (since t1 uses -b - discriminant)
             // Impale, Poke
-            Engine::logn("impale, poke");
+            // Engine::logn("impale, poke");
             intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
             return 2;
         }
@@ -346,7 +346,7 @@ namespace Intersects {
         if(t2 >= 0 && t2 <= 1)
         {
             // ExitWound
-            Engine::logn("exit wound");
+            // Engine::logn("exit wound");
             intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
             return 2;
         }
@@ -597,13 +597,18 @@ constexpr float player_move_acceleration() {
 }
 
 struct PlayerConfiguration {
-	float rotation_speed = 3.0f;
+	float rotation_speed = 3.0f; // degrees
 	float move_acceleration = player_move_acceleration();
 	float drag = 0.04f;
 	float fire_cooldown = 0.15f; // s
 	float bullet_speed = player_bullet_speed();
-    float gun_barrel_distance = 11.0f;
+    float gun_barrel_distance = 11.0f; // distance from center
+    float fire_knockback = 2.0f; // pixels
 } player_config;
+
+struct TargetConfiguration {
+    float knockback_on_hit = 2.0f;
+} target_config;
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -636,14 +641,19 @@ void queue_projectile(Position p, Vector2 velocity) {
     projectile_queue.push_back({ p, {velocity.x, velocity.y} });
 }
 
+void spawn_projectile(Position p, Velocity v) {
+    auto e = entity_manager.create();
+    projectiles.create(e);
+    p.last = p.value;
+    set_position(projectiles, e, p);
+    set_velocity(projectiles, e, v);
+    SpriteComponent s = SpriteComponent(0, "bullet_2");
+    set_sprite(projectiles, e, s);
+}
+
 void spawn_projectiles() {
     for(size_t i = 0; i < projectile_queue.size(); i++) {
-        auto e = entity_manager.create();
-        projectiles.create(e);
-        set_position(projectiles, e, projectile_queue[i].position);
-        set_velocity(projectiles, e, projectile_queue[i].velocity);
-        SpriteComponent s = SpriteComponent(0, "bullet_2");
-        set_sprite(projectiles, e, s);
+        spawn_projectile(projectile_queue[i].position, projectile_queue[i].velocity);
     }
     projectile_queue.clear();
 }
@@ -657,10 +667,10 @@ void spawn_player() {
     set_sprite(players, e, s);
 }
 
-void spawn_target() {
+void spawn_target(Vector2 position) {
     auto e = entity_manager.create();
     targets.create(e);
-    set_position(targets, e, { Vector2(400, 200) });
+    set_position(targets, e, { position });
     set_velocity(targets, e, { 0, 0 });
     SpriteComponent s = SpriteComponent(0, "enemy_1");
     set_sprite(targets, e, s);
@@ -781,8 +791,8 @@ void system_player_handle_input() {
             camera_shake(0.1f);
 
             // Player knockback
-            players.position[i].value.x -= direction.value.x * 3;
-            players.position[i].value.y -= direction.value.y * 3;
+            players.position[i].value.x -= direction.value.x * player_config.fire_knockback;
+            players.position[i].value.y -= direction.value.y * player_config.fire_knockback;
         }
     }
 }
@@ -835,91 +845,111 @@ void system_move() {
     keep_in_bounds(players, world_bounds);
     move_forward(targets);
     keep_in_bounds(targets, world_bounds);
+    for(int i = 0; i < projectiles.length; ++i) {
+        projectiles.position[i].last = projectiles.position[i].value;
+    }
     move_forward(projectiles);
     remove_out_of_bounds(projectiles, world_bounds);
     system_player_drag();
 }
 
-struct CollisionPairs {
-    ECS::Entity *first;
-    ECS::Entity *second;
+struct CollisionPair {
+    ECS::Entity first;
+    ECS::Entity second;
+    float distance;
+    Vector2 collision_point;
 
-    unsigned int count = 0;
+    bool operator<( const CollisionPair& rhs ) const { 
+        return distance < rhs.distance; 
+    }
+};
+
+struct CollisionPairs {
+    std::vector<CollisionPair> collisions;
+    int count = 0;
+
+    inline CollisionPair operator [](size_t i) const { return collisions[i]; }
+    inline CollisionPair & operator [](size_t i) { return collisions[i]; }
 
     void allocate(size_t size) {
-        first = new ECS::Entity[size];
-        second = new ECS::Entity[size];
+        collisions.reserve(size);
     }
 
-    void push(ECS::Entity a, ECS::Entity b) {
-        first[count] = a;
-        second[count] = b;
-        ++count;
+    void sort_by_distance() {
+        std::sort(collisions.begin(), collisions.end());
+    }
+
+    void push(ECS::Entity first, ECS::Entity second, float distance, Vector2 collision_point) {
+        collisions.push_back({ first, second, distance, collision_point });
+        count++;
     }
 
     void clear() {
         count = 0;
+        collisions.clear();
     }
 };
 
+#include <unordered_set>
+Vector2 global_point_test;
+
 void system_collisions(CollisionPairs &collision_pairs) {
-    // struct CollisionGroup : EntityComponentData<Position, SizeComponent> {
-    //     ComponentArray<Position> position;
-    //     ComponentArray<SizeComponent> collision_data;
-    // };
-    // CollisionGroup a, b;
-    // world->fill_entity_data(a, a.entities, a.position, a.collision_data);
-    // world->fill_entity_data(b, b.entities, b.position, b.collision_data);
     for(int i = 0; i < projectiles.length; ++i) {
         const Vector2 &p_pos = projectiles.position[i].value;
         const float projectile_radius = (float)projectiles.radius;
+        
         for(int j = 0; j < targets.length; ++j) {
             const Vector2 &t_pos = targets.position[j].value;
             const float t_radius = (float)targets.radius;
+            const Vector2 &p_last = projectiles.position[i].last;
+
+            // Distance from projectiles last position and targets new position
+            // should get the closest target in projectiles path
+            float dist = Math::distance_v(p_last, t_pos);
             if(Math::intersect_circles(p_pos.x, p_pos.y, projectile_radius, 
                     t_pos.x, t_pos.y, t_radius)) {
-                collision_pairs.push(projectiles.entity[i], targets.entity[j]);
                 // Collision point is the point on the target circle 
                 // that is on the edge in the direction of the projectiles 
                 // reverse velocity
+                Engine::logn("circle intersect");
+                Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
+                global_point_test = collision_point;
+                collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
                 continue;
             }
             
-            const Vector2 &p_last = projectiles.position[i].last;
             Vector2 entry_point;
             int result = Intersects::line_circle_entry(p_last, p_pos, t_pos, t_radius, entry_point);
             if(result == 1 || result == 2) {
-                //collided = true;
-                collision_pairs.push(projectiles.entity[i], targets.entity[j]);
-                
-                // float dist = Math::distance_v(p_last, t_pos);
-                // if(dist < distance_to_closest) {
-                //     dist = distance_to_closest;
-                //     has_collision_point = false;
-                //     if(result == 2) {
-                //         collision_point = nearest;
-                //         has_collision_point = true;
-                //     }
-                // }
-                // collision_id += 2;
+                Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
+                global_point_test = collision_point;
+                collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
+                Engine::logn("line intersect");
             }
-            // if(Math::intersect_circle_AABB(first_position.x, first_position.y, first_radius, the_square))
         }
     }
-
+    
     // Collision resolution
+    collision_pairs.sort_by_distance();
+    std::unordered_set<ECS::EntityId> handled_collisions;
     for(unsigned i = 0; i < collision_pairs.count; ++i) {
-        queue_remove_entity(collision_pairs.first[i]);
+        if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
+            continue;
+        }
 
-        if(targets.contains(collision_pairs.second[i])) {
-            blink_sprite(targets, collision_pairs.second[i], 29, 5);
+        handled_collisions.insert(collision_pairs[i].first.id);
+
+        queue_remove_entity(collision_pairs[i].first);
+
+        if(targets.contains(collision_pairs[i].second)) {
+            blink_sprite(targets, collision_pairs[i].second, 29, 5);
 
             // Knockback
-            auto &velocity = get_velocity(projectiles, collision_pairs.first[i]);
-            auto &second_pos = get_position(targets, collision_pairs.second[i]);
+            auto &velocity = get_velocity(projectiles, collision_pairs[i].first);
+            auto &second_pos = get_position(targets, collision_pairs[i].second);
             Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-            second_pos.value.x += dir.x * 2;
-            second_pos.value.y += dir.y * 2;
+            second_pos.value.x += dir.x * target_config.knockback_on_hit;
+            second_pos.value.y += dir.y * target_config.knockback_on_hit;
             
             camera_shake(0.1f);
 
@@ -1117,7 +1147,8 @@ void load_arch() {
     collisions.allocate(128);
 
     spawn_player();
-    spawn_target();
+    spawn_target(Vector2(400, 200));
+    spawn_target(Vector2(350, 200));
 }
 
 
@@ -1129,12 +1160,17 @@ void debug() {
         player_config.bullet_speed = movement_per_frame(bullet_speed);
     }
 
+    if(Input::key_pressed(SDLK_l)) {
+        target_config.knockback_on_hit = target_config.knockback_on_hit > 0 ? 0 : 2.0f;
+    }
+
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Bullet speed: " + std::to_string(player_config.bullet_speed));
-    FrameLog::log("Bullet speed: " + std::to_string(bullet_speed));
+    FrameLog::log("Bullet speed (UP to change): " + std::to_string(bullet_speed));
+    FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
 }
 
 void update_arch() {
@@ -1164,6 +1200,9 @@ void draw_buffer(SpriteData *spr, int length) {
 void render_arch() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+    
+    Point p = global_point_test.to_point();
+    draw_g_circe_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
 }
 
 void render_ui() {

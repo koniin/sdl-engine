@@ -147,7 +147,9 @@ struct Vector2 {
 	
 	static const Vector2 Zero;
 	static const Vector2 One;
-	
+	inline Vector2 Vector2::operator-() const {
+		return Vector2(-x, -y);
+   	}
 	inline Vector2& Vector2::operator+=(const Vector2& vector) {
 		x += vector.x;
 		y += vector.y;
