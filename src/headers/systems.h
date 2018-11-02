@@ -115,4 +115,27 @@ void system_blink_effect(T &entity_data) {
         }
     }
 }
+
+void system_effects(Effect effects, Player players, Target targets) {
+    for(int i = 0; i < effects.length; ++i) {
+        if(players.contains(effects.effect[i].follow)) {
+            auto handle = players.get_handle(effects.effect[i].follow);
+            Position pos = players.position[handle.i];
+            const Direction &direction = players.direction[handle.i];
+            pos.value.x += direction.value.x * effects.effect[i].local_position.x;
+            pos.value.y += direction.value.y * effects.effect[i].local_position.y;
+            effects.position[i] = pos;
+        }
+        if(targets.contains(effects.effect[i].follow)) {
+            Engine::logn("following a target - not implemented");
+        }
+    }
+
+    for(int i = 0; i < effects.length; ++i) {
+        effects.effect[i].frame_counter++;
+        if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
+            queue_remove_entity(effects.entity[i]);
+        }
+    }
+}
 #endif

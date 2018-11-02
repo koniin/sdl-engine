@@ -356,29 +356,6 @@ void system_collisions(CollisionPairs &collision_pairs) {
     collision_pairs.clear();
 }
 
-void system_effects() {
-    for(int i = 0; i < effects.length; ++i) {
-        if(players.contains(effects.effect[i].follow)) {
-            auto handle = players.get_handle(effects.effect[i].follow);
-            Position pos = players.position[handle.i];
-            const Direction &direction = players.direction[handle.i];
-            pos.value.x += direction.value.x * effects.effect[i].local_position.x;
-            pos.value.y += direction.value.y * effects.effect[i].local_position.y;
-            effects.position[i] = pos;
-        }
-        if(targets.contains(effects.effect[i].follow)) {
-            Engine::logn("following a target - not implemented");
-        }
-    }
-
-    for(int i = 0; i < effects.length; ++i) {
-        effects.effect[i].frame_counter++;
-        if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
-            queue_remove_entity(effects.entity[i]);
-        }
-    }
-}
-
 void remove_destroyed_entities() {
     for(size_t i = 0; i < entities_to_destroy.size(); i++) {
         Engine::logn("destroying: %d", entities_to_destroy[i].id);
@@ -534,7 +511,7 @@ void update_arch() {
     system_player_handle_input();
     system_move();
     system_collisions(collisions);
-    system_effects();
+    system_effects(effects, players, targets);
     system_blink_effect(targets);
 
     spawn_projectiles();
