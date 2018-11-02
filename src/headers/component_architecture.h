@@ -49,521 +49,15 @@ Then:
 #ifndef COMPONENT_ARCHITECTURE_H
 #define COMPONENT_ARCHITECTURE_H
 
+#include <unordered_set>
+
 #include "engine.h"
 #include "renderer.h"
-#include <queue>
 
-namespace ECS {
-    const unsigned ENTITY_INDEX_BITS = 22;
-    const unsigned ENTITY_INDEX_MASK = (1<<ENTITY_INDEX_BITS)-1;
-
-    const unsigned ENTITY_GENERATION_BITS = 8;
-    const unsigned ENTITY_GENERATION_MASK = (1<<ENTITY_GENERATION_BITS)-1;
-
-    typedef unsigned EntityId;
-    struct Entity {
-        EntityId id = 0;
-
-        unsigned index() const { return id & ENTITY_INDEX_MASK; }
-        unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
-    };
-
-    const unsigned MINIMUM_FREE_INDICES = 1024;
-
-    struct EntityManager {
-        std::vector<unsigned char> _generation;
-        std::queue<unsigned> _free_indices;
-
-        Entity create() {
-            unsigned idx;
-            if (_free_indices.size() > MINIMUM_FREE_INDICES) {
-                idx = _free_indices.front();
-                _free_indices.pop();
-            } else {
-                _generation.push_back(0);
-                idx = _generation.size() - 1;
-                ASSERT_WITH_MSG(idx < (1 << ENTITY_INDEX_BITS), "idx is malformed, larger than 22 bits?");
-            }
-
-            return make_entity(idx, _generation[idx]);
-        }
-
-        Entity make_entity(unsigned idx, unsigned char generation) {
-            Entity e;
-            auto id = generation << ENTITY_INDEX_BITS | idx;
-            e.id = id;
-            return e;
-        }
-
-        bool alive(Entity e) const {
-            return _generation[e.index()] == e.generation();
-        }
-
-        void destroy(Entity e) {
-            if(!alive(e))
-                return;
-
-            const unsigned idx = e.index();
-            ++_generation[idx];
-            _free_indices.push(idx);
-        }
-    };
-
-    struct EntityData {
-        int length;
-        int size;
-        Entity *entity;
-        std::unordered_map<EntityId, unsigned> _map;
-        int container_count = 0;
-        int max_container_count = 0;
-        void **containers;
-        size_t *container_sizes;
-    
-        void allocate_entities(size_t count, int max_containers) {
-            size = count;
-            entity = new Entity[count];
-            containers = new void*[max_containers];
-            container_sizes = new size_t[max_containers];
-            max_container_count = max_containers;
-        }
-
-        template<typename T>
-        void add(T *container) {
-            ASSERT_WITH_MSG(container_count < max_container_count, "Maximum container count reached, more components than containers");
-            containers[container_count] = container;
-            container_sizes[container_count] = sizeof(T);
-            container_count++;
-        }
-
-        static const int invalid_handle = -1;
-
-        struct Handle {
-            int i = -1;
-        };
-
-        Handle get_handle(Entity e) {
-            auto a = _map.find(e.id);
-            if(a != _map.end()) {
-                return { (int)a->second };
-            }
-            return { invalid_handle };
-        }
-
-        bool contains(Entity e) {
-            auto a = _map.find(e.id);
-            return a != _map.end();
-        }
-
-        bool is_valid(Handle h) {
-            return h.i != invalid_handle;
-        }
-
-        void create(Entity e) {
-            ASSERT_WITH_MSG(length <= size, "Component storage is full, n:" + std::to_string(length));
-            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
-            
-            unsigned int index = length;
-            _map[e.id] = index;
-            entity[index] = e;
-            length++;
-        }
-
-        void remove(Entity e) {
-            if(!contains(e))
-                return;
-
-            auto a = _map.find(e.id);
-            const int index = a->second;
-            const unsigned lastIndex = length - 1;
-
-            if (lastIndex >= 0) {
-                // Get the entity at the index to destroy
-                Entity entityToDestroy = entity[index];
-                // Get the entity at the end of the array
-                Entity lastEntity = entity[lastIndex];
-
-                // Move last entity's data
-                entity[index] = entity[lastIndex];
-
-                for(int i = 0; i < container_count; i++) {
-                    std::memcpy((char*)containers[i] + (index * container_sizes[i]), 
-                        (char*)containers[i] + (lastIndex * container_sizes[i]), 
-                        container_sizes[i]);
-                    //((char*)containers[i])[index] = ((char*)containers[i])[lastIndex];
-                }
-
-                // Update map entry for the swapped entity
-                _map[lastEntity.id] = index;
-                // Remove the map entry for the destroyed entity
-                _map.erase(entityToDestroy.id);
-
-                // Decrease count
-                length--;
-            }
-        }
-    };
-};
-
-namespace Intersects {
-    bool circle_contains_point(Vector2 circle, float radius, Vector2 point) {
-        float circle_left = circle.x - radius;
-        float circle_right = circle.x + radius;
-        float circle_bottom = circle.y + radius;
-        float circle_top = circle.y - radius;
-        //  Check if point is inside bounds
-        if (radius > 0 && point.x >= circle_left && point.x <= circle_right && point.y >= circle_top && point.y <= circle_bottom) {
-            float dx = (circle.x - point.x) * (circle.x - point.x);
-            float dy = (circle.y - point.y) * (circle.y - point.y);
-            return (dx + dy) <= (radius * radius);
-        }
-        
-        return false;
-    }
-
-    // From Phaser
-    // Works well and can detect if a line is inside a circle also
-    // Nearest is the point closest to the center
-    bool line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const Vector2 &circle_center, const float &radius, Vector2 &nearest) {
-        if (circle_contains_point(circle_center, radius, lineP1)) {
-            nearest.x = lineP1.x;
-            nearest.y = lineP1.y;
-            // furthest.x = lineP2.x;
-            // furthest.y = lineP2.y;
-            return true;
-        }
-
-        if (circle_contains_point(circle_center, radius, lineP2)) {
-            nearest.x = lineP2.x;
-            nearest.y = lineP2.y;
-            // furthest.x = lineP1.x;
-            // furthest.y = lineP1.y;
-            return true;
-        }
-
-        float dx = lineP2.x - lineP1.x;
-        float dy = lineP2.y - lineP1.y;
-
-        float lcx = circle_center.x - lineP1.x;
-        float lcy = circle_center.y - lineP1.y;
-
-        //  project lc onto d, resulting in vector p
-        float dLen2 = (dx * dx) + (dy * dy);
-        float px = dx;
-        float py = dy;
-
-        if (dLen2 > 0) {
-            float dp = ((lcx * dx) + (lcy * dy)) / dLen2;
-            px *= dp;
-            py *= dp;
-        }
-
-        nearest.x = lineP1.x + px;
-        nearest.y = lineP1.y + py;
-        
-        //  len2 of p
-        float pLen2 = (px * px) + (py * py);
-        return pLen2 <= dLen2 && ((px * dx) + (py * dy)) >= 0 && circle_contains_point(circle_center, radius, nearest);
-    }
-
-    // Works good and finds the entry point of collision
-    // return values:
-    // 0: no collision
-    // 1: collision but no entry/exit point
-    // 2: collision and entry/exit point closest to segment_start
-    int line_circle_entry(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
-        // if (circle_contains_point(center, radius, segment_start)) {
-        //     return true;
-        // }
-
-        // if (circle_contains_point(center, radius, segment_end)) {
-        //     return true;
-        // }
-        
-        /*
-        Taking
-
-        E is the starting point of the ray,
-        L is the end point of the ray,
-        C is the center of sphere you're testing against
-        r is the radius of that sphere
-
-        Compute:
-        d = L - E ( Direction vector of ray, from start to end )
-        f = E - C ( Vector from center sphere to ray start ) 
-        */
-        Vector2 d = segment_end - segment_start;
-        Vector2 f = segment_start - center;
-        float r = radius;
-
-        float a = d.dot( d ) ;
-        float b = 2*f.dot( d ) ;
-        float c = f.dot( f ) - r*r ;
-
-        float discriminant = b*b-4*a*c;
-        if( discriminant < 0 ) {
-            // no intersection
-            return 0;
-        }
-    
-        // ray didn't totally miss sphere,
-        // so there is a solution to
-        // the equation.
-        discriminant = Math::sqrt_f( discriminant );
-
-        // either solution may be on or off the ray so need to test both
-        // t1 is always the smaller value, because BOTH discriminant and
-        // a are nonnegative.
-        float t1 = (-b - discriminant)/(2*a);
-        float t2 = (-b + discriminant)/(2*a);
-        
-        // 3x HIT cases:
-        //          -o->             --|-->  |            |  --|->
-        // Impale(t1 hit,t2 hit), Poke(t1 hit,t2>1), ExitWound(t1<0, t2 hit), 
-
-        // 3x MISS cases:
-        //       ->  o                     o ->              | -> |
-        // FallShort (t1>1,t2>1), Past (t1<0,t2<0), CompletelyInside(t1<0, t2>1)
-
-        if(t1 <= 0 && t2 >= 1) {
-            // Completely inside
-            // we consider this a hit, not a miss
-            // Engine::logn("inside");
-            return 1;
-        }
-
-        if(t1 >= 0 && t1 <= 1)
-        {
-            // t1 is the intersection, and it's closer than t2
-            // (since t1 uses -b - discriminant)
-            // Impale, Poke
-            // Engine::logn("impale, poke");
-            intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
-            return 2;
-        }
-
-        // here t1 didn't intersect so we are either started
-        // inside the sphere or completely past it
-        if(t2 >= 0 && t2 <= 1)
-        {
-            // ExitWound
-            // Engine::logn("exit wound");
-            intersection = Vector2(segment_start.x + t1 * d.x, segment_start.y + t1 * d.y);
-            return 2;
-        }
-
-        // no intn: FallShort, Past,  // CompletelyInside
-        return 0;    
-    }
-}
-
-struct PlayerInput {
-	// Input
-	float move_x;
-	float move_y;
-	float fire_x;
-	float fire_y;
-	float fire_cooldown;
-	bool shield;
-
-    PlayerInput() {
-        fire_cooldown = 0.0f;
-        shield = false;
-    }
-};
-
-struct Position {
-    Vector2 value;
-    Vector2 last;
-};
-
-struct Velocity {
-    Vector2 value;
-
-    Velocity() {}
-    Velocity(float xv, float yv): value(xv, yv) {}
-};
-
-struct Direction {
-    Vector2 value;
-    float angle;
-
-    Direction() {
-        angle = 0.0f;
-    }
-};
-
-struct SpriteComponent {
-    float scale;
-    float rotation;
-    int16_t color_r;
-    int16_t color_g;
-    int16_t color_b;
-    int16_t color_a;
-    size_t sprite_sheet_index;
-    std::string sprite_name;
-    int layer;
-
-    SpriteComponent() {}
-
-    SpriteComponent(size_t sprite_sheet, std::string name) : sprite_sheet_index(sprite_sheet), sprite_name(name) {
-        scale = 1.0f;
-        rotation = 1.0f;
-        color_r = color_g = color_b = color_a = 255;
-        layer = 0;
-    }
-};
-
-struct CollisionData {
-    float radius;
-};
-
-struct Player : ECS::EntityData {
-    Position *position;
-    Velocity *velocity;
-    Direction *direction;
-    PlayerInput *input;
-    SpriteComponent *sprite;
-
-    void allocate(size_t n) {
-        position = new Position[n];
-        velocity = new Velocity[n];
-        direction = new Direction[n];
-        input = new PlayerInput[n];
-        sprite = new SpriteComponent[n];
-
-        allocate_entities(n, 5);
-
-        add(position);
-        add(velocity);
-        add(direction);
-        add(input);
-        add(sprite);
-    }
-};
-
-struct Projectile : ECS::EntityData {
-    Position *position;
-    Velocity *velocity;
-    SpriteComponent *sprite;
-
-    const int radius = 8;
-
-    void allocate(size_t n) {
-        position = new Position[n];
-        velocity = new Velocity[n];
-        sprite = new SpriteComponent[n];
-
-        allocate_entities(n, 3);
-
-        add(position);
-        add(velocity);
-        add(sprite);
-    }
-};
-
-struct BlinkEffect {
-    int frames_to_live = 0;
-    int frame_counter = 0;
-    int interval;
-    size_t original_sheet;
-    size_t white_sheet;
-};
-
-struct Target : ECS::EntityData {
-    Position *position;
-    Velocity *velocity;
-    SpriteComponent *sprite;
-    BlinkEffect* blink;
-
-    const int radius = 8;
-
-    // Here you can put a list of base data for different targets
-
-    void allocate(size_t n) {
-        position = new Position[n];
-        velocity = new Velocity[n];
-        sprite = new SpriteComponent[n];
-        blink = new BlinkEffect[n];
-
-        allocate_entities(n, 4);
-
-        add(position);
-        add(velocity);
-        add(sprite);
-        add(blink);
-    }
-};
-
-struct EffectData {
-    int frames_to_live;
-    int frame_counter;
-    bool has_target = false;
-    ECS::Entity follow;
-    Vector2 local_position;
-    
-    EffectData(){};
-    EffectData(int frames) : frames_to_live(frames) {
-        frame_counter = 0;
-    }
-};
-
-struct Effect : ECS::EntityData {
-    Position *position;
-    Velocity *velocity;
-    SpriteComponent *sprite;
-    EffectData *effect;
-
-    const int effect_layer = 2;
-
-    void allocate(size_t n) {
-        position = new Position[n];
-        velocity = new Velocity[n];
-        sprite = new SpriteComponent[n];
-        effect = new EffectData[n];
-
-        allocate_entities(n, 4);
-
-        add(position);
-        add(velocity);
-        add(sprite);
-        add(effect);
-    }
-};
-
-template<typename T>
-Position &get_position(T &entity_data, ECS::Entity e) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
-    auto handle = entity_data.get_handle(e);
-    return entity_data.position[handle.i];
-}
-
-template<typename T>
-Velocity &get_velocity(T &entity_data, ECS::Entity e) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
-    auto handle = entity_data.get_handle(e);
-    return entity_data.velocity[handle.i];
-}
-
-template<typename T>
-void set_position(T &entity_data, ECS::Entity e, Position p) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
-    auto handle = entity_data.get_handle(e);
-    entity_data.position[handle.i] = p;
-}
-
-template<typename T>
-void set_velocity(T &entity_data, ECS::Entity e, Velocity v) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
-    auto handle = entity_data.get_handle(e);
-    entity_data.velocity[handle.i] = v;
-}
-
-template<typename T>
-void set_sprite(T &entity_data, ECS::Entity e, SpriteComponent s) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
-    auto handle = entity_data.get_handle(e);
-    entity_data.sprite[handle.i] = s;
-}
+#include "framework.h"
+#include "debug.h"
+#include "rendering.h"
+#include "entities.h"
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -610,18 +104,6 @@ struct PlayerConfiguration {
 struct TargetConfiguration {
     float knockback_on_hit = 2.0f;
 } target_config;
-
-struct DebugRenderData {
-    enum Type { Circle, Line } type;
-    int16_t x, y;
-    int16_t x2, y2;
-    int16_t radius;
-};
-struct DebugConfiguration {
-    bool enable_render = false;
-    std::vector<DebugRenderData> render_data;
-    Vector2 last_collision_point;
-} debug_config;
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -903,9 +385,6 @@ struct CollisionPairs {
     }
 };
 
-#include <unordered_set>
-Vector2 global_point_test;
-
 void system_collisions(CollisionPairs &collision_pairs) {
     for(int i = 0; i < projectiles.length; ++i) {
         const Vector2 &p_pos = projectiles.position[i].value;
@@ -1032,23 +511,6 @@ void remove_destroyed_entities() {
 static CollisionPairs collisions;
 
 static std::vector<SpriteSheet> sprite_sheets;
-struct SpriteData {
-    int16_t x, y;
-    SDL_Color color;
-    int sprite_index;
-    std::string sprite_name;
-    float rotation;
-    int layer;
-
-    bool operator<(const SpriteData &rhs) const { 
-        return layer < rhs.layer; 
-    }
-};
-struct RenderBuffer {    
-    int sprite_count = 0;
-    SpriteData *sprite_data_buffer;
-};
-static const size_t RENDER_BUFFER_MAX = 256;
 
 RenderBuffer render_buffer;
 
@@ -1067,25 +529,6 @@ void load_render_data() {
     Resources::sprite_load_white("shooterwhite", the_sheet.sprite_sheet_name);
     the_sheet.sprite_sheet_name = "shooterwhite";
     sprite_sheets.push_back(the_sheet);
-}
-
-template<typename T>
-void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
-    // handle camera, zoom and stuff here
-
-    // float globalScale = 0.05f;
-    // spr.x = go.pos.x * globalScale;
-    // spr.y = go.pos.y * globalScale;
-    // spr.scale = go.sprite.scale * globalScale;
-    // spr.x = entity_data.position[i].x - camera.x;
-    // spr.x = entity_data.position[i].y - camera.y;
-
-    spr.x = (int16_t)entity_data.position[i].value.x;
-    spr.y = (int16_t)entity_data.position[i].value.y;
-    spr.sprite_index = entity_data.sprite[i].sprite_sheet_index;
-    spr.sprite_name = entity_data.sprite[i].sprite_name;
-    spr.rotation = entity_data.sprite[i].rotation;
-    spr.layer = entity_data.sprite[i].layer;
 }
 
 void export_render_info() {
@@ -1110,11 +553,8 @@ void export_render_info() {
     for(int i = 0; i < effects.length; ++i) {
         export_sprite_data(effects, i, sprite_data_buffer[sprite_count++]);
 	}
-}
 
-void render_buffer_sort() {
-    auto sprite_data_buffer = render_buffer.sprite_data_buffer;
-    auto &sprite_count = render_buffer.sprite_count;
+    // Sort the render buffer by layer
     std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
 }
 
@@ -1169,10 +609,9 @@ void debug() {
     if(!debug_config.enable_render) {
         return;
     }
-    
+
     debug_config.render_data.clear();
 
-    // debug render data
     for(int i = 0; i < players.length; i++) {
         DebugRenderData d;
         d.x = (int16_t)players.position[i].value.x;
@@ -1219,37 +658,13 @@ void update_arch() {
     remove_destroyed_entities();
 
     export_render_info();
-    render_buffer_sort();
 
     debug();
 }
 
-void draw_buffer(SpriteData *spr, int length) {
-    for(int i = 0; i < length; i++) {
-        draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
-    }
-}
-
-void debug_render() {
-    if(!debug_config.enable_render) {
-        return;
-    }
-
-    for(auto &d : debug_config.render_data) {
-        if(d.type == DebugRenderData::Circle) {
-            draw_g_circe_RGBA(d.x, d.y, d.radius, 255, 0, 0, 255);
-        } else if(d.type == DebugRenderData::Line) {
-            draw_g_line_RGBA(d.x, d.y, d.x2, d.y2, 0, 255, 0, 255);
-        }
-    }
-
-    Point p = debug_config.last_collision_point.to_point();
-    draw_g_circe_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
-}
-
 void render_arch() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
-    draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+    draw_buffer(sprite_sheets, render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     
     debug_render();
 }
