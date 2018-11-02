@@ -16,6 +16,8 @@ Projectile projectiles;
 Target targets;
 Effect effects;
 Rectangle world_bounds;
+std::vector<SpriteSheet> sprite_sheets;
+RenderBuffer render_buffer;
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -35,6 +37,8 @@ void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     entity_data.blink[handle.i] = b;
 }
 
+// This is one thing?
+//////////////////////////////////
 struct SpawnProjectile {
     Position position;
     Velocity velocity;
@@ -43,7 +47,6 @@ std::vector<SpawnProjectile> projectile_queue;
 void queue_projectile(Position p, Vector2 velocity) {
     projectile_queue.push_back({ p, {velocity.x, velocity.y} });
 }
-
 void spawn_projectile(Position p, Velocity v) {
     auto e = entity_manager.create();
     projectiles.create(e);
@@ -53,13 +56,14 @@ void spawn_projectile(Position p, Velocity v) {
     SpriteComponent s = SpriteComponent(0, "bullet_2");
     set_sprite(projectiles, e, s);
 }
-
 void spawn_projectiles() {
     for(size_t i = 0; i < projectile_queue.size(); i++) {
         spawn_projectile(projectile_queue[i].position, projectile_queue[i].velocity);
     }
     projectile_queue.clear();
 }
+//////////////////////////////////
+
 
 void spawn_player() {
     auto e = entity_manager.create();
@@ -79,6 +83,8 @@ void spawn_target(Vector2 position) {
     set_sprite(targets, e, s);
 }
 
+// This is one thing?
+//////////////////////////////////
 struct SpawnEffect {
     Position position;
     Velocity velocity;
@@ -95,7 +101,6 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
     effect.has_target = true;
     effect_queue.push_back({ p, Velocity(), SpriteComponent(0, "bullet_1"), effect });
 }
-
 void spawn_effects() {
     for(size_t i = 0; i < effect_queue.size(); i++) {
         auto e = entity_manager.create();
@@ -109,6 +114,8 @@ void spawn_effects() {
     }
     effect_queue.clear();
 }
+
+//////////////////////////////////
 
 void system_player_handle_input() {
     for(int i = 0; i < players.length; i++) {
@@ -197,10 +204,6 @@ void remove_destroyed_entities() {
     }
     entities_to_destroy.clear();
 }
-
-
-static std::vector<SpriteSheet> sprite_sheets;
-RenderBuffer render_buffer;
 
 void load_render_data() {
     render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
