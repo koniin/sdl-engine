@@ -153,77 +153,40 @@ void system_player_handle_input() {
     }
 }
 
-struct CollisionPair {
-    ECS::Entity first;
-    ECS::Entity second;
-    float distance;
-    Vector2 collision_point;
-
-    bool operator<( const CollisionPair& rhs ) const { 
-        return distance < rhs.distance; 
-    }
-};
-
-struct CollisionPairs {
-    std::vector<CollisionPair> collisions;
-    int count = 0;
-
-    inline CollisionPair operator [](size_t i) const { return collisions[i]; }
-    inline CollisionPair & operator [](size_t i) { return collisions[i]; }
-
-    void allocate(size_t size) {
-        collisions.reserve(size);
-    }
-
-    void sort_by_distance() {
-        std::sort(collisions.begin(), collisions.end());
-    }
-
-    void push(ECS::Entity first, ECS::Entity second, float distance, Vector2 collision_point) {
-        collisions.push_back({ first, second, distance, collision_point });
-        count++;
-    }
-
-    void clear() {
-        count = 0;
-        collisions.clear();
-    }
-};
-
-void system_collisions(CollisionPairs &collision_pairs) {
-    for(int i = 0; i < projectiles.length; ++i) {
-        const Vector2 &p_pos = projectiles.position[i].value;
-        const float projectile_radius = (float)projectiles.radius;
+// void system_collisions(CollisionPairs &collision_pairs) {
+//     for(int i = 0; i < projectiles.length; ++i) {
+//         const Vector2 &p_pos = projectiles.position[i].value;
+//         const float projectile_radius = (float)projectiles.radius;
         
-        for(int j = 0; j < targets.length; ++j) {
-            const Vector2 &t_pos = targets.position[j].value;
-            const float t_radius = (float)targets.radius;
-            const Vector2 &p_last = projectiles.position[i].last;
+//         for(int j = 0; j < targets.length; ++j) {
+//             const Vector2 &t_pos = targets.position[j].value;
+//             const float t_radius = (float)targets.radius;
+//             const Vector2 &p_last = projectiles.position[i].last;
 
-            // Distance from projectiles last position and targets new position
-            // should get the closest target in projectiles path
-            float dist = Math::distance_v(p_last, t_pos);
-            if(Math::intersect_circles(p_pos.x, p_pos.y, projectile_radius, 
-                    t_pos.x, t_pos.y, t_radius)) {
-                // Collision point is the point on the target circle 
-                // that is on the edge in the direction of the projectiles 
-                // reverse velocity
-                Engine::logn("circle intersect");
-                Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
-                collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
-                continue;
-            }
+//             // Distance from projectiles last position and targets new position
+//             // should get the closest target in projectiles path
+//             float dist = Math::distance_v(p_last, t_pos);
+//             if(Math::intersect_circles(p_pos.x, p_pos.y, projectile_radius, 
+//                     t_pos.x, t_pos.y, t_radius)) {
+//                 // Collision point is the point on the target circle 
+//                 // that is on the edge in the direction of the projectiles 
+//                 // reverse velocity
+//                 Engine::logn("circle intersect");
+//                 Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
+//                 collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
+//                 continue;
+//             }
             
-            Vector2 entry_point;
-            int result = Intersects::line_circle_entry(p_last, p_pos, t_pos, t_radius, entry_point);
-            if(result == 1 || result == 2) {
-                Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
-                collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
-                Engine::logn("line intersect");
-            }
-        }
-    }
-}
+//             Vector2 entry_point;
+//             int result = Intersects::line_circle_entry(p_last, p_pos, t_pos, t_radius, entry_point);
+//             if(result == 1 || result == 2) {
+//                 Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
+//                 collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
+//                 Engine::logn("line intersect");
+//             }
+//         }
+//     }
+// }
 
 void system_collision_resolution(CollisionPairs &collision_pairs) {
     collision_pairs.sort_by_distance();
@@ -424,7 +387,7 @@ void update_shooter() {
     system_player_handle_input();
     movement();
     system_drag(players, player_config.drag);
-    system_collisions(collisions);
+    system_collisions(collisions, projectiles, targets);
     system_collision_resolution(collisions);
     system_effects(effects, players, targets);
     system_blink_effect(targets);
