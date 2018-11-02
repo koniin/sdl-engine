@@ -7,22 +7,9 @@
 // #include "tile_collisions.h"
 // #include "asteroids.h"
 // #include "bullet_physics.h"
-#include "component_architecture.h"
+#include "shooter_game.h"
 // #include "collision_tests.h"
 #include <chrono>
-
-// ECS UNITY MOTHERLOAD => https://forum.unity.com/threads/ecs-memory-layout.532028/
-/*
-	https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/master/Documentation/content/ecs_in_detail.md
-	https://eli.thegreenplace.net/2014/variadic-templates-in-c/
-	https://medium.com/@savas
-	http://lazyfoo.net/tutorials/SDL/39_tiling/index.php
-	https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/master/Documentation/content/two_stick_shooter.md
-	https://github.com/Unity-Technologies/EntityComponentSystemSamples/blob/132f511a0f36d2bb422fc807cb3a808ea18d7df5/Samples/Assets/TwoStickShooter/Pure/Scripts/ComponentTypes.cs
-	https://blog.therocode.net/2018/08/simplest-entity-component-system
-	https://github.com/eigenbom/game-example/blob/464498d569dc4dab55e621321dc260a9773c29b5/src/mobsystem.cpp
-	
-*/
 
 // static TileMap the_map;
 // static SpriteSheet the_sheet;
@@ -35,7 +22,7 @@
 inline void game_load() {
 	// asteroids_load();
 	// bullet_load();
-	load_arch();
+	load_shooter();
 	// collision_test_load();
 
 	// Resources::sprite_load("bkg", "bkg.png");
@@ -51,7 +38,7 @@ inline void game_update() {
 	// std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 	
 	// collision_test_update();
-	update_arch();
+	update_shooter();
 
 	// // asteroids_update();
 	// // tile_collisions_update();
@@ -74,12 +61,12 @@ inline void game_render() {
 	// tile_collisions_render();
 	// bullet_render();
 
-	render_arch();
+	render_shooter();
 	// collision_test_render();
 
 	renderer_draw_render_target_camera();
 
-	render_ui();
+	render_shooter_ui();
 
 	renderer_flip();
 }
