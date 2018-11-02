@@ -58,6 +58,7 @@ Then:
 #include "debug.h"
 #include "rendering.h"
 #include "entities.h"
+#include "systems.h"
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -104,20 +105,6 @@ struct PlayerConfiguration {
 struct TargetConfiguration {
     float knockback_on_hit = 2.0f;
 } target_config;
-
-struct InputMapping {
-	SDL_Scancode up;
-	SDL_Scancode down;
-	SDL_Scancode left;
-	SDL_Scancode right;
-	SDL_Scancode fire;
-	SDL_Scancode shield;
-};
-
-InputMapping input_maps[2] = {
-	{ SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT },
-	{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
-};
 
 ECS::EntityManager entity_manager;
 Player players;
@@ -207,47 +194,6 @@ void queue_remove_entity(ECS::Entity entity) {
     entities_to_destroy.push_back(entity);
 }
 
-void system_player_get_input() {
-    for(int i = 0; i < players.length; i++) {
-        PlayerInput &pi = players.input[i];
-        pi.move_x = 0;
-        pi.move_y = 0;
-        pi.fire_x = 0;
-        pi.fire_y = 0;
-        pi.shield = false;
-
-        InputMapping key_map = input_maps[i];
-
-        if(Input::key_down(key_map.up)) {
-            pi.move_y = 1;
-        } else if(Input::key_down(key_map.down)) {
-            pi.move_y = -1;
-        } 
-        
-        if(Input::key_down(key_map.left)) {
-            pi.move_x = -1;
-        } else if(Input::key_down(key_map.right)) {
-            pi.move_x = 1;
-        }
-
-        pi.fire_cooldown = Math::max_f(0.0f, pi.fire_cooldown - Time::deltaTime);
-        if(Input::key_down(key_map.fire)) {
-            pi.fire_x = pi.fire_y = 1;
-        }
-
-        if(Input::key_down(key_map.shield)) {
-            pi.shield = true;
-        }
-
-        if(Input::key_pressed(SDLK_k)) {
-            camera_shake(0.8f);
-        }
-
-        if(Input::key_pressed(SDLK_p)) {
-            Engine::pause(1.0f);
-        }
-    }
-}
 
 void system_player_handle_input() {
     for(int i = 0; i < players.length; i++) {
@@ -558,29 +504,6 @@ void export_render_info() {
     std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
 }
 
-void load_arch() {
-    Engine::set_base_data_folder("data");
-    FrameLog::enable_at(5, 5);
-    
-    renderer_set_clear_color({ 8, 0, 18, 255 });
-
-    load_render_data();
-
-    world_bounds = { 0, 0, (int)gw, (int)gh };
-
-    players.allocate(2);
-    projectiles.allocate(128);
-    targets.allocate(128);
-    effects.allocate(128);
-    projectile_queue.reserve(64);
-    entities_to_destroy.reserve(64);
-    collisions.allocate(128);
-
-    spawn_player();
-    spawn_target(Vector2(400, 200));
-    spawn_target(Vector2(350, 200));
-}
-
 void debug() {
     static float bullet_speed = 8.0f;
     
@@ -645,8 +568,31 @@ void debug() {
 	}
 }
 
+void load_arch() {
+    Engine::set_base_data_folder("data");
+    FrameLog::enable_at(5, 5);
+    
+    renderer_set_clear_color({ 8, 0, 18, 255 });
+
+    load_render_data();
+
+    world_bounds = { 0, 0, (int)gw, (int)gh };
+
+    players.allocate(2);
+    projectiles.allocate(128);
+    targets.allocate(128);
+    effects.allocate(128);
+    projectile_queue.reserve(64);
+    entities_to_destroy.reserve(64);
+    collisions.allocate(128);
+
+    spawn_player();
+    spawn_target(Vector2(400, 200));
+    spawn_target(Vector2(350, 200));
+}
+
 void update_arch() {
-    system_player_get_input();
+    system_player_get_input(players);
     system_player_handle_input();
     system_move();
     system_collisions(collisions);
