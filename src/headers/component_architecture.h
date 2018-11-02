@@ -597,6 +597,7 @@ constexpr float player_move_acceleration() {
 }
 
 struct PlayerConfiguration {
+    int16_t radius = 8;
 	float rotation_speed = 3.0f; // degrees
 	float move_acceleration = player_move_acceleration();
 	float drag = 0.04f;
@@ -609,6 +610,18 @@ struct PlayerConfiguration {
 struct TargetConfiguration {
     float knockback_on_hit = 2.0f;
 } target_config;
+
+struct DebugRenderData {
+    enum Type { Circle, Line } type;
+    int16_t x, y;
+    int16_t x2, y2;
+    int16_t radius;
+};
+struct DebugConfiguration {
+    bool enable_render = false;
+    std::vector<DebugRenderData> render_data;
+    Vector2 last_collision_point;
+} debug_config;
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -913,7 +926,6 @@ void system_collisions(CollisionPairs &collision_pairs) {
                 // reverse velocity
                 Engine::logn("circle intersect");
                 Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
-                global_point_test = collision_point;
                 collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
                 continue;
             }
@@ -922,7 +934,6 @@ void system_collisions(CollisionPairs &collision_pairs) {
             int result = Intersects::line_circle_entry(p_last, p_pos, t_pos, t_radius, entry_point);
             if(result == 1 || result == 2) {
                 Vector2 collision_point = t_pos + (t_radius * -projectiles.velocity[i].value.normal());
-                global_point_test = collision_point;
                 collision_pairs.push(projectiles.entity[i], targets.entity[j], dist, collision_point);
                 Engine::logn("line intersect");
             }
@@ -932,10 +943,12 @@ void system_collisions(CollisionPairs &collision_pairs) {
     // Collision resolution
     collision_pairs.sort_by_distance();
     std::unordered_set<ECS::EntityId> handled_collisions;
-    for(unsigned i = 0; i < collision_pairs.count; ++i) {
+    for(int i = 0; i < collision_pairs.count; ++i) {
         if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
             continue;
         }
+
+        debug_config.last_collision_point = collision_pairs[i].collision_point;
 
         handled_collisions.insert(collision_pairs[i].first.id);
 
@@ -1026,6 +1039,10 @@ struct SpriteData {
     std::string sprite_name;
     float rotation;
     int layer;
+
+    bool operator<(const SpriteData &rhs) const { 
+        return layer < rhs.layer; 
+    }
 };
 struct RenderBuffer {    
     int sprite_count = 0;
@@ -1071,10 +1088,6 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     spr.layer = entity_data.sprite[i].layer;
 }
 
-bool sprite_data_sorter(SpriteData const& lhs, SpriteData const& rhs) {
-    return lhs.layer < rhs.layer;
-}
-
 void export_render_info() {
     render_buffer.sprite_count = 0;
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
@@ -1082,50 +1095,27 @@ void export_render_info() {
 
     for(int i = 0; i < players.length; i++) {
         Direction &d = players.direction[i];
-        players.sprite[i].rotation = d.angle + 90;
+        players.sprite[i].rotation = d.angle + 90; // sprite is facing upwards so we need to adjust
         export_sprite_data(players, i, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(players.position[i], 0, "player_1", d.angle + 90, sprite_data_buffer[sprite_count++]);
-        // draw_spritesheet_name_centered_rotated(the_sheet, "player_1", (int)p.x, (int)p.y, d.angle + 90);
-        // SDL_Color c = Colors::white;
-        // draw_g_circe_color((int16_t)p.x, (int16_t)p.y, 4, c);
     }
 
-    // SDL_Color projectile_color = { 0, 255, 0, 255 };
     for(int i = 0; i < projectiles.length; ++i) {
         export_sprite_data(projectiles, i, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(projectiles.position[i], 0, "bullet_2", 0, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(projectiles.position[i], projectile_color, (int16_t)projectiles.radius, sprite_data_buffer[sprite_count++]);
-		// Position &p = projectiles.position[i];
-		// SDL_Color c = { 0, 255, 0, 255 };
-		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)projectiles.radius, c);
 	}
 
-    // SDL_Color target_color = { 255, 0, 0, 255 };
     for(int i = 0; i < targets.length; ++i) {
         export_sprite_data(targets, i, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(targets.position[i], 0, "enemy_1", 0, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
-		// Position &p = targets.position[i];
-		// SDL_Color c = { 255, 0, 0, 255 };
-		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
 	}
 
     for(int i = 0; i < effects.length; ++i) {
         export_sprite_data(effects, i, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(targets.position[i], 0, "enemy_1", 0, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data(targets.position[i], target_color, (int16_t)targets.radius, sprite_data_buffer[sprite_count++]);
-		// Position &p = targets.position[i];
-		// SDL_Color c = { 255, 0, 0, 255 };
-		// draw_g_circe_color((int16_t)p.x, (int16_t)p.y, (int16_t)targets.radius, c);
 	}
-
-    // ASSERT_WITH_MSG(render_buffer.sprite_count < RENDER_BUFFER_MAX, "More sprites exported than buffer can hold");
 }
 
 void render_buffer_sort() {
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
     auto &sprite_count = render_buffer.sprite_count;
-    std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count, sprite_data_sorter);
+    std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
 }
 
 void load_arch() {
@@ -1151,7 +1141,6 @@ void load_arch() {
     spawn_target(Vector2(350, 200));
 }
 
-
 void debug() {
     static float bullet_speed = 8.0f;
     
@@ -1164,6 +1153,11 @@ void debug() {
         target_config.knockback_on_hit = target_config.knockback_on_hit > 0 ? 0 : 2.0f;
     }
 
+    if(Input::key_pressed(SDLK_F8)) {
+        debug_config.enable_render = !debug_config.enable_render;
+    }
+
+    FrameLog::log("Press F8 to toggle debug render");
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
@@ -1171,6 +1165,45 @@ void debug() {
     FrameLog::log("Bullet speed: " + std::to_string(player_config.bullet_speed));
     FrameLog::log("Bullet speed (UP to change): " + std::to_string(bullet_speed));
     FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
+
+    if(!debug_config.enable_render) {
+        return;
+    }
+    
+    debug_config.render_data.clear();
+
+    // debug render data
+    for(int i = 0; i < players.length; i++) {
+        DebugRenderData d;
+        d.x = (int16_t)players.position[i].value.x;
+        d.y = (int16_t)players.position[i].value.y;
+        d.type = DebugRenderData::Circle;
+        d.radius = (int16_t)player_config.radius;
+        debug_config.render_data.push_back(d);
+    }
+
+    for(int i = 0; i < projectiles.length; ++i) {
+        DebugRenderData d;
+        d.x = (int16_t)projectiles.position[i].value.x;
+        d.y = (int16_t)projectiles.position[i].value.y;
+        d.type = DebugRenderData::Circle;
+        d.radius = (int16_t)projectiles.radius;
+        debug_config.render_data.push_back(d);
+        
+        d.type = DebugRenderData::Line;
+        d.x2 = (int16_t)projectiles.position[i].last.x;
+        d.y2 = (int16_t)projectiles.position[i].last.y;
+        debug_config.render_data.push_back(d);
+	}
+
+    for(int i = 0; i < targets.length; ++i) {
+        DebugRenderData d;
+        d.x = (int16_t)targets.position[i].value.x;
+        d.y = (int16_t)targets.position[i].value.y;
+        d.type = DebugRenderData::Circle;
+        d.radius = (int16_t)targets.radius;
+        debug_config.render_data.push_back(d);
+	}
 }
 
 void update_arch() {
@@ -1197,12 +1230,28 @@ void draw_buffer(SpriteData *spr, int length) {
     }
 }
 
+void debug_render() {
+    if(!debug_config.enable_render) {
+        return;
+    }
+
+    for(auto &d : debug_config.render_data) {
+        if(d.type == DebugRenderData::Circle) {
+            draw_g_circe_RGBA(d.x, d.y, d.radius, 255, 0, 0, 255);
+        } else if(d.type == DebugRenderData::Line) {
+            draw_g_line_RGBA(d.x, d.y, d.x2, d.y2, 0, 255, 0, 255);
+        }
+    }
+
+    Point p = debug_config.last_collision_point.to_point();
+    draw_g_circe_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
+}
+
 void render_arch() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     
-    Point p = global_point_test.to_point();
-    draw_g_circe_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
+    debug_render();
 }
 
 void render_ui() {
