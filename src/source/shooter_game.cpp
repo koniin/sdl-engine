@@ -103,7 +103,7 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
     effect.has_target = true;
     effect_queue.push_back({ p, Velocity(), spr, effect });
 }
-void spawn_explosion(Position p) {
+void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
     auto spr = SpriteComponent(0, "explosion_1");
     spr.layer = 0;
     auto effect = EffectData(4);
@@ -111,7 +111,10 @@ void spawn_explosion(Position p) {
     effect.modifier_data_s = "explosion_2";
     effect.modifier_frame = 2;
     effect.modifier = sprite_effect;
-    effect_queue.push_back({ p, Velocity(), spr, effect });
+    Vector2 blast_position = position;
+    blast_position.x += RNG::range_f(-offset_x, offset_x);
+    blast_position.y += RNG::range_f(-offset_y, offset_y);
+    effect_queue.push_back({ { blast_position }, Velocity(), spr, effect });
 }
 void spawn_effects() {
     for(size_t i = 0; i < effect_queue.size(); i++) {
@@ -203,8 +206,7 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
             Engine::pause(0.03f);
 
-            spawn_explosion(second_pos);
-            spawn_explosion(second_pos);
+            spawn_explosion(second_pos.value, 10, 10);
         }
     }
     collision_pairs.clear();
@@ -341,7 +343,7 @@ void load_shooter() {
 
     load_render_data();
 
-    world_bounds = { 0, 0, (int)gw, (int)gh };
+    world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
 
     players.allocate(2);
     projectiles.allocate(128);

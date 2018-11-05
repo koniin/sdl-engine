@@ -14,28 +14,26 @@ All gfx can be found in shooter_spritesheet.png
 [X] Screen shake on hit enemy
 [X] player knockback on fire weapon (if player is too far back move to start pos for demo)
 [X] Sleep on hit an enemy (20ms)
-[ ] BIG random explosion/s on kill (circle that flashes from black/grey to white to disappear for one update each)
-* Shells or something fly out on fire weapon (make it a "machine gun")
-    - check the clip from dropbox
+[X] BIG random explosion/s on kill (circle that flashes from black/grey to white to disappear for one update each)
 
 Do movement and then:
-* Area larger than the screen with camera
-* Camera lerp - follow player
-* Camera towards where player is aiming
-* Camera kick - move camera back on firing (moves back to player automatically if following)
+[ ] Area larger than the screen with camera
+[ ] Camera lerp - follow player
+[ ] Camera towards where player is aiming
+[ ] Camera kick - move camera back on firing (moves back to player automatically if following)
 
-* Try mouse aiming - like twin stick ;D
+Particles
+[ ] Follow bullet first few frames
+[ ] smoke or something when firing from ship
+[ ] engine flame from ship(s) - or we do this with one sprite that changes shape - steredenn uses fixed animation depending on speed
+[ ] Shells or something fly out on fire weapon (make it a "machine gun") - depends on bullets/gun
+
+- check the clip from dropbox with the game maker thing
 
 Then:
 * Sound and animatons
 [ ] Player ship rotation animation (exists in sheet)
 * More base in sound effects
-
-Particles
-* Follow bullet first few frames
-* as smoke or something when firing from ship
-* engine flame from ship(s)
-*  
 
 * Leave something behind when something is killed
     - destroy hit enemy
