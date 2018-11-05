@@ -80,6 +80,7 @@ void spawn_target(Vector2 position) {
     set_position(targets, e, { position });
     set_velocity(targets, e, { 0, 0 });
     SpriteComponent s = SpriteComponent(0, "enemy_1");
+    s.layer = 1;
     set_sprite(targets, e, s);
 }
 
@@ -104,7 +105,7 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
 }
 void spawn_explosion(Position p) {
     auto spr = SpriteComponent(0, "explosion_1");
-    spr.layer = -1;
+    spr.layer = 0;
     auto effect = EffectData(4);
     effect.modifier_enabled = true;
     effect.modifier_data_s = "explosion_2";
