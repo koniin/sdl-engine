@@ -354,6 +354,7 @@ void load_shooter() {
     collisions.allocate(128);
 
     spawn_player();
+    spawn_target(Vector2(10, 10));
     spawn_target(Vector2(400, 200));
     spawn_target(Vector2(350, 200));
 }
@@ -383,7 +384,8 @@ void update_shooter() {
     spawn_projectiles();
     spawn_effects();
     remove_destroyed_entities();
-
+    
+    camera_lerp_to(players.position[0].value);
     export_render_info();
 
     debug();

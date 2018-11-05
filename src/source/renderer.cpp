@@ -11,15 +11,7 @@ int windowPos;
 
 Font *default_font;
 gfx renderer;
-
-struct Camera {
-	float shake_duration = 0.0f;
-	float trauma = 0.0f;
-	int x = 0;
-	int y = 0;
-	int offset_x = 0;
-	int offset_y = 0;
-} camera;
+Camera camera;
 
 namespace Resources {
 	std::unordered_map<std::string, Sprite*> sprites;
@@ -765,6 +757,15 @@ void renderer_destroy() {
 	TTF_Quit();
 	SDL_DestroyRenderer(renderer.renderer);
 	SDL_DestroyWindow(renderer.sdl_window);
+}
+
+const Camera &get_camera() {
+	return camera;
+}
+
+void camera_lerp_to(Vector2 position) {
+	camera.x = (int)position.x - (static_cast<int>(gw) / 2);
+	camera.y = (int)position.y - (static_cast<int>(gh) / 2);
 }
 
 void camera_shake(float t) {

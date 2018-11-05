@@ -34,8 +34,10 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     // spr.x = entity_data.position[i].x - camera.x;
     // spr.x = entity_data.position[i].y - camera.y;
 
-    spr.x = (int16_t)entity_data.position[i].value.x;
-    spr.y = (int16_t)entity_data.position[i].value.y;
+    const auto &camera = get_camera();
+
+    spr.x = (int16_t)(entity_data.position[i].value.x - camera.x);
+    spr.y = (int16_t)(entity_data.position[i].value.y - camera.y);
     spr.sprite_index = entity_data.sprite[i].sprite_sheet_index;
     spr.sprite_name = entity_data.sprite[i].sprite_name;
     spr.rotation = entity_data.sprite[i].rotation;

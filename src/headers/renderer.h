@@ -23,6 +23,15 @@ typedef struct {
 
 extern gfx renderer;
 
+struct Camera {
+	float shake_duration = 0.0f;
+	float trauma = 0.0f;
+	int x = 0;
+	int y = 0;
+	int offset_x = 0;
+	int offset_y = 0;
+};
+
 struct Sprite {
     SDL_Texture *image;
     int w;
@@ -137,8 +146,11 @@ void renderer_draw_render_target_camera();
 void renderer_flip();
 void renderer_destroy();
 
+const Camera &get_camera();
+void camera_lerp_to(Vector2 position);
 /*! Trauma should be between 0 and 1. */
 void camera_shake(float t);
 void camera_update();
+
 
 #endif
