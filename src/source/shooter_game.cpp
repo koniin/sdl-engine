@@ -44,6 +44,7 @@ struct SpawnProjectile {
     Velocity velocity;
 };
 std::vector<SpawnProjectile> projectile_queue;
+
 void queue_projectile(Position p, Vector2 velocity) {
     projectile_queue.push_back({ p, {velocity.x, velocity.y} });
 }
@@ -63,7 +64,6 @@ void spawn_projectiles() {
     projectile_queue.clear();
 }
 //////////////////////////////////
-
 
 void spawn_player() {
     auto e = entity_manager.create();
@@ -92,6 +92,7 @@ struct SpawnEffect {
     EffectData effect;
 };
 std::vector<SpawnEffect> effect_queue;
+
 void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
     auto spr = SpriteComponent(0, "bullet_1");
     spr.layer = effects.effect_layer;

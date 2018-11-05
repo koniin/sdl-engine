@@ -20,11 +20,12 @@ struct RenderBuffer {
     int sprite_count = 0;
     SpriteData *sprite_data_buffer;
 };
-static const size_t RENDER_BUFFER_MAX = 256;
-
 template<typename T>
 void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     // handle camera, zoom and stuff here
+
+    // also we can do culling here
+    // intersects world_bounds etc
 
     // float globalScale = 0.05f;
     // spr.x = go.pos.x * globalScale;
