@@ -7,7 +7,7 @@ shooter_spritesheet.png
 04 player_2_turn_1 16 16 16 16
 05 player_2_turn_2 16 32 16 16
 06 enemy_1 194 0 16 16
-07 explosion_1 16 48 16 16
-08 explosion_2 32 48 16 16 
-09 bullet_1 146 0 16 16
-10 bullet_2 146 16 16 16
+07 bullet_1 146 0 16 16
+08 bullet_2 146 16 16 16
+09 explosion_1 0 100 24 24
+10 explosion_2 26 100 24 24

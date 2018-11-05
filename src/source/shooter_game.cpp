@@ -100,7 +100,17 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
     effect.follow = parent;
     effect.local_position = local_position;
     effect.has_target = true;
-    effect_queue.push_back({ p, Velocity(), SpriteComponent(0, "bullet_1"), effect });
+    effect_queue.push_back({ p, Velocity(), spr, effect });
+}
+void spawn_explosion(Position p) {
+    auto spr = SpriteComponent(0, "explosion_1");
+    spr.layer = -1;
+    auto effect = EffectData(4);
+    effect.modifier_enabled = true;
+    effect.modifier_data_s = "explosion_2";
+    effect.modifier_frame = 2;
+    effect.modifier = sprite_effect;
+    effect_queue.push_back({ p, Velocity(), spr, effect });
 }
 void spawn_effects() {
     for(size_t i = 0; i < effect_queue.size(); i++) {
@@ -109,7 +119,6 @@ void spawn_effects() {
         set_position(effects, e, effect_queue[i].position);
         set_velocity(effects, e, effect_queue[i].velocity);
         set_sprite(effects, e, effect_queue[i].sprite);
-        
         auto handle = effects.get_handle(e);
         effects.effect[handle.i] = effect_queue[i].effect;
     }
@@ -125,7 +134,6 @@ void system_player_handle_input() {
         Direction &direction = players.direction[i];
         
         // Update rotation based on rotational speed
-        // for other objects than player input once
         direction.angle += pi.move_x * player_config.rotation_speed;
         float rotation = direction.angle / Math::RAD_TO_DEGREE;
         direction.value.x = cos(rotation);
@@ -138,25 +146,30 @@ void system_player_handle_input() {
             pi.fire_cooldown = player_config.fire_cooldown;
 
             auto projectile_pos = players.position[i];
+
+            // auto fire_dir = Math::direction(Vector2(Input::mousex, Input::mousey), projectile_pos.value);
+            // const Vector2 bullet_direction = fire_dir;
+            const Vector2 bullet_direction = direction.value;
+
             // set the projectile position to be gun_barrel_distance infront of the ship
-            projectile_pos.value.x += direction.value.x * player_config.gun_barrel_distance;
-            projectile_pos.value.y += direction.value.y * player_config.gun_barrel_distance;        
+            projectile_pos.value.x += bullet_direction.x * player_config.gun_barrel_distance;
+            projectile_pos.value.y += bullet_direction.y * player_config.gun_barrel_distance;        
             auto muzzle_pos = projectile_pos;
 
             // Accuracy
             const float accuracy = 8; // how far from initial position it can maximaly spawn
-            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * direction.value.y;
-            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * direction.value.x;
+            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * bullet_direction.y;
+            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * bullet_direction.x;
 
-            Vector2 bullet_velocity = Vector2(direction.value.x * player_config.bullet_speed, direction.value.y * player_config.bullet_speed);
+            Vector2 bullet_velocity = Vector2(bullet_direction.x * player_config.bullet_speed, bullet_direction.y * player_config.bullet_speed);
             queue_projectile(projectile_pos, bullet_velocity);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
 
             // Player knockback
-            players.position[i].value.x -= direction.value.x * player_config.fire_knockback;
-            players.position[i].value.y -= direction.value.y * player_config.fire_knockback;
+            players.position[i].value.x -= bullet_direction.x * player_config.fire_knockback;
+            players.position[i].value.y -= bullet_direction.y * player_config.fire_knockback;
         }
     }
 }
@@ -188,6 +201,9 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
             camera_shake(0.1f);
 
             Engine::pause(0.03f);
+
+            spawn_explosion(second_pos);
+            spawn_explosion(second_pos);
         }
     }
     collision_pairs.clear();
@@ -374,6 +390,8 @@ void render_shooter() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(sprite_sheets, render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     
+    // draw_spritesheet_name_centered_rotated(sprite_sheets[0], "explosion_2", 100, 100, 0);
+
     debug_render();
 }
 

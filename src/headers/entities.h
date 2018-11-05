@@ -27,7 +27,7 @@ struct Position {
 struct Velocity {
     Vector2 value;
 
-    Velocity() {}
+    Velocity(): value(Vector2()) {}
     Velocity(float xv, float yv): value(xv, yv) {}
 };
 
@@ -43,6 +43,7 @@ struct Direction {
 struct SpriteComponent {
     float scale;
     float rotation;
+    int16_t radius;
     int16_t color_r;
     int16_t color_g;
     int16_t color_b;
@@ -138,13 +139,26 @@ struct Target : ECS::EntityData {
     }
 };
 
+struct Effect;
+struct EffectModifer;
+typedef void (*effect_modifier)(const Effect &effects, const int &i, const std::string &modifier_data_s);
+
 struct EffectData {
     int frames_to_live;
     int frame_counter;
+    
+    // follow
     bool has_target = false;
     ECS::Entity follow;
     Vector2 local_position;
-    
+
+    // frame_counter effects
+    bool modifier_enabled;
+    int modifier_frame; 
+    effect_modifier modifier;
+    int modifier_data_i;
+    std::string modifier_data_s;
+
     EffectData(){};
     EffectData(int frames) : frames_to_live(frames) {
         frame_counter = 0;
@@ -173,6 +187,11 @@ struct Effect : ECS::EntityData {
         add(effect);
     }
 };
+
+void sprite_effect(const Effect &effects, const int &i, const std::string &modifier_data_s) {
+    Engine::logn("sprite change");
+    effects.sprite[i].sprite_name = modifier_data_s;
+}
 
 template<typename T>
 Position &get_position(T &entity_data, ECS::Entity e) {

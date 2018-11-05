@@ -14,7 +14,7 @@ All gfx can be found in shooter_spritesheet.png
 [X] Screen shake on hit enemy
 [X] player knockback on fire weapon (if player is too far back move to start pos for demo)
 [X] Sleep on hit an enemy (20ms)
-* BIG random explosion/s on kill (circle that flashes from black/grey to white to disappear for one update each)
+[ ] BIG random explosion/s on kill (circle that flashes from black/grey to white to disappear for one update each)
 * Shells or something fly out on fire weapon (make it a "machine gun")
     - check the clip from dropbox
 

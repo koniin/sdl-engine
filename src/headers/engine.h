@@ -421,6 +421,14 @@ namespace Math {
 		return (1.f /(magnitude(lhs))) * lhs;
 	}
 
+	inline Vector2 direction(const Vector2 &first, const Vector2 &second) {
+        Vector2 direction = first - second;
+        if (direction == Vector2::Zero)
+            return Vector2::Zero;
+        else
+            return normalize(direction);
+	}
+
 	inline float rads_between_f(const float &x1, const float &y1, const float &x2, const float &y2) {
     	return atan2(y2 - y1, x2 - x1);
 	}

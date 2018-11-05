@@ -58,6 +58,7 @@
         "bitset": "cpp",
         "typeindex": "cpp",
         "queue": "cpp",
-        "deque": "cpp"
+        "deque": "cpp",
+        "array": "cpp"
     }
 }
