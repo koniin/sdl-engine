@@ -20,27 +20,31 @@ Do movement and then:
 [X] Area larger than the screen with camera
 [X] Camera lerp - follow player
 [X] Camera towards where player is aiming
-[ ] Camera kick - move camera back on firing (moves back to player automatically if following)
+[X] Camera kick - move camera back on firing (moves back to player automatically if following)
+
+[ ] engine flame from ship(s) - or we do this with one sprite that changes shape 
+    - steredenn uses fixed animation depending on speed
+    - luftrausers uses fixed sprite that changes shape rapidly and only shows on forward movment
 
 Particles
 [ ] Follow bullet first few frames
-[ ] smoke or something when firing from ship
-[ ] engine flame from ship(s) - or we do this with one sprite that changes shape - steredenn uses fixed animation depending on speed
-[ ] Shells or something fly out on fire weapon (make it a "machine gun") - depends on bullets/gun
+[ ] Smoke or something when firing from ship
+[ ] Particle spray on explosion?
 
-- check the clip from dropbox with the game maker thing
+[ ] check the clip from dropbox with the game maker thing and take notes
 
 Then:
-* Sound and animatons
 [ ] Player ship rotation animation (exists in sheet)
-* More base in sound effects
+[ ] Sound - just test with a fire sound and hit sound
+[ ] Animatons
+[ ] More base in sound effects
 
 * Leave something behind when something is killed
     - destroy hit enemy
     - respawn after some time at random pos on screen
     - debris at spawn site that doesn't move away - how it looks does not matter now
 
-* Smoke on explosion
+* Smoke on explosion - particles
 
 When solid objects that are unbreakable:
 * Impact effect (hit effect, like a little marker on the side we hit)
@@ -49,6 +53,7 @@ For GUNS
 * Gun gfx
 * Gun kick - make it smaller or something when firing
 * Smoke on fire gun
+[ ] Shells or something fly out on fire weapon (make it a "machine gun") - depends on bullets/gun
 
 * BIG random explosions
 

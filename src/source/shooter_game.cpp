@@ -54,7 +54,7 @@ void spawn_projectile(Position p, Velocity v) {
     p.last = p.value;
     set_position(projectiles, e, p);
     set_velocity(projectiles, e, v);
-    SpriteComponent s = SpriteComponent(0, "bullet_2");
+    SpriteComponent s = SpriteComponent(0, "bullet_2.png");
     set_sprite(projectiles, e, s);
 }
 void spawn_projectiles() {
@@ -69,7 +69,7 @@ void spawn_player(Vector2 position) {
     auto e = entity_manager.create();
     players.create(e);
     set_position(players, e, { position });
-    SpriteComponent s = SpriteComponent(0, "player_1");
+    SpriteComponent s = SpriteComponent(0, "player_1.png");
     s.layer = 1;
     set_sprite(players, e, s);
 }
@@ -79,7 +79,7 @@ void spawn_target(Vector2 position) {
     targets.create(e);
     set_position(targets, e, { position });
     set_velocity(targets, e, { 0, 0 });
-    SpriteComponent s = SpriteComponent(0, "enemy_1");
+    SpriteComponent s = SpriteComponent(0, "enemy_1.png");
     s.layer = 1;
     set_sprite(targets, e, s);
 }
@@ -95,7 +95,7 @@ struct SpawnEffect {
 std::vector<SpawnEffect> effect_queue;
 
 void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
-    auto spr = SpriteComponent(0, "bullet_1");
+    auto spr = SpriteComponent(0, "bullet_1.png");
     spr.layer = effects.effect_layer;
     auto effect = EffectData(2);
     effect.follow = parent;
@@ -104,11 +104,11 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
     effect_queue.push_back({ p, Velocity(), spr, effect });
 }
 void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
-    auto spr = SpriteComponent(0, "explosion_1");
+    auto spr = SpriteComponent(0, "explosion_1.png");
     spr.layer = 0;
     auto effect = EffectData(4);
     effect.modifier_enabled = true;
-    effect.modifier_data_s = "explosion_2";
+    effect.modifier_data_s = "explosion_2.png";
     effect.modifier_frame = 2;
     effect.modifier = sprite_effect;
     Vector2 blast_position = position;
@@ -235,7 +235,7 @@ void load_render_data() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
     sprite_sheets.reserve(8);
     SpriteSheet the_sheet;
-	Resources::sprite_sheet_load("shooter_spritesheet.data", the_sheet);
+	Resources::sprite_sheet_load("shooter_sprites.data", the_sheet);
     sprite_sheets.push_back(the_sheet);
 
     // Set up a white copy of the sprite sheet
