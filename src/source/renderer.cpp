@@ -794,6 +794,7 @@ void camera_update() {
 	camera.x = Math::lerp(camera.x, camera.follow_x, interpolation);
 	camera.y = Math::lerp(camera.y, camera.follow_y, interpolation);
 	
+	// Following method is better if we are moving too fast?
 	// this is a pretty fast camera to move to follow point
 	// camera.x = 0.99f * camera.x + 0.01f * camera.follow_x;
 	// camera.y = 0.99f * camera.y + 0.01f * camera.follow_y;
