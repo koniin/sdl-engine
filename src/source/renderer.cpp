@@ -754,6 +754,7 @@ void renderer_flip() {
 
 void renderer_destroy() {
 	Resources::cleanup();
+	IMG_Quit();
 	TTF_Quit();
 	SDL_DestroyRenderer(renderer.renderer);
 	SDL_DestroyWindow(renderer.sdl_window);
@@ -786,9 +787,10 @@ static const float maxAngle = 5; // degrees // maxAngle might be something like 
 static const float maxOffsetX = 10; // pixels
 static const float maxOffsetY = 10; // pixels
 
+static float easing_amount = 0.0f;
 void camera_update() {
-	camera.x = 0.9f*camera.x + 0.1f*camera.follow_x; 
-	camera.y = 0.9f*camera.y + 0.1f*camera.follow_y;
+	camera.x = 0.99f * camera.x + 0.01f * camera.follow_x;
+	camera.y = 0.99f * camera.y + 0.01f * camera.follow_y;
 
 	if(camera.shake_duration <= 0.0f) {
 		camera.trauma = 0.0f;

@@ -281,6 +281,10 @@ void debug() {
         target_config.knockback_on_hit = target_config.knockback_on_hit > 0 ? 0 : 2.0f;
     }
 
+    if(Input::key_pressed(SDLK_n)) {
+        players.position[0].value.x += 100;
+    }
+
     if(Input::key_pressed(SDLK_F8)) {
         debug_config.enable_render = !debug_config.enable_render;
     }
