@@ -65,10 +65,10 @@ void spawn_projectiles() {
 }
 //////////////////////////////////
 
-void spawn_player() {
+void spawn_player(Vector2 position) {
     auto e = entity_manager.create();
     players.create(e);
-    set_position(players, e, { Vector2(100, 200) });
+    set_position(players, e, { position });
     SpriteComponent s = SpriteComponent(0, "player_1");
     s.layer = 1;
     set_sprite(players, e, s);
@@ -353,7 +353,9 @@ void load_shooter() {
     entities_to_destroy.reserve(64);
     collisions.allocate(128);
 
-    spawn_player();
+    Vector2 player_position = Vector2(100, 200);
+    spawn_player(player_position);
+    camera_lookat(player_position);
     spawn_target(Vector2(10, 10));
     spawn_target(Vector2(400, 200));
     spawn_target(Vector2(350, 200));
@@ -385,7 +387,7 @@ void update_shooter() {
     spawn_effects();
     remove_destroyed_entities();
     
-    camera_lerp_to(players.position[0].value);
+    camera_follow(players.position[0].value);
     export_render_info();
 
     debug();

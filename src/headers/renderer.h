@@ -26,10 +26,12 @@ extern gfx renderer;
 struct Camera {
 	float shake_duration = 0.0f;
 	float trauma = 0.0f;
-	int x = 0;
-	int y = 0;
-	int offset_x = 0;
-	int offset_y = 0;
+	float x = 0;
+	float y = 0;
+	float offset_x = 0;
+	float offset_y = 0;
+    float follow_x = 0;
+    float follow_y = 0;
 };
 
 struct Sprite {
@@ -147,7 +149,8 @@ void renderer_flip();
 void renderer_destroy();
 
 const Camera &get_camera();
-void camera_lerp_to(Vector2 position);
+void camera_follow(Vector2 position);
+void camera_lookat(Vector2 position);
 /*! Trauma should be between 0 and 1. */
 void camera_shake(float t);
 void camera_update();

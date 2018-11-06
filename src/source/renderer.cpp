@@ -724,8 +724,8 @@ void renderer_draw_render_target_camera() {
 	SDL_Rect destination_rect;
 	auto x_pos = (window_w / 2) - (int)(gw * step_scale / 2) + camera.offset_x;
 	auto y_pos = (window_h / 2) - (int)(gh * step_scale / 2) + camera.offset_y;
-	destination_rect.x = x_pos;
- 	destination_rect.y = y_pos;
+	destination_rect.x = (int)x_pos;
+ 	destination_rect.y = (int)y_pos;
   	destination_rect.w = gw * step_scale;
   	destination_rect.h = gh * step_scale;
 
@@ -763,9 +763,16 @@ const Camera &get_camera() {
 	return camera;
 }
 
-void camera_lerp_to(Vector2 position) {
-	camera.x = (int)position.x - (static_cast<int>(gw) / 2);
-	camera.y = (int)position.y - (static_cast<int>(gh) / 2);
+void camera_follow(Vector2 position) {
+	camera.follow_x = position.x - (static_cast<int>(gw) / 2);
+	camera.follow_y = position.y - (static_cast<int>(gh) / 2);
+}
+
+void camera_lookat(Vector2 position) {
+	camera.x = (float)(position.x - (gw / 2));
+	camera.y = (float)(position.y - (gh / 2));
+	camera.follow_x = camera.x;
+	camera.follow_y = camera.y;
 }
 
 void camera_shake(float t) {
@@ -780,6 +787,9 @@ static const float maxOffsetX = 10; // pixels
 static const float maxOffsetY = 10; // pixels
 
 void camera_update() {
+	camera.x = 0.9f*camera.x + 0.1f*camera.follow_x; 
+	camera.y = 0.9f*camera.y + 0.1f*camera.follow_y;
+
 	if(camera.shake_duration <= 0.0f) {
 		camera.trauma = 0.0f;
 		camera.shake_duration = 0.0f;
@@ -797,8 +807,8 @@ void camera_update() {
 	float offsetX = shake * maxOffsetX * x_r;
 	float offsetY = shake * maxOffsetY * y_r;
 
-	camera.offset_x = static_cast<int>(offsetX);
-	camera.offset_y = static_cast<int>(offsetY);
+	camera.offset_x = offsetX;
+	camera.offset_y = offsetY;
 
 	// Special case for shake in top left
 	// if(camera.offset_x < 0) {

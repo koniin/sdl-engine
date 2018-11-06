@@ -17,7 +17,7 @@ All gfx can be found in shooter_spritesheet.png
 [X] BIG random explosion/s on kill (circle that flashes from black/grey to white to disappear for one update each)
 
 Do movement and then:
-[ ] Area larger than the screen with camera
+[X] Area larger than the screen with camera
 [ ] Camera lerp - follow player
 [ ] Camera towards where player is aiming
 [ ] Camera kick - move camera back on firing (moves back to player automatically if following)
