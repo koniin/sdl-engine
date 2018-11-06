@@ -782,6 +782,11 @@ void camera_shake(float t) {
 	camera.shake_duration = 0.7f;
 }
 
+void camera_displace(Vector2 displacement) {
+	camera.x += displacement.x;
+	camera.y += displacement.y;
+}
+
 static const float traumaDropOff = 0.8f; // trauma reduction per 60 frames
 static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
 static const float maxOffsetX = 10; // pixels

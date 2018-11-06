@@ -171,6 +171,8 @@ void system_player_handle_input() {
             
             camera_shake(0.1f);
 
+            camera_displace(bullet_direction * player_config.fire_knockback_camera);
+
             // Player knockback
             players.position[i].value.x -= bullet_direction.x * player_config.fire_knockback;
             players.position[i].value.y -= bullet_direction.y * player_config.fire_knockback;

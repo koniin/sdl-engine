@@ -19,7 +19,7 @@ All gfx can be found in shooter_spritesheet.png
 Do movement and then:
 [X] Area larger than the screen with camera
 [X] Camera lerp - follow player
-[ ] Camera towards where player is aiming
+[X] Camera towards where player is aiming
 [ ] Camera kick - move camera back on firing (moves back to player automatically if following)
 
 Particles
@@ -77,6 +77,7 @@ struct PlayerConfiguration {
 	float bullet_speed = player_bullet_speed();
     float gun_barrel_distance = 11.0f; // distance from center
     float fire_knockback = 2.0f; // pixels
+    float fire_knockback_camera = -6.0f;
 };
 
 struct TargetConfiguration {
