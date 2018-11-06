@@ -786,11 +786,20 @@ static const float traumaDropOff = 0.8f; // trauma reduction per 60 frames
 static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
 static const float maxOffsetX = 10; // pixels
 static const float maxOffsetY = 10; // pixels
+static const float camera_lerp = 0.998f;
+static const float camera_lerp_follow = 0.002f;
 
-static float easing_amount = 0.0f;
 void camera_update() {
-	camera.x = 0.99f * camera.x + 0.01f * camera.follow_x;
-	camera.y = 0.99f * camera.y + 0.01f * camera.follow_y;
+	// this is a pretty fast camera to move to follow point
+	// camera.x = 0.99f * camera.x + 0.01f * camera.follow_x;
+	// camera.y = 0.99f * camera.y + 0.01f * camera.follow_y;
+
+	// this is much slower
+	// camera.x = 0.999f * camera.x + 0.001f * camera.follow_x;
+	// camera.y = 0.999f * camera.y + 0.001f * camera.follow_y;
+
+	camera.x = camera_lerp * camera.x + camera_lerp_follow * camera.follow_x;
+	camera.y = camera_lerp * camera.y + camera_lerp_follow * camera.follow_y;
 
 	if(camera.shake_duration <= 0.0f) {
 		camera.trauma = 0.0f;
@@ -798,7 +807,7 @@ void camera_update() {
 		camera.offset_x = camera.offset_y = 0;
 		return;
 	}
-
+	
 	// float shake = camera.trauma * camera.trauma; // trauma^2 (or trauma^3)
 	// we use simple trauma becuase its so small otherwise
 	float shake = camera.trauma; // trauma^2 (or trauma^3)

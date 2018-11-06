@@ -230,4 +230,16 @@ void system_collisions(CollisionPairs &collision_pairs, First &entity_first, Sec
     }
 }
 
+template<typename T>
+void system_camera_follow(const T &entity_data, int i, float distance) {
+    if(entity_data.length <= i) {
+        return;
+    }
+
+    Vector2 position = entity_data.position[i].value;
+    const Vector2 &direction = entity_data.direction[i].value;
+    position += direction * distance;
+    camera_follow(position);
+}
+
 #endif

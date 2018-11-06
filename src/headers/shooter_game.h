@@ -18,7 +18,7 @@ All gfx can be found in shooter_spritesheet.png
 
 Do movement and then:
 [X] Area larger than the screen with camera
-[ ] Camera lerp - follow player
+[X] Camera lerp - follow player
 [ ] Camera towards where player is aiming
 [ ] Camera kick - move camera back on firing (moves back to player automatically if following)
 

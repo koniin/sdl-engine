@@ -386,12 +386,12 @@ void update_shooter() {
     system_collision_resolution(collisions);
     system_effects(effects, players, targets);
     system_blink_effect(targets);
+    system_camera_follow(players, 0, 100.0f);
 
     spawn_projectiles();
     spawn_effects();
     remove_destroyed_entities();
     
-    camera_follow(players.position[0].value);
     export_render_info();
 
     debug();
