@@ -100,7 +100,20 @@ namespace ECS {
             return { invalid_handle };
         }
 
+        const Handle get_handle(Entity e) const {
+            auto a = _map.find(e.id);
+            if(a != _map.end()) {
+                return { (int)a->second };
+            }
+            return { invalid_handle };
+        }
+
         bool contains(Entity e) {
+            auto a = _map.find(e.id);
+            return a != _map.end();
+        }
+
+        const bool contains(Entity e) const {
             auto a = _map.find(e.id);
             return a != _map.end();
         }

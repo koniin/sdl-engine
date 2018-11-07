@@ -62,12 +62,21 @@ struct SpriteComponent {
     }
 };
 
+struct ChildSprite {
+    ECS::Entity parent;
+    Vector2 position;
+    Vector2 local_position;
+    SpriteComponent sprite;
+};
+
 struct Player : ECS::EntityData {
     Position *position;
     Velocity *velocity;
     Direction *direction;
     PlayerInput *input;
     SpriteComponent *sprite;
+
+    std::vector<ChildSprite> child_sprites;
 
     void allocate(size_t n) {
         position = new Position[n];
@@ -83,6 +92,8 @@ struct Player : ECS::EntityData {
         add(direction);
         add(input);
         add(sprite);
+
+        child_sprites.reserve(16);
     }
 };
 

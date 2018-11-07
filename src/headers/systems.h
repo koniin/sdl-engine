@@ -242,4 +242,20 @@ void system_camera_follow(const T &entity_data, int i, float distance) {
     camera_follow(position);
 }
 
+template<typename T>
+void system_child_sprites(const T &entity_data, std::vector<ChildSprite> &child_sprites) {
+    for(size_t i = 0; i < child_sprites.size(); ++i) {
+        ChildSprite &child = child_sprites[i];
+        if(entity_data.contains(child.parent)) {
+           const auto handle = entity_data.get_handle(child.parent);
+           child.position = entity_data.position[handle.i].value + child.local_position * entity_data.direction[handle.i].value;
+           child.sprite.rotation = entity_data.sprite[handle.i].rotation;
+        } else {
+            // Remove it
+            size_t last_index = child_sprites.size() - 1;
+            child_sprites[i] = child_sprites[last_index];
+            child_sprites.erase(child_sprites.end() - 1);
+        }
+    }
+}
 #endif
