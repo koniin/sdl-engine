@@ -32,8 +32,22 @@ struct EditBox {
             && Input::mouse_left_down) {
             is_active = true;
         }
-        if(!(Input::mousex > x && Input::mousex < x + w && Input::mousey > y && Input::mousey < y + h)) {
+        if(is_active && !(Input::mousex > x && Input::mousex < x + w && Input::mousey > y && Input::mousey < y + h)) {
             is_active = false;
+        }
+
+        if(float_value) {
+            float current = text.length() > 0 ? std::stof(text) : 0;
+            if(*connected_value != current) {
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(2) << *connected_value;
+                text = ss.str();
+            }
+        } else {
+            int current = text.length() > 0 ? std::stoi(text) : 0;
+            if(*connected_value_i != current) {
+                text = std::to_string(*connected_value_i);
+            }
         }
 
         if(is_active) {
@@ -73,18 +87,19 @@ struct EditBox {
             if(Input::key_pressed(SDLK_0)) {
                 text.push_back('0');
             }
-        }
 
-        if(float_value) {
-            if(text.length() > 0)
-                *connected_value = std::stof(text);
-            else
-                *connected_value = 0;
-        } else {
-            if(text.length() > 0)
-                *connected_value_i = std::stoi(text);
-            else
-                *connected_value_i = 0;
+            if(float_value) {
+                if(text.length() > 0) {
+                    *connected_value = std::stof(text);
+                } else {
+                    *connected_value = 0;
+                }
+            } else {
+                if(text.length() > 0)
+                    *connected_value_i = std::stoi(text);
+                else
+                    *connected_value_i = 0;
+            }
         }
     }
 
@@ -106,6 +121,23 @@ struct Slider {
     int value_x = 10;
     int value_width = 10;
 
+    float *value = nullptr;
+
+    float min_val, max_val;
+
+    std::string display;
+
+    Slider() {}
+
+    Slider(std::string name, int xi, int yi, float *val, float min, float max) {
+        display = name;
+        x = xi;
+        y = yi;
+        value = val;
+        min_val = min;
+        max_val = max;
+    }
+
     void input() {
         if(is_active && Input::mouse_left_down) {
             is_active = false;
@@ -118,18 +150,26 @@ struct Slider {
         if(is_active) {
             value_x = Input::mousex - x;
             value_x = (int)Math::clamp((float)value_x, 0, (float)w - 10);
+            std::string val_x = std::to_string(value_x);
+            FrameLog::log("value: " + val_x);
+            float v = (((float)value_x) * (max_val - min_val) / 100) + min_val;
+            FrameLog::log("new value: " + std::to_string(v));
+
+            *value = v;
         }
-        std::string val_x = std::to_string(value_x);
-        FrameLog::log("value: " + val_x);
     }
 
     void render() {
-        draw_g_rectangle_filled_RGBA(x, y, w, h, 255, 125, 152, 255);
+        draw_g_rectangle_filled_RGBA(x, y, w, h, 51, 85, 107, 255);
         if(is_active) {
-            draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 255, 255, 0, 255);
+            draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 56, 165, 234, 255);
         } else {
-            draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 0, 255, 255, 255);
+            draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 17, 47, 66, 255);
         }
+        std::stringstream ss;
+        ss << display << ": ";
+        ss << std::fixed << std::setprecision(2) << *value;
+        draw_text_centered(x + w / 2, y + h / 2, Colors::black, ss.str().c_str());
     }
 };
 
@@ -188,7 +228,7 @@ struct ParticleValueEdit {
 
 Particles::Emitter cfg;
 std::vector<ParticleValueEdit> editors;
-Slider slider;
+std::vector<Slider> sliders;
 
 void load_particle_editor() {
     SDL_ShowCursor(SDL_ENABLE);
@@ -211,7 +251,7 @@ void load_particle_editor() {
     cfg.size_end_max = 0;
     
     int x = 10;
-    int y = gh - 26 * 6;
+    int y = gh - 26 * 7;
     int distance = 24;
     editors.push_back(ParticleValueEdit("count:", x, y, &cfg.min_particles, &cfg.max_particles));
     editors.push_back(ParticleValueEdit("life:", x, y += distance, &cfg.life_min, &cfg.life_max));
@@ -219,9 +259,10 @@ void load_particle_editor() {
     editors.push_back(ParticleValueEdit("speed:", x, y += distance, &cfg.speed_min, &cfg.speed_max));
     editors.push_back(ParticleValueEdit("size:", x, y += distance, &cfg.size_min, &cfg.size_max));
     editors.push_back(ParticleValueEdit("size end:", x, y += distance, &cfg.size_end_min, &cfg.size_end_max));
+    editors.push_back(ParticleValueEdit("force:", x, y += distance, &cfg.force.x, &cfg.force.y));
 
-    slider.x = 100;
-    slider.y = 10;
+    sliders.push_back(Slider("life_min", 100, 10, &cfg.life_min, 0, 10.0f));
+    
 }
 
 void update_particle_editor() {
@@ -231,7 +272,8 @@ void update_particle_editor() {
         Particles::emit(cfg);
     }
 
-    slider.input();
+    for(auto &slider : sliders)
+        slider.input();
 
     for(auto &editor : editors)
         editor.input();
@@ -245,5 +287,6 @@ void render_particle_editor() {
     for(auto &editor : editors)
         editor.render();
 
-    slider.render();
+    for(auto &slider : sliders)
+        slider.render();
 }
