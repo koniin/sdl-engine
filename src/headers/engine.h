@@ -289,6 +289,7 @@ namespace Time {
 namespace Input {
     extern int mousex;
 	extern int mousey;
+	extern bool mouse_left_down;
 
     void init();
     void update_states();

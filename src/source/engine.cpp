@@ -153,6 +153,7 @@ namespace Input {
 
 	int mousex = 0;
 	int mousey = 0;
+	bool mouse_left_down = false;
     SDL_GameController *controller;
     const Uint8* current_keyboard_state;
     // Uint8* current_gamepad_button_state;
@@ -179,6 +180,7 @@ namespace Input {
         keysDown.clear();
         keysUp.clear();
 		SDL_GetMouseState(&mousex, &mousey);
+		mouse_left_down = false;
     }
 
     void map(const SDL_Event *event) {
@@ -187,6 +189,11 @@ namespace Input {
 		}
         if (event->type == SDL_KEYUP) {
 		    keysUp.insert(event->key.keysym.sym);
+		}
+		if(event->type == SDL_MOUSEBUTTONDOWN) {
+			if(event->button.button == SDL_BUTTON_LEFT ) {
+				mouse_left_down = true;
+			}
 		}
     }
 

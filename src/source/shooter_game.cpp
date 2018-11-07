@@ -239,8 +239,6 @@ void remove_destroyed_entities() {
 void load_render_data() {
     render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
 
-    Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
-	set_default_font(font);
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
     
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
@@ -280,7 +278,54 @@ void export_render_info() {
     std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
 }
 
+// Particles requirements
+// * emitters - to emit by position
+//      - just update emitter position after moving object
+// * no runtime allocations - allocate once
+// * draw as sprite or as gemoetry
+// * Simple API - update and render should handle itself?
+
+#include "particles.h"
+
 void debug() {
+    // Particles::Emitter cfg;
+	// cfg.position = Vector2((float)(gw / 2), (float)(gh / 2));
+	// cfg.color_start = Colors::make(255, 0, 0, 255);
+	// cfg.color_end = Colors::make(255, 0, 0, 0);
+	// cfg.force = Vector2(78, 500);
+	// cfg.min_particles = 21;
+	// cfg.max_particles = 39;
+	// cfg.life_min = 1;
+	// cfg.life_max = 1.8f;
+	// cfg.angle_min = 1.48f;
+	// cfg.angle_max = 90;
+	// cfg.speed_min = 142;
+	// cfg.speed_max = 166;
+	// cfg.size_min = 1;
+	// cfg.size_max = 3;
+	// cfg.size_end_min = 0;
+	// cfg.size_end_max = 0;
+
+    Particles::Emitter cfg;
+	cfg.position = Vector2((float)(gw / 2), (float)(gh / 2));
+	cfg.color_start = Colors::make(255, 0, 0, 255);
+	cfg.color_end = Colors::make(255, 0, 0, 0);
+	cfg.force = Vector2(78, 78);
+	cfg.min_particles = 30;
+	cfg.max_particles = 50;
+	cfg.life_min = 0.1f;
+	cfg.life_max = 0.3f;
+	cfg.angle_min = 0;
+	cfg.angle_max = 360;
+	cfg.speed_min = 60;
+	cfg.speed_max = 150;
+	cfg.size_min = 1;
+	cfg.size_max = 3;
+	cfg.size_end_min = 0;
+	cfg.size_end_max = 0;
+
+    // Engine::logn("%d", sizeof(Particles::Particle));
+
     static float bullet_speed = 8.0f;
     
     if(Input::key_pressed(SDLK_UP)) {
@@ -293,11 +338,13 @@ void debug() {
     }
 
     if(Input::key_pressed(SDLK_n)) {
-        players.position[0].value.x += 100;
+        Particles::emit(cfg);
     }
 
     if(Input::key_pressed(SDLK_m)) {
-        players.remove(players.entity[0]);
+        // char *test;
+        // test = new char[1048576]; // allocate 1 megabyte
+        // // this memory dangles like crazy
     }
 
     if(Input::key_pressed(SDLK_F8)) {
@@ -312,7 +359,7 @@ void debug() {
     FrameLog::log("Bullet speed: " + std::to_string(player_config.bullet_speed));
     FrameLog::log("Bullet speed (UP to change): " + std::to_string(bullet_speed));
     FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
-
+    
     if(!debug_config.enable_render) {
         return;
     }
@@ -355,9 +402,6 @@ void debug() {
 static CollisionPairs collisions;
 
 void load_shooter() {
-    Engine::set_base_data_folder("data");
-    FrameLog::enable_at(5, 5);
-    
     renderer_set_clear_color({ 8, 0, 18, 255 });
 
     load_render_data();
@@ -409,6 +453,8 @@ void update_shooter() {
     spawn_projectiles();
     spawn_effects();
     remove_destroyed_entities();
+
+    Particles::update(Time::deltaTime);
     
     export_render_info();
 
@@ -418,7 +464,7 @@ void update_shooter() {
 void render_shooter() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-    
+    Particles::render();
     debug_render();
 }
 

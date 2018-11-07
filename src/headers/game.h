@@ -7,7 +7,8 @@
 // #include "tile_collisions.h"
 // #include "asteroids.h"
 // #include "bullet_physics.h"
-#include "shooter_game.h"
+// #include "shooter_game.h"
+#include "particle_editor.h"
 // #include "collision_tests.h"
 #include <chrono>
 
@@ -20,31 +21,38 @@
 // };
 
 inline void game_load() {
+	Engine::set_base_data_folder("data");
+	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
+	set_default_font(font);
+    FrameLog::enable_at(5, 5);
+	
+	Particles::init(2048);
+	
 	// asteroids_load();
 	// bullet_load();
-	load_shooter();
 	// collision_test_load();
-
 	// Resources::sprite_load("bkg", "bkg.png");
 	// Tiling::tilemap_load("tilemap.txt", the_map);
 	// Resources::sprite_sheet_load("shooter.data", the_sheet);
 	// tile_collisions_load();
+
+
+	// load_shooter();
+	load_particle_editor();
 }
 
 inline void game_update() {
 	// bullet_update();
-	
-
 	// std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-	
 	// collision_test_update();
-	update_shooter();
-
 	// // asteroids_update();
 	// // tile_collisions_update();
 	// std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     // auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
     // std::cout << "\n" << duration << " MICRO seconds";
+
+	// update_shooter();
+	update_particle_editor();
 }
 
 inline void game_render() {
@@ -55,19 +63,20 @@ inline void game_render() {
 	*/
 	//draw_spritesheet_name_centered_rotated(the_sheet, "middle", enemy.x, enemy.y, enemy.angle);
 
-	renderer_clear();
+	// renderer_clear();
+	// // asteroids_render();
+	// // tile_collisions_render();
+	// // bullet_render();
+	// // collision_test_render();
+	// render_shooter();
+	// renderer_draw_render_target_camera();
+	// render_shooter_ui();
+	// renderer_flip();
+
 	
-	// asteroids_render();
-	// tile_collisions_render();
-	// bullet_render();
-
-	render_shooter();
-	// collision_test_render();
-
+	renderer_clear();
+	render_particle_editor();
 	renderer_draw_render_target_camera();
-
-	render_shooter_ui();
-
 	renderer_flip();
 }
 

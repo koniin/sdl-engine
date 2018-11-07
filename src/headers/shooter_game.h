@@ -22,16 +22,14 @@ Do movement and then:
 [X] Camera towards where player is aiming
 [X] Camera kick - move camera back on firing (moves back to player automatically if following)
 
-[ ] engine flame from ship(s) - or we do this with one sprite that changes shape 
+[X] engine flame from ship(s) - or we do this with one sprite that changes shape 
     - steredenn uses fixed animation depending on speed
     - luftrausers uses fixed sprite that changes shape rapidly and only shows on forward movment
 
-    - separate sprite that follows
-
 Particles
+[ ] Particle spray on explosion?
 [ ] Follow bullet first few frames
 [ ] Smoke or something when firing from ship
-[ ] Particle spray on explosion?
 
 [ ] check the clip from dropbox with the game maker thing and take notes
 

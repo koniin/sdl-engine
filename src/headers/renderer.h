@@ -102,6 +102,10 @@ namespace TextCache {
 namespace Colors {
 	const SDL_Color white = { 255, 255, 255, 255 };
 	const SDL_Color black = { 0, 0, 0, 255 };
+
+    inline SDL_Color make(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+        return { r, g, b, a };
+    }
 }
 
 void window_set_position(int x, int y);
