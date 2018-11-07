@@ -43,6 +43,7 @@ struct Direction {
 struct SpriteComponent {
     float scale;
     float rotation;
+    int w, h;
     int16_t radius;
     int16_t color_r;
     int16_t color_g;
@@ -54,7 +55,11 @@ struct SpriteComponent {
 
     SpriteComponent() {}
 
-    SpriteComponent(size_t sprite_sheet, std::string name) : sprite_sheet_index(sprite_sheet), sprite_name(name) {
+    SpriteComponent(const std::string &sprite_sheet_name, std::string name) : sprite_name(name) {
+        sprite_sheet_index = Resources::sprite_sheet_index(sprite_sheet_name);
+        auto sprite = Resources::sprite_get_from_sheet(sprite_sheet_index, name);
+        w = sprite.w;
+        h = sprite.h;
         scale = 1.0f;
         rotation = 1.0f;
         color_r = color_g = color_b = color_a = 255;
@@ -62,11 +67,16 @@ struct SpriteComponent {
     }
 };
 
+struct Animation {
+
+};
+
 struct ChildSprite {
     ECS::Entity parent;
     Vector2 position;
     Vector2 local_position;
     SpriteComponent sprite;
+    Animation animation;
 };
 
 struct Player : ECS::EntityData {

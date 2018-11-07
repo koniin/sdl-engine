@@ -16,7 +16,6 @@ Projectile projectiles;
 Target targets;
 Effect effects;
 Rectangle world_bounds;
-std::vector<SpriteSheet> sprite_sheets;
 RenderBuffer render_buffer;
 
 template<typename T>
@@ -54,7 +53,7 @@ void spawn_projectile(Position p, Velocity v) {
     p.last = p.value;
     set_position(projectiles, e, p);
     set_velocity(projectiles, e, v);
-    SpriteComponent s = SpriteComponent(0, "bullet_2.png");
+    SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
     set_sprite(projectiles, e, s);
 }
 void spawn_projectiles() {
@@ -69,11 +68,12 @@ void spawn_player(Vector2 position) {
     auto e = entity_manager.create();
     players.create(e);
     set_position(players, e, { position });
-    SpriteComponent s = SpriteComponent(0, "player_1.png");
+    SpriteComponent s = SpriteComponent("shooter", "player_1.png");
     s.layer = 1;
     set_sprite(players, e, s);
 
-    SpriteComponent child_sprite = SpriteComponent(0, "bullet_2.png");
+    SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
+    child_sprite.layer = 0;
     ChildSprite child = { e, position, Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance), child_sprite };
     players.child_sprites.push_back(child);
 }
@@ -83,7 +83,7 @@ void spawn_target(Vector2 position) {
     targets.create(e);
     set_position(targets, e, { position });
     set_velocity(targets, e, { 0, 0 });
-    SpriteComponent s = SpriteComponent(0, "enemy_1.png");
+    SpriteComponent s = SpriteComponent("shooter", "enemy_1.png");
     s.layer = 1;
     set_sprite(targets, e, s);
 }
@@ -99,7 +99,7 @@ struct SpawnEffect {
 std::vector<SpawnEffect> effect_queue;
 
 void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
-    auto spr = SpriteComponent(0, "bullet_1.png");
+    auto spr = SpriteComponent("shooter", "bullet_1.png");
     spr.layer = effects.effect_layer;
     auto effect = EffectData(2);
     effect.follow = parent;
@@ -108,7 +108,7 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
     effect_queue.push_back({ p, Velocity(), spr, effect });
 }
 void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
-    auto spr = SpriteComponent(0, "explosion_1.png");
+    auto spr = SpriteComponent("shooter", "explosion_1.png");
     spr.layer = 0;
     auto effect = EffectData(4);
     effect.modifier_enabled = true;
@@ -237,15 +237,10 @@ void load_render_data() {
     Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
-    sprite_sheets.reserve(8);
-    SpriteSheet the_sheet;
-	Resources::sprite_sheet_load("shooter_sprites.data", the_sheet);
-    sprite_sheets.push_back(the_sheet);
-
+    
+	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     // Set up a white copy of the sprite sheet
-    Resources::sprite_load_white("shooterwhite", the_sheet.sprite_sheet_name);
-    the_sheet.sprite_sheet_name = "shooterwhite";
-    sprite_sheets.push_back(the_sheet);
+    Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
 }
 
 void export_render_info() {
@@ -415,10 +410,8 @@ void update_shooter() {
 
 void render_shooter() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
-    draw_buffer(sprite_sheets, render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+    draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     
-    // draw_spritesheet_name_centered_rotated(sprite_sheets[0], "explosion_2", 100, 100, 0);
-
     debug_render();
 }
 

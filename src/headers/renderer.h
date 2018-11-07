@@ -68,6 +68,7 @@ namespace Resources {
     Sprite *sprite_load(const std::string &name, const std::string &filename);
     Sprite *sprite_load_white(const std::string &name, const std::string &filename);
     Sprite *sprite_get(const std::string &name);
+    SDL_Rect &sprite_get_from_sheet(const size_t &sprite_sheet_index, const std::string &name);
     void sprite_remove(const std::string &name);
 
     Font *font_load(const std::string name, const std::string filename, int pointSize);
@@ -86,7 +87,10 @@ namespace Resources {
     // Outlines must be set before drawing text with that font to cache correctly
     void font_set_outline(const std::string &name, int outline);
 
-    void sprite_sheet_load(const std::string data, SpriteSheet &s);
+    void sprite_sheet_load(const std::string &name, const std::string &file);
+    void sprite_sheet_copy_as_white(const std::string &name, const std::string &copy_from);
+    size_t sprite_sheet_index(const std::string &name);
+    const std::vector<SpriteSheet> &get_sprite_sheets();
 
     void cleanup();
 }
@@ -112,9 +116,11 @@ void draw_sprite_centered(const Sprite *sprite, int x, int y);
 void draw_sprite_region(const Sprite *sprite, const SDL_Rect *src_rect, int x, int y);
 void draw_sprite_region_centered(const Sprite *sprite, const SDL_Rect *src_rect, int x, int y);
 void draw_sprite_region_centered_rotated(const Sprite *sprite, const SDL_Rect *src_rect, int x, int y, float angle);
+void draw_sprite_region_centered_ex(const Sprite *sprite, const SDL_Rect *src_rect, int x, int y, int w, int h, float angle);
 void draw_spritesheet_name(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y);
 void draw_spritesheet_name_centered(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y);
 void draw_spritesheet_name_centered_rotated(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y, const float &angle);
+void draw_spritesheet_name_centered_ex(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y, const int &w, const int &h, const float &angle);
 void draw_text(int x, int y, const SDL_Color &color, const char *text);
 void draw_text_str(int x, int y, const SDL_Color &color, const std::string text);
 void draw_text_font(Font *font, int x, int y, const SDL_Color &color, const char *text);

@@ -16,6 +16,8 @@ Camera camera;
 namespace Resources {
 	std::unordered_map<std::string, Sprite*> sprites;
 	std::unordered_map<std::string, Font*> fonts;
+	std::vector<SpriteSheet> sprite_sheets;
+	std::unordered_map<std::string, int> sprite_sheet_map;
 	
 	static SDL_Texture* load_texture(const std::string &path, int &w, int &h) { 
 		//The final texture 
@@ -126,6 +128,11 @@ namespace Resources {
     Sprite *sprite_get(const std::string &name) {
 		return sprites.at(name);
 	}
+
+	SDL_Rect &sprite_get_from_sheet(const size_t &sprite_sheet_index, const std::string &name) {
+		auto &sheet = sprite_sheets[sprite_sheet_index];
+		return sheet.sheet_sprites[sheet.sprites_by_name.at(name)].region;
+	}
 	
     void sprite_remove(const std::string &name) {
 		auto itr = sprites.find(name);
@@ -136,7 +143,8 @@ namespace Resources {
 		}
 	}
 
-	void sprite_sheet_load(const std::string file, SpriteSheet &s) {
+	void sprite_sheet_load(const std::string &name, const std::string &file) {
+		SpriteSheet s;
 		std::string path = Engine::get_base_data_folder() + file;
 		std::ifstream sprite_sheet_data(path);
 		
@@ -164,6 +172,29 @@ namespace Resources {
 				s.sprites_by_name[sf.name] = id;
 			}
 		}
+
+		auto index = sprite_sheets.size();
+		sprite_sheet_map[name] = index;
+		sprite_sheets.push_back(s);
+	}
+
+	void sprite_sheet_copy_as_white(const std::string &name, const std::string &copy_from) {
+		auto sprite_sheet_index = sprite_sheet_map[copy_from];
+		SpriteSheet white_sheet = sprite_sheets[sprite_sheet_index];
+		sprite_load_white(name, white_sheet.sprite_sheet_name);
+		white_sheet.sprite_sheet_name = name;
+
+		auto index = sprite_sheets.size();
+		sprite_sheet_map[name] = index;
+		sprite_sheets.push_back(white_sheet);
+	}
+
+	size_t sprite_sheet_index(const std::string &name) {
+		return sprite_sheet_map[name];
+	}
+
+	const std::vector<SpriteSheet> &get_sprite_sheets() {
+		return sprite_sheets;
 	}
 
     Font *font_load(const std::string name, const std::string filename, int pointSize) {
@@ -349,6 +380,16 @@ void draw_sprite_region_centered_rotated(const Sprite *sprite, const SDL_Rect *s
 	SDL_RenderCopyEx(renderer.renderer, sprite->image, src_rect, &destination_rect, angle, NULL, SDL_FLIP_NONE);
 }
 
+void draw_sprite_region_centered_ex(const Sprite *sprite, const SDL_Rect *src_rect, int x, int y, int w, int h, float angle) {
+	SDL_Rect destination_rect;
+	destination_rect.x = x - (w / 2);
+ 	destination_rect.y = y - (h / 2);
+  	destination_rect.w = w;
+  	destination_rect.h = h;
+
+	SDL_RenderCopyEx(renderer.renderer, sprite->image, src_rect, &destination_rect, angle, NULL, SDL_FLIP_NONE);
+}
+
 void draw_spritesheet_name(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y) {
 	draw_sprite_region(Resources::sprite_get(s.sprite_sheet_name), &s.sheet_sprites[s.sprites_by_name.at(sprite)].region, x, y);
 }
@@ -359,6 +400,10 @@ void draw_spritesheet_name_centered(const SpriteSheet &s, const std::string &spr
 
 void draw_spritesheet_name_centered_rotated(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y, const float &angle) {
 	draw_sprite_region_centered_rotated(Resources::sprite_get(s.sprite_sheet_name), &s.sheet_sprites[s.sprites_by_name.at(sprite)].region, x, y, angle);
+}
+
+void draw_spritesheet_name_centered_ex(const SpriteSheet &s, const std::string &sprite, const int &x, const int &y, const int &w, const int &h, const float &angle) {
+	draw_sprite_region_centered_ex(Resources::sprite_get(s.sprite_sheet_name), &s.sheet_sprites[s.sprites_by_name.at(sprite)].region, x, y, w, h, angle);
 }
 
 void draw_text(int x, int y, const SDL_Color &color, const char *text) {
