@@ -1,6 +1,8 @@
 #include "engine.h"
 #include "renderer.h"
 #include "particles.h"
+#include <iomanip> // setprecision
+#include <sstream> // stringstream
 
 struct EditBox {
     int x, y;
@@ -8,11 +10,21 @@ struct EditBox {
     bool is_active = false;
     int w = 50, h = 20;
 
+    bool float_value = true;
     float *connected_value = nullptr;
+    int *connected_value_i = nullptr;
 
     void connect(float *f) {
         connected_value = f;
-        text = std::to_string(*f);
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(2) << *f;
+        text = ss.str();
+    }
+
+    void connect(int *i) {
+        connected_value_i = i;
+        text = std::to_string(*i);
+        float_value = false;
     }
 
     void input() {
@@ -63,11 +75,16 @@ struct EditBox {
             }
         }
 
-        if(connected_value != nullptr) {
+        if(float_value) {
             if(text.length() > 0)
                 *connected_value = std::stof(text);
             else
                 *connected_value = 0;
+        } else {
+            if(text.length() > 0)
+                *connected_value_i = std::stoi(text);
+            else
+                *connected_value_i = 0;
         }
     }
 
@@ -81,6 +98,41 @@ struct EditBox {
     }
 };
 
+struct Slider {
+    int x, y;
+    std::string text;
+    bool is_active = false;
+    int w = 110, h = 20;
+    int value_x = 10;
+    int value_width = 10;
+
+    void input() {
+        if(is_active && Input::mouse_left_down) {
+            is_active = false;
+        }
+        else if(Input::mousex >= x + value_x && Input::mousex < x + value_x + value_width && Input::mousey > y && Input::mousey < y + h
+            && Input::mouse_left_down) {
+            is_active = true;
+        }
+
+        if(is_active) {
+            value_x = Input::mousex - x;
+            value_x = (int)Math::clamp((float)value_x, 0, (float)w - 10);
+        }
+        std::string val_x = std::to_string(value_x);
+        FrameLog::log("value: " + val_x);
+    }
+
+    void render() {
+        draw_g_rectangle_filled_RGBA(x, y, w, h, 255, 125, 152, 255);
+        if(is_active) {
+            draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 255, 255, 0, 255);
+        } else {
+            draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 0, 255, 255, 255);
+        }
+    }
+};
+
 struct ParticleValueEdit {
     EditBox min;
     EditBox max;
@@ -89,20 +141,35 @@ struct ParticleValueEdit {
 
     int pos_x, pos_y;
 
+    ParticleValueEdit(std::string text, int x, int y, float *a, float *b) {
+        init(text, x, y);
+        connect(a, b);
+    }
+
+    ParticleValueEdit(std::string text, int x, int y, int *a, int *b) {
+        init(text, x, y);
+        connect(a, b);
+    }
+
     void init(std::string h, int x, int y) {
-        min.x = x + 40;
+        min.x = x + 45;
         min.y = y;
 
         max.x = min.x + 5 + min.w;
         max.y = y;
 
-        pos_x = x + 20;
-        pos_y = y + 10;
+        pos_x = x + 40;
+        pos_y = y + 5;
 
         headline = h;
     }
     
     void connect(float *f1, float *f2) {
+        min.connect(f1);
+        max.connect(f2);
+    }
+
+    void connect(int *f1, int *f2) {
         min.connect(f1);
         max.connect(f2);
     }
@@ -113,16 +180,19 @@ struct ParticleValueEdit {
     }
 
     void render() {
-        draw_text_centered_str(pos_x, pos_y, Colors::white, headline);
+        draw_text_right_str(pos_x, pos_y, Colors::white, headline);
         min.render();
         max.render();
     }
 };
 
 Particles::Emitter cfg;
-ParticleValueEdit box;
+std::vector<ParticleValueEdit> editors;
+Slider slider;
 
 void load_particle_editor() {
+    SDL_ShowCursor(SDL_ENABLE);
+
     cfg.position = Vector2((float)(gw / 2), (float)(gh / 2));
     cfg.color_start = Colors::make(255, 0, 0, 255);
     cfg.color_end = Colors::make(255, 0, 0, 0);
@@ -139,11 +209,19 @@ void load_particle_editor() {
     cfg.size_max = 3;
     cfg.size_end_min = 0;
     cfg.size_end_max = 0;
+    
+    int x = 10;
+    int y = gh - 26 * 6;
+    int distance = 24;
+    editors.push_back(ParticleValueEdit("count:", x, y, &cfg.min_particles, &cfg.max_particles));
+    editors.push_back(ParticleValueEdit("life:", x, y += distance, &cfg.life_min, &cfg.life_max));
+    editors.push_back(ParticleValueEdit("angle:", x, y += distance, &cfg.angle_min, &cfg.angle_max));
+    editors.push_back(ParticleValueEdit("speed:", x, y += distance, &cfg.speed_min, &cfg.speed_max));
+    editors.push_back(ParticleValueEdit("size:", x, y += distance, &cfg.size_min, &cfg.size_max));
+    editors.push_back(ParticleValueEdit("size end:", x, y += distance, &cfg.size_end_min, &cfg.size_end_max));
 
-    box.init("life: ", 10, gh - 30);
-    box.connect(&cfg.life_min, &cfg.life_max);
-
-    SDL_ShowCursor(SDL_ENABLE);
+    slider.x = 100;
+    slider.y = 10;
 }
 
 void update_particle_editor() {
@@ -153,7 +231,10 @@ void update_particle_editor() {
         Particles::emit(cfg);
     }
 
-    box.input();
+    slider.input();
+
+    for(auto &editor : editors)
+        editor.input();
 
     FrameLog::log("Press 'e' to emit");
 }
@@ -161,5 +242,8 @@ void update_particle_editor() {
 void render_particle_editor() {
     Particles::render();
 
-    box.render();
+    for(auto &editor : editors)
+        editor.render();
+
+    slider.render();
 }

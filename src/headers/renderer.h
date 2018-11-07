@@ -130,7 +130,9 @@ void draw_text_str(int x, int y, const SDL_Color &color, const std::string text)
 void draw_text_font(Font *font, int x, int y, const SDL_Color &color, const char *text);
 void draw_text_centered(int x, int y, const SDL_Color &color, const char *text);
 void draw_text_centered_str(int x, int y, const SDL_Color &color, std::string text);
+void draw_text_right_str(int x, int y, const SDL_Color &color, std::string text);
 void draw_text_font_centered(Font *font, int x, int y, const SDL_Color &color, const char *text);
+void draw_text_font_right_aligned(Font *font, int x, int y, const SDL_Color &color, const char *text);
 void draw_tilemap_ortho(const TileMap &t, const SpriteSheet &s, const int x_start, const int y_start);
 
 void draw_g_pixel(int x, int y);

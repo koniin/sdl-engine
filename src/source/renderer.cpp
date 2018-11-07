@@ -427,6 +427,10 @@ void draw_text_centered_str(int x, int y, const SDL_Color &color, std::string te
 	draw_text_font_centered(default_font, x, y, color, text.c_str());
 }
 
+void draw_text_right_str(int x, int y, const SDL_Color &color, std::string text) {
+	draw_text_font_right_aligned(default_font, x, y, color, text.c_str());
+}
+
 void draw_text_font_centered(Font *font, int x, int y, const SDL_Color &color, const char *text) {
 	Sprite &cacheItem = TextCache::load(font, color, text);
 	draw_sprite_centered(&cacheItem, x, y);
@@ -437,6 +441,12 @@ void draw_text_font_centered(Font *font, int x, int y, const SDL_Color &color, c
 	// destination_rect.h = cacheItem.h;
 
 	// SDL_RenderCopy(renderer.renderer, cacheItem.image, NULL, &destination_rect);
+}
+
+void draw_text_font_right_aligned(Font *font, int x, int y, const SDL_Color &color, const char *text) {
+	Sprite &cacheItem = TextCache::load(font, color, text);
+	x -= cacheItem.w;
+	draw_sprite(&cacheItem, x, y);
 }
 
 void draw_tilemap_ortho(const TileMap &t, const SpriteSheet &s, const int x_start, const int y_start) {
