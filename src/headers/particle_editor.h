@@ -3,6 +3,7 @@
 #include "particles.h"
 #include <iomanip> // setprecision
 #include <sstream> // stringstream
+#include <fstream>
 
 struct EditBox {
     int x, y;
@@ -113,6 +114,72 @@ struct EditBox {
     }
 };
 
+
+struct TextEditBox {
+    int x, y;
+    std::string text;
+    bool is_active = false;
+    int w = 50, h = 20;
+
+    void input() {
+        if(Input::mousex > x && Input::mousex < x + w && Input::mousey > y && Input::mousey < y + h
+            && Input::mouse_left_down) {
+            is_active = true;
+        }
+        if(is_active && !(Input::mousex > x && Input::mousex < x + w && Input::mousey > y && Input::mousey < y + h)) {
+            is_active = false;
+        }
+        
+        if(is_active) {
+            if(Input::key_pressed(SDLK_BACKSPACE) && text.length() > 0) {
+                text.pop_back();
+            }
+            if(Input::key_pressed(SDLK_RETURN) || Input::key_pressed(SDLK_KP_ENTER)) {
+                is_active = false;
+            }
+            if(Input::key_pressed(SDLK_1)) {
+                text.push_back('1');
+            }
+            if(Input::key_pressed(SDLK_2)) {
+                text.push_back('2');
+            }
+            if(Input::key_pressed(SDLK_3)) {
+                text.push_back('3');
+            }
+            if(Input::key_pressed(SDLK_4)) {
+                text.push_back('4');
+            }
+            if(Input::key_pressed(SDLK_5)) {
+                text.push_back('5');
+            }
+            if(Input::key_pressed(SDLK_6)) {
+                text.push_back('6');
+            }
+            if(Input::key_pressed(SDLK_7)) {
+                text.push_back('7');
+            }
+            if(Input::key_pressed(SDLK_8)) {
+                text.push_back('8');
+            }
+            if(Input::key_pressed(SDLK_9)) {
+                text.push_back('9');
+            }
+            if(Input::key_pressed(SDLK_0)) {
+                text.push_back('0');
+            }
+        }
+    }
+
+    void render() {
+        if(is_active) {
+            draw_g_rectangle_filled_RGBA(x, y, w, h, 255, 125, 152, 255);
+        } else {
+            draw_g_rectangle_filled_RGBA(x, y, w, h, 150, 125, 255, 255);
+        }
+        draw_text_centered_str(x + (w / 2), y + (h / 2), Colors::black, text);
+    }
+};
+
 struct Slider {
     int x, y;
     std::string text;
@@ -141,7 +208,6 @@ struct Slider {
         
         float v = ((*val - min) * 100) / (max - min);
         value_x = (int)v;
-        Engine::logn("%.2f", v);
     }
 
     Slider(std::string name, int xi, int yi, int *val, float min, float max) {
@@ -154,7 +220,6 @@ struct Slider {
         is_float = false;
         float v = ((*val - min) * 100) / (max - min);
         value_x = (int)v;
-        Engine::logn("%.2f", v);
     }
 
     void input() {
@@ -170,10 +235,8 @@ struct Slider {
             value_x = Input::mousex - 5 - x;
             value_x = (int)Math::clamp((float)value_x, 0, (float)w - 10);
             std::string val_x = std::to_string(value_x);
-            FrameLog::log("value: " + val_x);
             float v = (((float)value_x) * (max_val - min_val) / 100) + min_val;
-            FrameLog::log("new value: " + std::to_string(v));
-
+            
             if(is_float) {
                 *value_f = v;
             } else {
@@ -257,6 +320,87 @@ struct ParticleValueEdit {
 Particles::Emitter cfg;
 std::vector<ParticleValueEdit> editors;
 std::vector<Slider> sliders;
+TextEditBox path;
+
+void WriteConfig(const Particles::Emitter &emitter) {
+    std::ofstream file;
+    file.open(path.text);
+    file << emitter.position.x << "\n";
+    file << emitter.position.y << "\n";
+
+    file << (int)emitter.color_start.r << "\n";
+    file << (int)emitter.color_start.g << "\n";
+    file << (int)emitter.color_start.b << "\n";
+    file << (int)emitter.color_start.a << "\n";
+
+    file << (int)emitter.color_end.r << "\n";
+    file << (int)emitter.color_end.g << "\n";
+    file << (int)emitter.color_end.b << "\n";
+    file << (int)emitter.color_end.a << "\n";
+
+    file << emitter.force.x << "\n";
+    file << emitter.force.y << "\n";
+
+    file << emitter.min_particles << "\n";
+    file << emitter.max_particles << "\n";
+
+    file << emitter.life_min << "\n";
+    file << emitter.life_max << "\n";
+    file << emitter.angle_min << "\n";
+    file << emitter.angle_max << "\n";
+    file << emitter.speed_min << "\n";
+    file << emitter.speed_max << "\n";
+    file << emitter.size_min << "\n";
+    file << emitter.size_max << "\n";
+    file << emitter.size_end_min << "\n";
+    file << emitter.size_end_max << "\n";
+    file.close();
+    Engine::logn("Export complete.");
+}
+
+void LoadConfig(Particles::Emitter &emitter) {
+    std::ifstream file(path.text);
+    file >> emitter.position.x;
+    file >> emitter.position.y;
+
+    int c_val;
+    file >> c_val;
+    emitter.color_start.r = (uint8_t)c_val;
+    file >> c_val;
+    emitter.color_start.g = (uint8_t)c_val;
+    file >> c_val;
+    emitter.color_start.b = (uint8_t)c_val;
+    file >> c_val;
+    emitter.color_start.a = (uint8_t)c_val;
+
+    file >> c_val;
+    emitter.color_end.r = (uint8_t)c_val;
+    file >> c_val;
+    emitter.color_end.g = (uint8_t)c_val;
+    file >> c_val;
+    emitter.color_end.b = (uint8_t)c_val;
+    file >> c_val;
+    emitter.color_end.a = (uint8_t)c_val;
+
+    file >> emitter.force.x;
+    file >> emitter.force.y;
+
+    file >> emitter.min_particles;
+    file >> emitter.max_particles;
+
+    file >> emitter.life_min;
+    file >> emitter.life_max;
+    file >> emitter.angle_min;
+    file >> emitter.angle_max;
+    file >> emitter.speed_min;
+    file >> emitter.speed_max;
+    file >> emitter.size_min;
+    file >> emitter.size_max;
+    file >> emitter.size_end_min;
+    file >> emitter.size_end_max;
+    file.close();
+    Engine::logn("Import complete.");
+}
 
 void load_particle_editor() {
     SDL_ShowCursor(SDL_ENABLE);
@@ -278,6 +422,11 @@ void load_particle_editor() {
     cfg.size_end_min = 0;
     cfg.size_end_max = 0;
     
+    path.text = "C:\\temp\\test.particle";
+    path.w = 300;
+    path.x = gw - path.w;
+    path.y = gh - 20; 
+
     int x = 10;
     int y = gh - 26 * 7;
     int distance = 24;
@@ -318,13 +467,25 @@ void update_particle_editor() {
         Particles::emit(cfg);
     }
 
+    if(Input::key_pressed(SDLK_w)) {
+        WriteConfig(cfg);
+    }
+    
+    if(Input::key_pressed(SDLK_l)) {
+        LoadConfig(cfg);
+    }
+
     for(auto &slider : sliders)
         slider.input();
 
     for(auto &editor : editors)
         editor.input();
 
+    path.input();
+
     FrameLog::log("Press 'e' to emit");
+    FrameLog::log("Press 'w' to write");
+    FrameLog::log("Press 'l' to load");
 }
 
 void render_particle_editor() {
@@ -335,4 +496,6 @@ void render_particle_editor() {
 
     for(auto &slider : sliders)
         slider.render();
+
+    path.render();
 }
