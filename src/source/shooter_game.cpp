@@ -19,6 +19,15 @@ Rectangle world_bounds;
 std::vector<SpriteSheet> sprite_sheets;
 RenderBuffer render_buffer;
 
+
+struct ChildSprite {
+    ECS::Entity parent;
+    Vector2 position;
+    Vector2 local_position;
+    SpriteComponent sprite;
+};
+std::vector<ChildSprite> player_child_sprite_test;
+
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
@@ -72,6 +81,10 @@ void spawn_player(Vector2 position) {
     SpriteComponent s = SpriteComponent(0, "player_1.png");
     s.layer = 1;
     set_sprite(players, e, s);
+
+    SpriteComponent child_sprite = SpriteComponent(0, "bullet_2.png");
+    ChildSprite child = { e, position, Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance), child_sprite };
+    player_child_sprite_test.push_back(child);
 }
 
 void spawn_target(Vector2 position) {
@@ -255,6 +268,10 @@ void export_render_info() {
         export_sprite_data(players, i, sprite_data_buffer[sprite_count++]);
     }
 
+    for(size_t i = 0; i < player_child_sprite_test.size(); ++i) {
+        export_sprite_data_values(player_child_sprite_test[i].position, player_child_sprite_test[i].sprite, i, sprite_data_buffer[sprite_count++]);
+    }
+
     for(int i = 0; i < projectiles.length; ++i) {
         export_sprite_data(projectiles, i, sprite_data_buffer[sprite_count++]);
 	}
@@ -372,6 +389,7 @@ void movement() {
     keep_in_bounds(players, world_bounds);
     move_forward(targets);
     keep_in_bounds(targets, world_bounds);
+    // Set last position of projectile so we can use that in collision handling etc
     for(int i = 0; i < projectiles.length; ++i) {
         projectiles.position[i].last = projectiles.position[i].value;
     }
@@ -384,6 +402,21 @@ void update_shooter() {
     system_player_handle_input();
     movement();
     system_drag(players, player_config.drag);
+
+    for(size_t i = 0; i < player_child_sprite_test.size(); ++i) {
+        auto &child = player_child_sprite_test[i];
+        if(players.contains(child.parent)) {
+           auto handle = players.get_handle(child.parent);
+           child.position = players.position[handle.i].value + child.local_position * players.direction[handle.i].value;
+           child.sprite.rotation = players.sprite[handle.i].rotation;
+        } else {
+            // Remove it
+            size_t last_index = player_child_sprite_test.size() - 1;
+            player_child_sprite_test[i] = player_child_sprite_test[last_index];
+            player_child_sprite_test.erase(player_child_sprite_test.end() - 1);
+        }
+    }
+
     system_collisions(collisions, projectiles, targets);
     system_collision_resolution(collisions);
     system_effects(effects, players, targets);

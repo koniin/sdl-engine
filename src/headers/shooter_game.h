@@ -26,6 +26,8 @@ Do movement and then:
     - steredenn uses fixed animation depending on speed
     - luftrausers uses fixed sprite that changes shape rapidly and only shows on forward movment
 
+    - separate sprite that follows
+
 Particles
 [ ] Follow bullet first few frames
 [ ] Smoke or something when firing from ship

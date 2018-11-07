@@ -44,6 +44,30 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     spr.layer = entity_data.sprite[i].layer;
 }
 
+template<typename T>
+void export_sprite_data_values(const Vector2 &position, const T &sprite, const int i, SpriteData &spr) {
+    // handle camera, zoom and stuff here
+
+    // also we can do culling here
+    // intersects world_bounds etc
+
+    // float globalScale = 0.05f;
+    // spr.x = go.pos.x * globalScale;
+    // spr.y = go.pos.y * globalScale;
+    // spr.scale = go.sprite.scale * globalScale;
+    // spr.x = entity_data.position[i].x - camera.x;
+    // spr.x = entity_data.position[i].y - camera.y;
+
+    const auto &camera = get_camera();
+
+    spr.x = (int16_t)(position.x - camera.x);
+    spr.y = (int16_t)(position.y - camera.y);
+    spr.sprite_index = sprite.sprite_sheet_index;
+    spr.sprite_name = sprite.sprite_name;
+    spr.rotation = sprite.rotation;
+    spr.layer = sprite.layer;
+}
+
 void draw_buffer(const std::vector<SpriteSheet> &sprite_sheets, const SpriteData *spr, const int length) {
     for(int i = 0; i < length; i++) {
         draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
