@@ -358,6 +358,41 @@ void WriteConfig(const Particles::Emitter &emitter) {
     Engine::logn("Export complete.");
 }
 
+void Write_C_Config(const Particles::Emitter &emitter) {
+    std::ofstream file;
+    file.open(path.text + ".c");
+
+    file << "emitter.position = Vector2(" << emitter.position.x;
+    file << ", " << emitter.position.y << ");\n";
+
+    file << "emitter.color_start = Colors::make(" << (int)emitter.color_start.r << "," 
+        << (int)emitter.color_start.g << "," << (int)emitter.color_start.b << ","
+        << (int)emitter.color_start.a << ");\n";
+
+    file << "emitter.color_end = Colors::make(" << (int)emitter.color_end.r << "," 
+        << (int)emitter.color_end.g << "," << (int)emitter.color_end.b << ","
+        << (int)emitter.color_end.a << ");\n";
+
+    file << "emitter.force = Vector2(" << emitter.force.x << "," << emitter.force.y << ");\n";
+
+    NEED TO HANDLE .f and 0.0f
+
+    file << "emitter.min_particles = " << emitter.min_particles << ";\n";
+    file << "emitter.max_particles = " << emitter.max_particles << ";\n";
+    file << "emitter.life_min = " << emitter.life_min << "f;\n";
+    file << "emitter.life_max = " << emitter.life_max << "f;\n";
+    file << "emitter.angle_min = " << emitter.angle_min << "f;\n";
+    file << "emitter.angle_max = " << emitter.angle_max << "f;\n";
+    file << "emitter.speed_min = " << emitter.speed_min << "f;\n";
+    file << "emitter.speed_max = " << emitter.speed_max << "f;\n";
+    file << "emitter.size_min = " << emitter.size_min << "f;\n";
+    file << "emitter.size_max = " << emitter.size_max << "f;\n";
+    file << "emitter.size_end_min = " << emitter.size_end_min << "f;\n";
+    file << "emitter.size_end_max = " << emitter.size_end_max << "f;\n";
+    file.close();
+    Engine::logn("C Export complete.");
+}
+
 void LoadConfig(Particles::Emitter &emitter) {
     std::ifstream file(path.text);
     file >> emitter.position.x;
@@ -421,6 +456,9 @@ void load_particle_editor() {
     cfg.size_max = 3;
     cfg.size_end_min = 0;
     cfg.size_end_max = 0;
+
+    Particles::Emitter emitter;
+    
     
     path.text = "C:\\temp\\test.particle";
     path.w = 300;
@@ -469,6 +507,7 @@ void update_particle_editor() {
 
     if(Input::key_pressed(SDLK_w)) {
         WriteConfig(cfg);
+        Write_C_Config(cfg);
     }
     
     if(Input::key_pressed(SDLK_l)) {
