@@ -59,6 +59,8 @@
         "typeindex": "cpp",
         "queue": "cpp",
         "deque": "cpp",
-        "array": "cpp"
+        "array": "cpp",
+        "iterator": "cpp",
+        "set": "cpp"
     }
 }

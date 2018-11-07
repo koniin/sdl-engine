@@ -243,19 +243,32 @@ void system_camera_follow(const T &entity_data, int i, float distance) {
 }
 
 template<typename T>
-void system_child_sprites(const T &entity_data, std::vector<ChildSprite> &child_sprites) {
-    for(size_t i = 0; i < child_sprites.size(); ++i) {
-        ChildSprite &child = child_sprites[i];
-        if(entity_data.contains(child.parent)) {
-           const auto handle = entity_data.get_handle(child.parent);
-           child.position = entity_data.position[handle.i].value + child.local_position * entity_data.direction[handle.i].value;
-           child.sprite.rotation = entity_data.sprite[handle.i].rotation;
+void system_child_sprites(ChildSprite &child_sprites, const T &entity_data) {
+    for(size_t i = 0; i < child_sprites.length; ++i) {
+        if(entity_data.contains(child_sprites.parent[i])) {
+           const auto handle = entity_data.get_handle(child_sprites.parent[i]);
+           child_sprites.position[i].value = entity_data.position[handle.i].value + child_sprites.local_position[i] * entity_data.direction[handle.i].value;
+           child_sprites.sprite[i].rotation = entity_data.sprite[handle.i].rotation;
         } else {
             // Remove it
-            size_t last_index = child_sprites.size() - 1;
-            child_sprites[i] = child_sprites[last_index];
-            child_sprites.erase(child_sprites.end() - 1);
+            child_sprites.remove(i);
         }
+    }
+}
+
+template<typename T>
+void system_animation_ping_pong(T &entity_data) {
+    for(size_t i = 0; i < entity_data.length; ++i) {
+        auto &animation = entity_data.animation[i];
+        animation.timer += Time::deltaTime;
+		if(animation.timer > animation.duration * 2) {
+			animation.timer = 0;
+        }
+		
+		float time = animation.timer > animation.duration ? animation.duration - (animation.timer - animation.duration) : animation.timer;
+		animation.value = Math::interpolate(animation.start, animation.end, time/animation.duration, animation.ease);
+
+        entity_data.sprite[i].h = (int)animation.value;
     }
 }
 #endif

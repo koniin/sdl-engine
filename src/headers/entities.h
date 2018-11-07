@@ -68,15 +68,60 @@ struct SpriteComponent {
 };
 
 struct Animation {
+    float timer = 0;
+    float duration = 0;
+    float value = 0;
+    float start = 0;
+    float end = 0;
+    easing_t ease;
 
+    Animation(){};
+    Animation(float duration, float start, float end, easing_t ease): duration(duration), start(start), end(end), ease(ease) {}
 };
 
 struct ChildSprite {
-    ECS::Entity parent;
-    Vector2 position;
-    Vector2 local_position;
-    SpriteComponent sprite;
-    Animation animation;
+    size_t length = 0;
+
+    std::vector<ECS::Entity> parent;
+    std::vector<Position> position;
+    std::vector<Vector2> local_position;
+    std::vector<SpriteComponent> sprite;
+    std::vector<Animation> animation;
+
+    void allocate(size_t n) {
+        parent.reserve(n);
+        position.reserve(n);
+        local_position.reserve(n);
+        sprite.reserve(n);
+        animation.reserve(n);
+    }
+
+    void add(const ECS::Entity &p, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
+        parent.push_back(p);
+        position.push_back({ pos });
+        local_position.push_back(local_pos);
+        sprite.push_back(s);
+        animation.push_back(a);
+
+        ++length;
+    }
+
+    void remove(size_t i) {
+        remove_from(parent, i);
+        remove_from(position, i);
+        remove_from(local_position, i);
+        remove_from(sprite, i);
+        remove_from(animation, i);
+
+        --length;
+    }
+
+    template<typename T>
+    void remove_from(std::vector<T> &v, size_t i) {
+        size_t last_index = v.size() - 1;
+        v[i] = v[last_index];
+        v.erase(v.end() - 1);
+    }
 };
 
 struct Player : ECS::EntityData {
@@ -86,7 +131,7 @@ struct Player : ECS::EntityData {
     PlayerInput *input;
     SpriteComponent *sprite;
 
-    std::vector<ChildSprite> child_sprites;
+    ChildSprite child_sprites;
 
     void allocate(size_t n) {
         position = new Position[n];
@@ -103,7 +148,7 @@ struct Player : ECS::EntityData {
         add(input);
         add(sprite);
 
-        child_sprites.reserve(16);
+        child_sprites.allocate(16);
     }
 };
 

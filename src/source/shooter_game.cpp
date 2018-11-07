@@ -73,9 +73,14 @@ void spawn_player(Vector2 position) {
     set_sprite(players, e, s);
 
     SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
+    child_sprite.h = child_sprite.h + (child_sprite.h / 2);
     child_sprite.layer = 0;
-    ChildSprite child = { e, position, Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance), child_sprite };
-    players.child_sprites.push_back(child);
+    auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
+    players.child_sprites.add(e, 
+        position, 
+        Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance),
+        child_sprite,
+        animation);
 }
 
 void spawn_target(Vector2 position) {
@@ -254,8 +259,9 @@ void export_render_info() {
         export_sprite_data(players, i, sprite_data_buffer[sprite_count++]);
     }
 
-    for(size_t i = 0; i < players.child_sprites.size(); ++i) {
-        export_sprite_data_values(players.child_sprites[i].position, players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
+    for(size_t i = 0; i < players.child_sprites.length; ++i) {
+        export_sprite_data(players.child_sprites, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data_values(players.child_sprites.position[i], players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
     }
 
     for(int i = 0; i < projectiles.length; ++i) {
@@ -392,7 +398,8 @@ void update_shooter() {
     system_player_handle_input();
     movement();
     system_drag(players, player_config.drag);
-    system_child_sprites(players, players.child_sprites);
+    system_child_sprites(players.child_sprites, players);
+    system_animation_ping_pong(players.child_sprites);
     system_collisions(collisions, projectiles, targets);
     system_collision_resolution(collisions);
     system_effects(effects, players, targets);
