@@ -120,8 +120,10 @@ struct Slider {
     int w = 110, h = 20;
     int value_x = 10;
     int value_width = 10;
-
-    float *value = nullptr;
+    
+    bool is_float = true;
+    float *value_f = nullptr;
+    int *value_i = nullptr;
 
     float min_val, max_val;
 
@@ -133,9 +135,26 @@ struct Slider {
         display = name;
         x = xi;
         y = yi;
-        value = val;
+        value_f = val;
         min_val = min;
         max_val = max;
+        
+        float v = ((*val - min) * 100) / (max - min);
+        value_x = (int)v;
+        Engine::logn("%.2f", v);
+    }
+
+    Slider(std::string name, int xi, int yi, int *val, float min, float max) {
+        display = name;
+        x = xi;
+        y = yi;
+        value_i = val;
+        min_val = min;
+        max_val = max;
+        is_float = false;
+        float v = ((*val - min) * 100) / (max - min);
+        value_x = (int)v;
+        Engine::logn("%.2f", v);
     }
 
     void input() {
@@ -148,14 +167,18 @@ struct Slider {
         }
 
         if(is_active) {
-            value_x = Input::mousex - x;
+            value_x = Input::mousex - 5 - x;
             value_x = (int)Math::clamp((float)value_x, 0, (float)w - 10);
             std::string val_x = std::to_string(value_x);
             FrameLog::log("value: " + val_x);
             float v = (((float)value_x) * (max_val - min_val) / 100) + min_val;
             FrameLog::log("new value: " + std::to_string(v));
 
-            *value = v;
+            if(is_float) {
+                *value_f = v;
+            } else {
+                *value_i = (int)v;
+            }
         }
     }
 
@@ -166,10 +189,15 @@ struct Slider {
         } else {
             draw_g_rectangle_filled_RGBA(x + value_x, y, value_width, h, 17, 47, 66, 255);
         }
+
         std::stringstream ss;
         ss << display << ": ";
-        ss << std::fixed << std::setprecision(2) << *value;
-        draw_text_centered(x + w / 2, y + h / 2, Colors::black, ss.str().c_str());
+        if(is_float) {
+            ss << std::fixed << std::setprecision(2) << *value_f;
+        } else {
+            ss << *value_i;
+        }
+        draw_text_centered(x + w / 2, y + h / 2, Colors::white, ss.str().c_str());
     }
 };
 
@@ -261,8 +289,26 @@ void load_particle_editor() {
     editors.push_back(ParticleValueEdit("size end:", x, y += distance, &cfg.size_end_min, &cfg.size_end_max));
     editors.push_back(ParticleValueEdit("force:", x, y += distance, &cfg.force.x, &cfg.force.y));
 
-    sliders.push_back(Slider("life_min", 100, 10, &cfg.life_min, 0, 10.0f));
-    
+    int slider_y = 10;
+    int slider_h = 21;
+    int slider_x = gw - 120;
+    sliders.push_back(Slider("min_particles", slider_x, slider_y, &cfg.min_particles, 0, 200));
+    sliders.push_back(Slider("max_particles", slider_x, slider_y += slider_h, &cfg.max_particles, 0, 200));
+
+    sliders.push_back(Slider("life_min", slider_x, slider_y += slider_h, &cfg.life_min, 0, 10.0f));
+    sliders.push_back(Slider("life_max", slider_x, slider_y += slider_h, &cfg.life_max, 0, 10.0f));
+    sliders.push_back(Slider("angle_min", slider_x, slider_y += slider_h, &cfg.angle_min, 0, 360.0f));
+    sliders.push_back(Slider("angle_max", slider_x, slider_y += slider_h, &cfg.angle_max, 0, 360.0f));
+    sliders.push_back(Slider("speed_min", slider_x, slider_y += slider_h, &cfg.speed_min, 0, 200.0f));
+    sliders.push_back(Slider("speed_max", slider_x, slider_y += slider_h, &cfg.speed_max, 0, 200.0f));
+    sliders.push_back(Slider("size_min", slider_x, slider_y += slider_h, &cfg.size_min, 0, 20.0f));
+    sliders.push_back(Slider("size_max", slider_x, slider_y += slider_h, &cfg.size_max, 0, 20.0f));
+
+    sliders.push_back(Slider("size_end_min", slider_x, slider_y += slider_h, &cfg.size_end_min, 0, 60.0f));
+    sliders.push_back(Slider("size_end_max", slider_x, slider_y += slider_h, &cfg.size_end_max, 0, 60.0f));
+
+    sliders.push_back(Slider("force x", slider_x, slider_y += slider_h, &cfg.force.x, 0, 100.0f));
+    sliders.push_back(Slider("force y", slider_x, slider_y += slider_h, &cfg.force.y, 0, 100.0f));
 }
 
 void update_particle_editor() {
