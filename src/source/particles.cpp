@@ -2,16 +2,7 @@
 #include "renderer.h"
 
 namespace Particles {
-    Particle *particles;
-    unsigned length = 0;
-    size_t length_max = 0;
-
-    void init(size_t max_particles) {
-        particles = new Particle[max_particles];
-        length_max = max_particles;
-    }
-
-    void emit(const Emitter &p_config) {
+    void emit(ParticleContainer &c, const Emitter &p_config) {
 		int particle_count = RNG::range_i(p_config.min_particles, p_config.max_particles);
 		for(int i = 0; i < particle_count; ++i) {
 			float life = RNG::range_f(p_config.life_min, p_config.life_max);
@@ -19,12 +10,12 @@ namespace Particles {
 			float speed = RNG::range_f(p_config.speed_min, p_config.speed_max);
 			float size = RNG::range_f(p_config.size_min, p_config.size_max);
 			float size_end = RNG::range_f(p_config.size_end_min, p_config.size_end_max);
-			spawn(p_config.position, life, angle, speed, size, size_end, p_config.force, p_config.color_start, p_config.color_end);
+			spawn(c, p_config.position, life, angle, speed, size, size_end, p_config.force, p_config.color_start, p_config.color_end);
 		}
 	}
 	
-    void spawn(const Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end) {
-		Particle &particle = particles[length];
+    void spawn(ParticleContainer &c, const Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end) {
+		Particle &particle = c.particles[c.length];
 		particle.position = p;
 		particle.life = life;
 		particle.size = size;
@@ -45,19 +36,15 @@ namespace Particles {
 		particle.color_shift[2] = (color_end.b - color_start.b) / life;
 		particle.color_shift[3] = (color_end.a - color_start.a) / life;
 		
-        length++;
-		// emitter->particle_count++;
-		// if(emitter->particle_count >= emitter->buffer_max) {
-		// 	emitter->particle_count = emitter->buffer_max - 1;
-		// }
+        c.length++;
 	}
 
-	void update(const float dt) {
-        
-		for(unsigned i = 0; i < length; i++) {
+	void update(ParticleContainer &c, const float dt) {
+		Particle *particles = c.particles;
+		for(int i = 0; i < c.length; i++) {
             particles[i].life -= dt;
 			if(particles[i].life < 0) {
-				particles[i] = particles[--length];
+				particles[i] = particles[--c.length];
 			}
 
 			particles[i].velocity += particles[i].force * dt;
@@ -70,20 +57,58 @@ namespace Particles {
 			particles[i].color[0] += particles[i].color_shift[2] * dt;
 			particles[i].color[0] += particles[i].color_shift[3] * dt;
 		}
-        FrameLog::log("Particle count: " + std::to_string(length));
 	}
 
-    void render() {
-        for(unsigned i = 0; i < length; i++) {
-            draw_g_circe_RGBA((int)particles[i].position.x, 
+	// void render_sprite(const ParticleContainer &c, Sprite *sprite) {
+	// 	const Particle *particles = c.particles;
+	// 	for(unsigned i = 0; i < c.length; i++) {
+	// 		draw_sprite_centered(sprite, (int)c.particles[i].position.x, (int)particles[i].position.y);
+	// 	}
+	// }
+
+    void render_circles(const ParticleContainer &c) {
+		const Particle *particles = c.particles;
+        for(int i = 0; i < c.length; i++) {
+            draw_g_circle_RGBA((int)particles[i].position.x, 
                 (int)particles[i].position.y, 
                 (int)particles[i].size, 
                 (uint8_t)particles[i].color[0],
                 (uint8_t)particles[i].color[1],
                 (uint8_t)particles[i].color[2],
                 (uint8_t)particles[i].color[3]);
+
+			// 
         }
     }
+
+	void render_circles_filled(const ParticleContainer &c) {
+		const Particle *particles = c.particles;
+        for(int i = 0; i < c.length; i++) {
+            draw_g_circle_filled_RGBA((int)particles[i].position.x, 
+                (int)particles[i].position.y, 
+                (int)particles[i].size, 
+                (uint8_t)particles[i].color[0],
+                (uint8_t)particles[i].color[1],
+                (uint8_t)particles[i].color[2],
+                (uint8_t)particles[i].color[3]);
+
+			// 
+        }
+    }
+
+	void render_rectangles_filled(const ParticleContainer &c) {
+		const Particle *particles = c.particles;
+		for(int i = 0; i < c.length; i++) {
+			draw_g_rectangle_filled_RGBA((int)particles[i].position.x, 
+                (int)particles[i].position.y, 
+                (int)particles[i].size, 
+				(int)particles[i].size,
+                (uint8_t)particles[i].color[0],
+                (uint8_t)particles[i].color[1],
+                (uint8_t)particles[i].color[2],
+                (uint8_t)particles[i].color[3]);
+		}
+	}
 
 /*
     var startColor = [

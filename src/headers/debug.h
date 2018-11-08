@@ -23,14 +23,14 @@ void debug_render() {
 
     for(auto &d : debug_config.render_data) {
         if(d.type == DebugRenderData::Circle) {
-            draw_g_circe_RGBA(d.x, d.y, d.radius, 255, 0, 0, 255);
+            draw_g_circle_RGBA(d.x, d.y, d.radius, 255, 0, 0, 255);
         } else if(d.type == DebugRenderData::Line) {
             draw_g_line_RGBA(d.x, d.y, d.x2, d.y2, 0, 255, 0, 255);
         }
     }
 
     Point p = debug_config.last_collision_point.to_point();
-    draw_g_circe_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
+    draw_g_circle_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
 }
 
 #endif

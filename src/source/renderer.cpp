@@ -510,12 +510,125 @@ void draw_g_vertical_line_RGBA(int x, int y1, int y2, uint8_t r, uint8_t g, uint
     SDL_RenderDrawLine(renderer.renderer, x, y1, x, y2);
 }
 
-void draw_g_circe_color(int x, int y, int rad, SDL_Color &color) {
+void draw_g_circle_color(int x, int y, int rad, SDL_Color &color) {
     draw_g_ellipseRGBA(x, y, rad, rad, color.r, color.g, color.b, color.a);
 }
 
-void draw_g_circe_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void draw_g_circle_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
     draw_g_ellipseRGBA(x, y, rad, rad, r, g, b, a);
+}
+
+void draw_g_circle_filled_color(int x, int y, int rad, SDL_Color &color) {
+	draw_g_circle_filled_RGBA(x, y, rad, color.r, color.g, color.b, color.a);
+}
+
+void draw_g_circle_filled_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+	
+	// int filledCircleColor(SDL_Surface * dst, Sint16 x, Sint16 y, Sint16 rad, Uint32 color)
+
+	int cx = 0;
+	int cy = rad;
+	int ocx = (int) 0xffff;
+	int ocy = (int) 0xffff;
+	int df = 1 - rad;
+	int d_e = 3;
+	int d_se = -2 * rad + 5;
+	int xpcx, xmcx, xpcy, xmcy;
+	int ypcy, ymcy, ypcx, ymcx;
+
+	// /*
+	// * Check visibility of clipping rectangle
+	// */
+	// if ((dst->clip_rect.w==0) || (dst->clip_rect.h==0)) {
+	//         return(0);
+	// }
+
+	/*
+	* Sanity check radius 
+	*/
+	if (rad < 0) {
+	    return;
+	}
+
+	/*
+	* Special case for rad=0 - draw a point 
+	*/
+	if (rad == 0) {
+	    return (draw_g_pixel_RGBA(x, y, r, g, b, a));
+	}
+
+	/*
+	* Get circle and clipping boundary and 
+	* test if bounding box of circle is visible 
+	*/
+	// x2 = x + rad;
+	// left = dst->clip_rect.x;
+	// if (x2<left) {
+	//         return(0);
+	// } 
+	// x1 = x - rad;
+	// right = dst->clip_rect.x + dst->clip_rect.w - 1;
+	// if (x1>right) {
+	//         return(0);
+	// } 
+	// y2 = y + rad;
+	// top = dst->clip_rect.y;
+	// if (y2<top) {
+	//         return(0);
+	// } 
+	// y1 = y - rad;
+	// bottom = dst->clip_rect.y + dst->clip_rect.h - 1;
+	// if (y1>bottom) {
+	//         return(0);
+	// } 
+
+	/*
+	* Draw 
+	*/
+	do {
+	    xpcx = x + cx;
+	    xmcx = x - cx;
+	    xpcy = x + cy;
+	    xmcy = x - cy;
+	    if (ocy != cy) {
+	        if (cy > 0) {
+	            ypcy = y + cy;
+	            ymcy = y - cy;
+				draw_g_horizontal_line_RGBA(xmcx, xpcx, ypcy, r, g, b, a);
+	            draw_g_horizontal_line_RGBA(xmcx, xpcx, ymcy, r, g, b, a);
+	        } else {
+				draw_g_horizontal_line_RGBA(xmcx, xpcx, y, r, g, b, a);
+	        }
+	        ocy = cy;
+	    }
+	    if (ocx != cx) {
+	        if (cx != cy) {
+	            if (cx > 0) {
+	                ypcx = y + cx;
+	            	ymcx = y - cx;
+					draw_g_horizontal_line_RGBA(xmcy, xpcy, ymcx, r, g, b, a);
+	                draw_g_horizontal_line_RGBA(xmcy, xpcy, ypcx, r, g, b, a);
+	            } else {
+					draw_g_horizontal_line_RGBA(xmcy, xpcy, y, r, g, b, a);
+	            }
+	        }
+	        ocx = cx;
+	    }
+	    /*
+	    * Update 
+	    */
+	    if (df < 0) {
+	        df += d_e;
+	        d_e += 2;
+	        d_se += 2;
+	    } else {
+	        df += d_se;
+	        d_e += 2;
+	        d_se += 4;
+	        cy--;
+	    }
+	    cx++;
+	} while (cx <= cy);
 }
 
 #pragma warning(push)

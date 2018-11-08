@@ -35,25 +35,27 @@ namespace Particles {
 		float size_end_min = 0;
 	};
 
-    void init(size_t max_particles);
-    void emit(const Emitter &emitter);
-    void spawn(const Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end);
-    void update(const float dt);
-    void render();
-    /*
-	std::unique_ptr<Emitter> make(const ParticleConfig &config);
-	void configure(std::unique_ptr<Emitter> &emitter, const ParticleConfig &config);
-	void set_position(std::unique_ptr<Emitter> &emitter, const Engine::Vector2 &p);
-	void emit(std::unique_ptr<Emitter> &emitter);
-	void update(std::unique_ptr<Emitter> &emitter, const float dt);
-	void render(std::unique_ptr<Emitter> &emitter);
-	void spawn(std::unique_ptr<Emitter> &emitter, const Engine::Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Engine::Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end);
-    */
+	struct ParticleContainer {
+		Particle *particles;
+    	int length = 0;
+    	size_t length_max = 0;
+	};
 
-	// void spawn(const Engine::Vector2 p, const float life, const float angle, const float speed, const float size, const Engine::Vector2 force, const SDL_Color color);
-	// void spawn_config(ParticleConfig p_config);
-	// void update(float dt);
-	// void render();
+	inline ParticleContainer make(size_t max_particles) {
+		ParticleContainer p;
+		p.particles = new Particle[max_particles];
+		p.length = 0;
+		p.length_max = max_particles;
+		return p;
+	}
+
+    void emit(ParticleContainer &c, const Emitter &emitter);
+    void spawn(ParticleContainer &c, const Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end);
+    void update(ParticleContainer &c, const float dt);
+	void render_circles(const ParticleContainer &c);
+	void render_circles_filled(const ParticleContainer &c);
+    void render_rectangles_filled(const ParticleContainer &c);
+
 };
 
 #endif

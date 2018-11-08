@@ -338,7 +338,7 @@ void debug() {
     }
 
     if(Input::key_pressed(SDLK_n)) {
-        Particles::emit(cfg);
+        // Particles::emit(cfg);
     }
 
     if(Input::key_pressed(SDLK_m)) {
@@ -454,7 +454,7 @@ void update_shooter() {
     spawn_effects();
     remove_destroyed_entities();
 
-    Particles::update(Time::deltaTime);
+    // Particles::update(Time::deltaTime);
     
     export_render_info();
 
@@ -464,7 +464,7 @@ void update_shooter() {
 void render_shooter() {
     // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-    Particles::render();
+    // Particles::render_circles();
     debug_render();
 }
 

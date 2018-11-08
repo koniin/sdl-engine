@@ -26,8 +26,6 @@ inline void game_load() {
 	set_default_font(font);
     FrameLog::enable_at(5, 5);
 	
-	Particles::init(2048);
-	
 	// asteroids_load();
 	// bullet_load();
 	// collision_test_load();

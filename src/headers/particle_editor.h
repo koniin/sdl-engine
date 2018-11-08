@@ -201,7 +201,7 @@ struct SwitchButton {
 
     void forward() {
         ++index;
-        if(index >= values.size()) {
+        if(index >= (int)values.size()) {
             index = 0;
         }
     }
@@ -358,10 +358,12 @@ struct ParticleValueEdit {
 };
 
 Particles::Emitter emitter_main;
+Particles::ParticleContainer particles;
 std::vector<ParticleValueEdit> editors;
 std::vector<Slider> sliders;
 SwitchButton render_mode;
 TextEditBox path;
+
 
 void WriteConfig(const Particles::Emitter &emitter) {
     std::ofstream file;
@@ -489,6 +491,8 @@ void LoadConfig(Particles::Emitter &emitter) {
 void load_particle_editor() {
     SDL_ShowCursor(SDL_ENABLE);
 
+    particles = Particles::make(4000);
+
     emitter_main.position = Vector2((float)(gw / 2), (float)(gh / 2));
     emitter_main.color_start = Colors::make(255, 0, 0, 255);
     emitter_main.color_end = Colors::make(255, 0, 0, 0);
@@ -570,10 +574,10 @@ void load_particle_editor() {
 }
 
 void update_particle_editor() {
-    Particles::update(Time::deltaTime);
+    Particles::update(particles, Time::deltaTime);
 
     if(Input::key_pressed(SDLK_e)) {
-        Particles::emit(emitter_main);
+        Particles::emit(particles, emitter_main);
     }
 
     if(Input::key_pressed(SDLK_w)) {
@@ -594,15 +598,26 @@ void update_particle_editor() {
     path.input();
 
     render_mode.input();
-
+    
+    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Press 'e' to emit");
     FrameLog::log("Press 'w' to write");
     FrameLog::log("Press 'l' to load");
 }
 
 void render_particle_editor() {
-    Particles::render();
-
+    switch(render_mode.get_value()) {
+        case 0: 
+            Particles::render_circles(particles);
+            break;
+        case 1: 
+            Particles::render_circles_filled(particles);
+            break;
+        case 2: 
+            Particles::render_rectangles_filled(particles);
+            break;
+    }
+    
     for(auto &editor : editors)
         editor.render();
 
