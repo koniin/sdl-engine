@@ -121,6 +121,48 @@ struct TextEditBox {
     bool is_active = false;
     int w = 50, h = 20;
 
+    std::vector<char> keys = {
+        SDLK_PERIOD,
+        SDLK_BACKSLASH,
+        SDLK_SLASH,
+        SDLK_a,
+        SDLK_b,
+        SDLK_c,
+        SDLK_d,
+        SDLK_e,
+        SDLK_f,
+        SDLK_g,
+        SDLK_h,
+        SDLK_i,
+        SDLK_j,
+        SDLK_k,
+        SDLK_l,
+        SDLK_m,
+        SDLK_n,
+        SDLK_o,
+        SDLK_p,
+        SDLK_q,
+        SDLK_r,
+        SDLK_s,
+        SDLK_t,
+        SDLK_u,
+        SDLK_v,
+        SDLK_w,
+        SDLK_x,
+        SDLK_y,
+        SDLK_z,
+        SDLK_0,
+        SDLK_1,
+        SDLK_2,
+        SDLK_3,
+        SDLK_4,
+        SDLK_5,
+        SDLK_6,
+        SDLK_7,
+        SDLK_8,
+        SDLK_9
+    };
+
     void input() {
         if(Input::mousex > x && Input::mousex < x + w && Input::mousey > y && Input::mousey < y + h
             && Input::mouse_left_down) {
@@ -133,39 +175,16 @@ struct TextEditBox {
         if(is_active) {
             if(Input::key_pressed(SDLK_BACKSPACE) && text.length() > 0) {
                 text.pop_back();
-            }
-            if(Input::key_pressed(SDLK_RETURN) || Input::key_pressed(SDLK_KP_ENTER)) {
+            } else if(Input::key_pressed(SDLK_RETURN) || Input::key_pressed(SDLK_KP_ENTER)) {
                 is_active = false;
-            }
-            if(Input::key_pressed(SDLK_1)) {
-                text.push_back('1');
-            }
-            if(Input::key_pressed(SDLK_2)) {
-                text.push_back('2');
-            }
-            if(Input::key_pressed(SDLK_3)) {
-                text.push_back('3');
-            }
-            if(Input::key_pressed(SDLK_4)) {
-                text.push_back('4');
-            }
-            if(Input::key_pressed(SDLK_5)) {
-                text.push_back('5');
-            }
-            if(Input::key_pressed(SDLK_6)) {
-                text.push_back('6');
-            }
-            if(Input::key_pressed(SDLK_7)) {
-                text.push_back('7');
-            }
-            if(Input::key_pressed(SDLK_8)) {
-                text.push_back('8');
-            }
-            if(Input::key_pressed(SDLK_9)) {
-                text.push_back('9');
-            }
-            if(Input::key_pressed(SDLK_0)) {
-                text.push_back('0');
+            } else if(Input::key_pressed(SDLK_MINUS)) {
+                text.push_back('\\');
+            } else {
+                for(auto &key : keys) {
+                    if(Input::key_pressed(key)) {
+                        text.push_back(key);
+                    }
+                }
             }
         }
     }
@@ -590,11 +609,22 @@ void load_particle_editor() {
 
     sliders.push_back(Slider("force x", slider_x, slider_y += slider_h, &emitter_main.force.x, 0, 100.0f));
     sliders.push_back(Slider("force y", slider_x, slider_y += slider_h, &emitter_main.force.y, 0, 100.0f));
-
 }
 
 void update_particle_editor() {
     Particles::update(particles, Time::deltaTime);
+
+    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
+    FrameLog::log("Particles: " + std::to_string(particles.length));
+    FrameLog::log("Press 'e' to emit");
+    FrameLog::log("Press 'w' to write");
+    FrameLog::log("Press 'l' to load");
+    FrameLog::log("Press '-' to insert '\\' in path ;)");
+
+    path.input();
+    if(path.is_active) {
+        return;
+    }
 
     if(Input::key_pressed(SDLK_e)) {
         Particles::emit(particles, emitter_main);
@@ -615,15 +645,7 @@ void update_particle_editor() {
     for(auto &editor : editors)
         editor.input();
 
-    path.input();
-
     render_mode.input();
-    
-    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
-    FrameLog::log("Particles: " + std::to_string(particles.length));
-    FrameLog::log("Press 'e' to emit");
-    FrameLog::log("Press 'w' to write");
-    FrameLog::log("Press 'l' to load");
 }
 
 void render_particle_editor() {
