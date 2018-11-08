@@ -61,10 +61,11 @@ namespace Particles {
 	}
 
     void render_circles(const ParticleContainer &c) {
+		const auto &camera = get_camera();
 		const Particle *particles = c.particles;
         for(int i = 0; i < c.length; i++) {
-            draw_g_circle_RGBA((int)particles[i].position.x, 
-                (int)particles[i].position.y, 
+            draw_g_circle_RGBA((int)(particles[i].position.x - camera.x), 
+                (int)(particles[i].position.y - camera.y), 
                 (int)particles[i].size, 
                 (uint8_t)particles[i].color[0],
                 (uint8_t)particles[i].color[1],
@@ -74,10 +75,11 @@ namespace Particles {
     }
 
 	void render_circles_filled(const ParticleContainer &c) {
+		const auto &camera = get_camera();
 		const Particle *particles = c.particles;
         for(int i = 0; i < c.length; i++) {
-            draw_g_circle_filled_RGBA((int)particles[i].position.x, 
-                (int)particles[i].position.y, 
+            draw_g_circle_filled_RGBA((int)(particles[i].position.x - camera.x), 
+                (int)(particles[i].position.y - camera.y), 
                 (int)particles[i].size, 
                 (uint8_t)particles[i].color[0],
                 (uint8_t)particles[i].color[1],
@@ -87,10 +89,11 @@ namespace Particles {
     }
 
 	void render_rectangles_filled(const ParticleContainer &c) {
+		const auto &camera = get_camera();
 		const Particle *particles = c.particles;
 		for(int i = 0; i < c.length; i++) {
-			draw_g_rectangle_filled_RGBA((int)particles[i].position.x, 
-                (int)particles[i].position.y, 
+			draw_g_rectangle_filled_RGBA((int)(particles[i].position.x - camera.x), 
+                (int)(particles[i].position.y - camera.y), 
                 (int)particles[i].size, 
 				(int)particles[i].size,
                 (uint8_t)particles[i].color[0],

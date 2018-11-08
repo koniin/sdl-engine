@@ -7,8 +7,8 @@
 // #include "tile_collisions.h"
 // #include "asteroids.h"
 // #include "bullet_physics.h"
-// #include "shooter_game.h"
-#include "particle_editor.h"
+#include "shooter_game.h"
+// #include "particle_editor.h"
 // #include "collision_tests.h"
 #include <chrono>
 
@@ -35,8 +35,8 @@ inline void game_load() {
 	// tile_collisions_load();
 
 
-	// load_shooter();
-	load_particle_editor();
+	load_shooter();
+	// load_particle_editor();
 }
 
 inline void game_update() {
@@ -49,8 +49,8 @@ inline void game_update() {
     // auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
     // std::cout << "\n" << duration << " MICRO seconds";
 
-	// update_shooter();
-	update_particle_editor();
+	update_shooter();
+	// update_particle_editor();
 }
 
 inline void game_render() {
@@ -61,21 +61,23 @@ inline void game_render() {
 	*/
 	//draw_spritesheet_name_centered_rotated(the_sheet, "middle", enemy.x, enemy.y, enemy.angle);
 
-	// renderer_clear();
+	
 	// // asteroids_render();
 	// // tile_collisions_render();
 	// // bullet_render();
 	// // collision_test_render();
-	// render_shooter();
-	// renderer_draw_render_target_camera();
-	// render_shooter_ui();
-	// renderer_flip();
-
 	
 	renderer_clear();
-	render_particle_editor();
+	render_shooter();
 	renderer_draw_render_target_camera();
+	render_shooter_ui();
 	renderer_flip();
+
+	
+	// renderer_clear();
+	// render_particle_editor();
+	// renderer_draw_render_target_camera();
+	// renderer_flip();
 }
 
 inline void game_unload() {

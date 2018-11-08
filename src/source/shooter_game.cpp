@@ -7,16 +7,20 @@
 #include "rendering.h"
 #include "entities.h"
 #include "systems.h"
+#include "particles.h"
 
-PlayerConfiguration player_config;
-TargetConfiguration target_config;
-ECS::EntityManager entity_manager;
-Player players;
-Projectile projectiles;
-Target targets;
-Effect effects;
-Rectangle world_bounds;
-RenderBuffer render_buffer;
+static PlayerConfiguration player_config;
+static TargetConfiguration target_config;
+static ECS::EntityManager entity_manager;
+static Player players;
+static Projectile projectiles;
+static Target targets;
+static Effect effects;
+static Rectangle world_bounds;
+static RenderBuffer render_buffer;
+static CollisionPairs collisions;
+static Particles::ParticleContainer particles;
+static Particles::Emitter explosion_emitter;
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -218,6 +222,9 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
             Engine::pause(0.03f);
 
             spawn_explosion(second_pos.value, 10, 10);
+
+            explosion_emitter.position = second_pos.value;
+            Particles::emit(particles, explosion_emitter);
         }
     }
     collision_pairs.clear();
@@ -234,16 +241,6 @@ void remove_destroyed_entities() {
         entity_manager.destroy(entities_to_destroy[i]);
     }
     entities_to_destroy.clear();
-}
-
-void load_render_data() {
-    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
-
-	Resources::font_load("gameover", "pixeltype.ttf", 85);
-    
-	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
-    // Set up a white copy of the sprite sheet
-    Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
 }
 
 void export_render_info() {
@@ -306,24 +303,6 @@ void debug() {
 	// cfg.size_end_min = 0;
 	// cfg.size_end_max = 0;
 
-    Particles::Emitter cfg;
-	cfg.position = Vector2((float)(gw / 2), (float)(gh / 2));
-	cfg.color_start = Colors::make(255, 0, 0, 255);
-	cfg.color_end = Colors::make(255, 0, 0, 0);
-	cfg.force = Vector2(78, 78);
-	cfg.min_particles = 30;
-	cfg.max_particles = 50;
-	cfg.life_min = 0.1f;
-	cfg.life_max = 0.3f;
-	cfg.angle_min = 0;
-	cfg.angle_max = 360;
-	cfg.speed_min = 60;
-	cfg.speed_max = 150;
-	cfg.size_min = 1;
-	cfg.size_max = 3;
-	cfg.size_end_min = 0;
-	cfg.size_end_max = 0;
-
     // Engine::logn("%d", sizeof(Particles::Particle));
 
     static float bullet_speed = 8.0f;
@@ -338,7 +317,7 @@ void debug() {
     }
 
     if(Input::key_pressed(SDLK_n)) {
-        // Particles::emit(cfg);
+        Particles::emit(particles, explosion_emitter);
     }
 
     if(Input::key_pressed(SDLK_m)) {
@@ -399,15 +378,16 @@ void debug() {
 	}
 }
 
-static CollisionPairs collisions;
+void load_resources() {
+    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
 
-void load_shooter() {
-    renderer_set_clear_color({ 8, 0, 18, 255 });
+	Resources::font_load("gameover", "pixeltype.ttf", 85);
+    
+	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
+    // Set up a white copy of the sprite sheet
+    Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
 
-    load_render_data();
-
-    world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
-
+    particles = Particles::make(4096);
     players.allocate(2);
     projectiles.allocate(128);
     targets.allocate(128);
@@ -416,12 +396,39 @@ void load_shooter() {
     entities_to_destroy.reserve(64);
     collisions.allocate(128);
 
+    explosion_emitter.position = Vector2(320, 180);
+    explosion_emitter.color_start = Colors::make(229,130,0,255);
+    explosion_emitter.color_end = Colors::make(255,255,255,255);
+    explosion_emitter.force = Vector2(10, 22);
+    explosion_emitter.min_particles = 8;
+    explosion_emitter.max_particles = 12;
+    explosion_emitter.life_min = 0.100f;
+    explosion_emitter.life_max = 0.250f;
+    explosion_emitter.angle_min = 0;
+    explosion_emitter.angle_max = 360;
+    explosion_emitter.speed_min = 32;
+    explosion_emitter.speed_max = 56;
+    explosion_emitter.size_min = 1.600f;
+    explosion_emitter.size_max = 5;
+    explosion_emitter.size_end_min = 6.200f;
+    explosion_emitter.size_end_max = 9;
+}
+
+void init_scene() {
+    renderer_set_clear_color({ 8, 0, 18, 255 });
+    world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
+
     Vector2 player_position = Vector2(100, 200);
     spawn_player(player_position);
     camera_lookat(player_position);
     spawn_target(Vector2(10, 10));
     spawn_target(Vector2(400, 200));
     spawn_target(Vector2(350, 200));
+}
+
+void load_shooter() {
+    load_resources();
+    init_scene();
 }
 
 void movement() {
@@ -454,7 +461,7 @@ void update_shooter() {
     spawn_effects();
     remove_destroyed_entities();
 
-    // Particles::update(Time::deltaTime);
+    Particles::update(particles, Time::deltaTime);
     
     export_render_info();
 
@@ -462,9 +469,8 @@ void update_shooter() {
 }
 
 void render_shooter() {
-    // draw_g_circe_RGBA(gw, 0, 10, 0, 0, 255, 255);
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-    // Particles::render_circles();
+    Particles::render_circles_filled(particles);
     debug_render();
 }
 
