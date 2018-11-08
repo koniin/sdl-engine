@@ -180,6 +180,46 @@ struct TextEditBox {
     }
 };
 
+struct SwitchButton {
+    int x, y;
+    std::string text;
+    bool is_active = false;
+    int w = 40, h = 15;
+    std::vector<int> values;
+    std::vector<std::string> values_text;
+    int index = 0;
+
+    void input() {
+        text = values_text[index];
+        is_active = false;
+        if(Input::mousex > x && Input::mousex < x + w && Input::mousey > y && Input::mousey < y + h
+            && Input::mouse_left_down) {
+            is_active = true;
+            forward();
+        }
+    }
+
+    void forward() {
+        ++index;
+        if(index >= values.size()) {
+            index = 0;
+        }
+    }
+
+    int get_value() {
+        return values[index];
+    }
+
+    void render() {
+        if(is_active) {
+            draw_g_rectangle_filled_RGBA(x, y, w, h, 255, 125, 152, 255);
+        } else {
+            draw_g_rectangle_filled_RGBA(x, y, w, h, 94, 48, 135, 255);
+        }
+        draw_text_centered_str(x + (w / 2), y + (h / 2), Colors::black, text);
+    }
+};
+
 struct Slider {
     int x, y;
     std::string text;
@@ -317,9 +357,10 @@ struct ParticleValueEdit {
     }
 };
 
-Particles::Emitter cfg;
+Particles::Emitter emitter_main;
 std::vector<ParticleValueEdit> editors;
 std::vector<Slider> sliders;
+SwitchButton render_mode;
 TextEditBox path;
 
 void WriteConfig(const Particles::Emitter &emitter) {
@@ -358,12 +399,22 @@ void WriteConfig(const Particles::Emitter &emitter) {
     Engine::logn("Export complete.");
 }
 
+std::string format_float(float f) {
+    if(f == (int)f) {
+        return Text::format("%d", (int)f);
+    } else {
+        return Text::format("%.3ff", f);
+    }
+}
+
 void Write_C_Config(const Particles::Emitter &emitter) {
     std::ofstream file;
     file.open(path.text + ".c");
 
-    file << "emitter.position = Vector2(" << emitter.position.x;
-    file << ", " << emitter.position.y << ");\n";
+    //file << std::setprecision(4);
+
+    file << "emitter.position = Vector2(" << format_float(emitter.position.x);
+    file << ", " << format_float(emitter.position.y) << ");\n";
 
     file << "emitter.color_start = Colors::make(" << (int)emitter.color_start.r << "," 
         << (int)emitter.color_start.g << "," << (int)emitter.color_start.b << ","
@@ -373,22 +424,20 @@ void Write_C_Config(const Particles::Emitter &emitter) {
         << (int)emitter.color_end.g << "," << (int)emitter.color_end.b << ","
         << (int)emitter.color_end.a << ");\n";
 
-    file << "emitter.force = Vector2(" << emitter.force.x << "," << emitter.force.y << ");\n";
-
-    NEED TO HANDLE .f and 0.0f
+    file << "emitter.force = Vector2(" << format_float(emitter.force.x) << ", " << format_float(emitter.force.y) << ");\n";
 
     file << "emitter.min_particles = " << emitter.min_particles << ";\n";
     file << "emitter.max_particles = " << emitter.max_particles << ";\n";
-    file << "emitter.life_min = " << emitter.life_min << "f;\n";
-    file << "emitter.life_max = " << emitter.life_max << "f;\n";
-    file << "emitter.angle_min = " << emitter.angle_min << "f;\n";
-    file << "emitter.angle_max = " << emitter.angle_max << "f;\n";
-    file << "emitter.speed_min = " << emitter.speed_min << "f;\n";
-    file << "emitter.speed_max = " << emitter.speed_max << "f;\n";
-    file << "emitter.size_min = " << emitter.size_min << "f;\n";
-    file << "emitter.size_max = " << emitter.size_max << "f;\n";
-    file << "emitter.size_end_min = " << emitter.size_end_min << "f;\n";
-    file << "emitter.size_end_max = " << emitter.size_end_max << "f;\n";
+    file << "emitter.life_min = " << format_float(emitter.life_min) << ";\n";
+    file << "emitter.life_max = " << format_float(emitter.life_max) << ";\n";
+    file << "emitter.angle_min = " << format_float(emitter.angle_min) << ";\n";
+    file << "emitter.angle_max = " << format_float(emitter.angle_max) << ";\n";
+    file << "emitter.speed_min = " << format_float(emitter.speed_min) << ";\n";
+    file << "emitter.speed_max = " << format_float(emitter.speed_max) << ";\n";
+    file << "emitter.size_min = " << format_float(emitter.size_min) << ";\n";
+    file << "emitter.size_max = " << format_float(emitter.size_max) << ";\n";
+    file << "emitter.size_end_min = " << format_float(emitter.size_end_min) << ";\n";
+    file << "emitter.size_end_max = " << format_float(emitter.size_end_max) << ";\n";
     file.close();
     Engine::logn("C Export complete.");
 }
@@ -440,78 +489,100 @@ void LoadConfig(Particles::Emitter &emitter) {
 void load_particle_editor() {
     SDL_ShowCursor(SDL_ENABLE);
 
-    cfg.position = Vector2((float)(gw / 2), (float)(gh / 2));
-    cfg.color_start = Colors::make(255, 0, 0, 255);
-    cfg.color_end = Colors::make(255, 0, 0, 0);
-    cfg.force = Vector2(78, 78);
-    cfg.min_particles = 30;
-    cfg.max_particles = 50;
-    cfg.life_min = 0.1f;
-    cfg.life_max = 0.3f;
-    cfg.angle_min = 0;
-    cfg.angle_max = 360;
-    cfg.speed_min = 60;
-    cfg.speed_max = 150;
-    cfg.size_min = 1;
-    cfg.size_max = 3;
-    cfg.size_end_min = 0;
-    cfg.size_end_max = 0;
+    emitter_main.position = Vector2((float)(gw / 2), (float)(gh / 2));
+    emitter_main.color_start = Colors::make(255, 0, 0, 255);
+    emitter_main.color_end = Colors::make(255, 0, 0, 0);
+    emitter_main.force = Vector2(78, 78);
+    emitter_main.min_particles = 30;
+    emitter_main.max_particles = 50;
+    emitter_main.life_min = 0.1f;
+    emitter_main.life_max = 0.3f;
+    emitter_main.angle_min = 0;
+    emitter_main.angle_max = 360;
+    emitter_main.speed_min = 60;
+    emitter_main.speed_max = 150;
+    emitter_main.size_min = 1;
+    emitter_main.size_max = 3;
+    emitter_main.size_end_min = 0;
+    emitter_main.size_end_max = 0;
 
-    Particles::Emitter emitter;
-    
+    Particles::Emitter &emitter = emitter_main;
+    emitter.position = Vector2(320, 180);
+    emitter.color_start = Colors::make(255,0,0,255);
+    emitter.color_end = Colors::make(255,0,0,0);
+    emitter.force = Vector2(33, 35);
+    emitter.min_particles = 46;
+    emitter.max_particles = 86;
+    emitter.life_min = 0.100f;
+    emitter.life_max = 0.300f;
+    emitter.angle_min = 0;
+    emitter.angle_max = 360;
+    emitter.speed_min = 122;
+    emitter.speed_max = 158;
+    emitter.size_min = 1;
+    emitter.size_max = 3;
+    emitter.size_end_min = 4.200f;
+    emitter.size_end_max = 9;
     
     path.text = "C:\\temp\\test.particle";
     path.w = 300;
     path.x = gw - path.w;
     path.y = gh - 20; 
 
+    render_mode.values = { 0, 1, 2 };
+    render_mode.values_text = { "circle", "fill circle", "fill rectangle" };
+    render_mode.w = 100;
+    render_mode.x = gw - render_mode.w;
+    render_mode.y = gh - 36;
+
     int x = 10;
     int y = gh - 26 * 7;
     int distance = 24;
-    editors.push_back(ParticleValueEdit("count:", x, y, &cfg.min_particles, &cfg.max_particles));
-    editors.push_back(ParticleValueEdit("life:", x, y += distance, &cfg.life_min, &cfg.life_max));
-    editors.push_back(ParticleValueEdit("angle:", x, y += distance, &cfg.angle_min, &cfg.angle_max));
-    editors.push_back(ParticleValueEdit("speed:", x, y += distance, &cfg.speed_min, &cfg.speed_max));
-    editors.push_back(ParticleValueEdit("size:", x, y += distance, &cfg.size_min, &cfg.size_max));
-    editors.push_back(ParticleValueEdit("size end:", x, y += distance, &cfg.size_end_min, &cfg.size_end_max));
-    editors.push_back(ParticleValueEdit("force:", x, y += distance, &cfg.force.x, &cfg.force.y));
+    editors.push_back(ParticleValueEdit("count:", x, y, &emitter_main.min_particles, &emitter_main.max_particles));
+    editors.push_back(ParticleValueEdit("life:", x, y += distance, &emitter_main.life_min, &emitter_main.life_max));
+    editors.push_back(ParticleValueEdit("angle:", x, y += distance, &emitter_main.angle_min, &emitter_main.angle_max));
+    editors.push_back(ParticleValueEdit("speed:", x, y += distance, &emitter_main.speed_min, &emitter_main.speed_max));
+    editors.push_back(ParticleValueEdit("size:", x, y += distance, &emitter_main.size_min, &emitter_main.size_max));
+    editors.push_back(ParticleValueEdit("size end:", x, y += distance, &emitter_main.size_end_min, &emitter_main.size_end_max));
+    editors.push_back(ParticleValueEdit("force:", x, y += distance, &emitter_main.force.x, &emitter_main.force.y));
 
     int slider_y = 10;
     int slider_h = 21;
     int slider_x = gw - 120;
-    sliders.push_back(Slider("min_particles", slider_x, slider_y, &cfg.min_particles, 0, 200));
-    sliders.push_back(Slider("max_particles", slider_x, slider_y += slider_h, &cfg.max_particles, 0, 200));
+    sliders.push_back(Slider("min_particles", slider_x, slider_y, &emitter_main.min_particles, 0, 200));
+    sliders.push_back(Slider("max_particles", slider_x, slider_y += slider_h, &emitter_main.max_particles, 0, 200));
 
-    sliders.push_back(Slider("life_min", slider_x, slider_y += slider_h, &cfg.life_min, 0, 10.0f));
-    sliders.push_back(Slider("life_max", slider_x, slider_y += slider_h, &cfg.life_max, 0, 10.0f));
-    sliders.push_back(Slider("angle_min", slider_x, slider_y += slider_h, &cfg.angle_min, 0, 360.0f));
-    sliders.push_back(Slider("angle_max", slider_x, slider_y += slider_h, &cfg.angle_max, 0, 360.0f));
-    sliders.push_back(Slider("speed_min", slider_x, slider_y += slider_h, &cfg.speed_min, 0, 200.0f));
-    sliders.push_back(Slider("speed_max", slider_x, slider_y += slider_h, &cfg.speed_max, 0, 200.0f));
-    sliders.push_back(Slider("size_min", slider_x, slider_y += slider_h, &cfg.size_min, 0, 20.0f));
-    sliders.push_back(Slider("size_max", slider_x, slider_y += slider_h, &cfg.size_max, 0, 20.0f));
+    sliders.push_back(Slider("life_min", slider_x, slider_y += slider_h, &emitter_main.life_min, 0, 10.0f));
+    sliders.push_back(Slider("life_max", slider_x, slider_y += slider_h, &emitter_main.life_max, 0, 10.0f));
+    sliders.push_back(Slider("angle_min", slider_x, slider_y += slider_h, &emitter_main.angle_min, 0, 360.0f));
+    sliders.push_back(Slider("angle_max", slider_x, slider_y += slider_h, &emitter_main.angle_max, 0, 360.0f));
+    sliders.push_back(Slider("speed_min", slider_x, slider_y += slider_h, &emitter_main.speed_min, 0, 200.0f));
+    sliders.push_back(Slider("speed_max", slider_x, slider_y += slider_h, &emitter_main.speed_max, 0, 200.0f));
+    sliders.push_back(Slider("size_min", slider_x, slider_y += slider_h, &emitter_main.size_min, 0, 20.0f));
+    sliders.push_back(Slider("size_max", slider_x, slider_y += slider_h, &emitter_main.size_max, 0, 20.0f));
 
-    sliders.push_back(Slider("size_end_min", slider_x, slider_y += slider_h, &cfg.size_end_min, 0, 60.0f));
-    sliders.push_back(Slider("size_end_max", slider_x, slider_y += slider_h, &cfg.size_end_max, 0, 60.0f));
+    sliders.push_back(Slider("size_end_min", slider_x, slider_y += slider_h, &emitter_main.size_end_min, 0, 60.0f));
+    sliders.push_back(Slider("size_end_max", slider_x, slider_y += slider_h, &emitter_main.size_end_max, 0, 60.0f));
 
-    sliders.push_back(Slider("force x", slider_x, slider_y += slider_h, &cfg.force.x, 0, 100.0f));
-    sliders.push_back(Slider("force y", slider_x, slider_y += slider_h, &cfg.force.y, 0, 100.0f));
+    sliders.push_back(Slider("force x", slider_x, slider_y += slider_h, &emitter_main.force.x, 0, 100.0f));
+    sliders.push_back(Slider("force y", slider_x, slider_y += slider_h, &emitter_main.force.y, 0, 100.0f));
+
 }
 
 void update_particle_editor() {
     Particles::update(Time::deltaTime);
 
     if(Input::key_pressed(SDLK_e)) {
-        Particles::emit(cfg);
+        Particles::emit(emitter_main);
     }
 
     if(Input::key_pressed(SDLK_w)) {
-        WriteConfig(cfg);
-        Write_C_Config(cfg);
+        WriteConfig(emitter_main);
+        Write_C_Config(emitter_main);
     }
     
     if(Input::key_pressed(SDLK_l)) {
-        LoadConfig(cfg);
+        LoadConfig(emitter_main);
     }
 
     for(auto &slider : sliders)
@@ -521,6 +592,8 @@ void update_particle_editor() {
         editor.input();
 
     path.input();
+
+    render_mode.input();
 
     FrameLog::log("Press 'e' to emit");
     FrameLog::log("Press 'w' to write");
@@ -537,4 +610,6 @@ void render_particle_editor() {
         slider.render();
 
     path.render();
+
+    render_mode.render();
 }
