@@ -15,7 +15,7 @@ namespace Particles {
 	}
 	
     void spawn(ParticleContainer &c, const Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end) {
-		Particle &particle = c.particles[c.length];
+		Particle &particle = c.particles[c.length++];
 		particle.position = p;
 		particle.life = life;
 		particle.size = size;
@@ -35,8 +35,6 @@ namespace Particles {
 		particle.color_shift[1] = (color_end.g - color_start.g) / life;
 		particle.color_shift[2] = (color_end.b - color_start.b) / life;
 		particle.color_shift[3] = (color_end.a - color_start.a) / life;
-		
-        c.length++;
 	}
 
 	void update(ParticleContainer &c, const float dt) {
@@ -53,18 +51,16 @@ namespace Particles {
 			particles[i].size += particles[i].size_shift * dt;
 
     		particles[i].color[0] += particles[i].color_shift[0] * dt;
-			particles[i].color[0] += particles[i].color_shift[1] * dt;
-			particles[i].color[0] += particles[i].color_shift[2] * dt;
-			particles[i].color[0] += particles[i].color_shift[3] * dt;
+			particles[i].color[1] += particles[i].color_shift[1] * dt;
+			particles[i].color[2] += particles[i].color_shift[2] * dt;
+			particles[i].color[3] += particles[i].color_shift[3] * dt;
+
+			particles[i].color[0] = Math::clamp_f(particles[i].color[0], 0, 255);
+			particles[i].color[1] = Math::clamp_f(particles[i].color[1], 0, 255);
+			particles[i].color[2] = Math::clamp_f(particles[i].color[2], 0, 255);
+			particles[i].color[3] = Math::clamp_f(particles[i].color[3], 0, 255);
 		}
 	}
-
-	// void render_sprite(const ParticleContainer &c, Sprite *sprite) {
-	// 	const Particle *particles = c.particles;
-	// 	for(unsigned i = 0; i < c.length; i++) {
-	// 		draw_sprite_centered(sprite, (int)c.particles[i].position.x, (int)particles[i].position.y);
-	// 	}
-	// }
 
     void render_circles(const ParticleContainer &c) {
 		const Particle *particles = c.particles;
@@ -76,8 +72,6 @@ namespace Particles {
                 (uint8_t)particles[i].color[1],
                 (uint8_t)particles[i].color[2],
                 (uint8_t)particles[i].color[3]);
-
-			// 
         }
     }
 
@@ -91,8 +85,6 @@ namespace Particles {
                 (uint8_t)particles[i].color[1],
                 (uint8_t)particles[i].color[2],
                 (uint8_t)particles[i].color[3]);
-
-			// 
         }
     }
 

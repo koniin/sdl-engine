@@ -318,7 +318,13 @@ namespace Math {
 	static const float Pi = 3.14159265358979323846f;
 	static const float RAD_TO_DEGREE = 180.0f / (float)M_PI;
 	
-	inline float clamp(float x, float a, float b) {
+	inline int clamp_i(int x, int a, int b) {
+    	x = std::max(x, a);
+    	x = std::min(x, b);
+    	return x;
+	}
+
+	inline float clamp_f(float x, float a, float b) {
     	x = std::fmax(x, a);
     	x = std::fmin(x, b);
     	return x;

@@ -273,7 +273,7 @@ struct Slider {
 
         if(is_active) {
             value_x = Input::mousex - 5 - x;
-            value_x = (int)Math::clamp((float)value_x, 0, (float)w - 10);
+            value_x = Math::clamp_i(value_x, 0, w - 10);
             std::string val_x = std::to_string(value_x);
             float v = (((float)value_x) * (max_val - min_val) / 100) + min_val;
             
@@ -512,8 +512,8 @@ void load_particle_editor() {
 
     Particles::Emitter &emitter = emitter_main;
     emitter.position = Vector2(320, 180);
-    emitter.color_start = Colors::make(255,0,0,255);
-    emitter.color_end = Colors::make(255,0,0,0);
+    emitter.color_start = Colors::white;
+    emitter.color_end = Colors::black;
     emitter.force = Vector2(33, 35);
     emitter.min_particles = 46;
     emitter.max_particles = 86;
@@ -527,6 +527,26 @@ void load_particle_editor() {
     emitter.size_max = 3;
     emitter.size_end_min = 4.200f;
     emitter.size_end_max = 9;
+
+    {
+        Particles::Emitter &emitter = emitter_main;
+        emitter.position = Vector2(320, 180);
+        emitter.color_start = Colors::white;
+        emitter.color_end = Colors::black;
+        emitter.force = Vector2(10, 10);
+        emitter.min_particles = 1;
+        emitter.max_particles = 1;
+        emitter.life_min = 1.100f;
+        emitter.life_max = 1.300f;
+        emitter.angle_min = 0;
+        emitter.angle_max = 360;
+        emitter.speed_min = 30;
+        emitter.speed_max = 30;
+        emitter.size_min = 3;
+        emitter.size_max = 5;
+        emitter.size_end_min = 6.200f;
+        emitter.size_end_max = 9;
+    }
     
     path.text = "C:\\temp\\test.particle";
     path.w = 300;
@@ -600,6 +620,7 @@ void update_particle_editor() {
     render_mode.input();
     
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
+    FrameLog::log("Particles: " + std::to_string(particles.length));
     FrameLog::log("Press 'e' to emit");
     FrameLog::log("Press 'w' to write");
     FrameLog::log("Press 'l' to load");

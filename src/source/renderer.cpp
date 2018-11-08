@@ -946,7 +946,7 @@ void camera_lookat(Vector2 position) {
 
 void camera_shake(float t) {
 	camera.trauma += t;
-	camera.trauma = Math::clamp(camera.trauma, 0.0f, 1.0f);
+	camera.trauma = Math::clamp_f(camera.trauma, 0.0f, 1.0f);
 	camera.shake_duration = 0.7f;
 }
 
