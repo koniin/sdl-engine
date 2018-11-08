@@ -21,6 +21,7 @@ static RenderBuffer render_buffer;
 static CollisionPairs collisions;
 static Particles::ParticleContainer particles;
 static Particles::Emitter explosion_emitter;
+static Particles::Emitter hit_emitter;
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -223,8 +224,13 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
             spawn_explosion(second_pos.value, 10, 10);
 
+            /*
             explosion_emitter.position = second_pos.value;
             Particles::emit(particles, explosion_emitter);
+            */
+
+            hit_emitter.position = collision_pairs[i].collision_point;
+            Particles::emit(particles, hit_emitter);
         }
     }
     collision_pairs.clear();
@@ -412,6 +418,23 @@ void load_resources() {
     explosion_emitter.size_max = 5;
     explosion_emitter.size_end_min = 6.200f;
     explosion_emitter.size_end_max = 9;
+
+    hit_emitter.position = Vector2(320, 180);
+    hit_emitter.color_start = Colors::make(229,130,0,255);
+    hit_emitter.color_end = Colors::make(255,255,255,255);
+    hit_emitter.force = Vector2(0, 0);
+    hit_emitter.min_particles = 30;
+    hit_emitter.max_particles = 42;
+    hit_emitter.life_min = 0.100f;
+    hit_emitter.life_max = 0.200f;
+    hit_emitter.angle_min = 0;
+    hit_emitter.angle_max = 32.400f;
+    hit_emitter.speed_min = 122;
+    hit_emitter.speed_max = 138;
+    hit_emitter.size_min = 2.200f;
+    hit_emitter.size_max = 2.600f;
+    hit_emitter.size_end_min = 0;
+    hit_emitter.size_end_max = 0.600f;
 }
 
 void init_scene() {

@@ -27,17 +27,20 @@ Do movement and then:
     - luftrausers uses fixed sprite that changes shape rapidly and only shows on forward movment
 
 Particles
-[ ] Particle spray on explosion?
-[ ] Follow bullet first few frames
+[X] Particle spray on explosion?
 [ ] Smoke or something when firing from ship
+[ ] Small Particle spray on hit enemy (and not dead)
+[ ] Particle trail from player when moving
 
-[ ] check the clip from dropbox with the game maker thing and take notes
+[ ] Only show ship exhaust fire when moving
 
 Then:
 [ ] Player ship rotation animation (exists in sheet)
 [ ] Sound - just test with a fire sound and hit sound
 [ ] Animatons
 [ ] More base in sound effects
+
+[ ] Particle follow bullet first few frames (for very very fast moving things like railgun/lazer?)
 
 * Leave something behind when something is killed
     - destroy hit enemy
