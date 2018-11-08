@@ -40,10 +40,11 @@ namespace Particles {
 	void update(ParticleContainer &c, const float dt) {
 		Particle *particles = c.particles;
 		for(int i = 0; i < c.length; i++) {
-            particles[i].life -= dt;
 			if(particles[i].life < 0) {
 				particles[i] = particles[--c.length];
 			}
+
+            particles[i].life -= dt;
 
 			particles[i].velocity += particles[i].force * dt;
 			particles[i].position += particles[i].velocity * dt;
