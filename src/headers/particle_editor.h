@@ -417,7 +417,7 @@ void WriteConfig(const Particles::Emitter &emitter) {
     file << emitter.size_end_min << "\n";
     file << emitter.size_end_max << "\n";
     file.close();
-    Engine::logn("Export complete.");
+    Engine::logn("Export complete [%s]", path.text.c_str());
 }
 
 std::string format_float(float f) {
@@ -460,7 +460,7 @@ void Write_C_Config(const Particles::Emitter &emitter) {
     file << "emitter.size_end_min = " << format_float(emitter.size_end_min) << ";\n";
     file << "emitter.size_end_max = " << format_float(emitter.size_end_max) << ";\n";
     file.close();
-    Engine::logn("C Export complete.");
+    Engine::logn("C Export complete [%s.c]", path.text.c_str());
 }
 
 void LoadConfig(Particles::Emitter &emitter) {
@@ -504,7 +504,7 @@ void LoadConfig(Particles::Emitter &emitter) {
     file >> emitter.size_end_min;
     file >> emitter.size_end_max;
     file.close();
-    Engine::logn("Import complete.");
+    Engine::logn("Import complete [%s]", path.text.c_str());
 }
 
 void load_particle_editor() {
@@ -550,24 +550,24 @@ void load_particle_editor() {
     {
         Particles::Emitter &emitter = emitter_main;
         emitter.position = Vector2(320, 180);
-        emitter.color_start = Colors::white;
-        emitter.color_end = Colors::black;
+        emitter.color_start = Colors::make(229, 130, 0,255);
+        emitter.color_end = Colors::make(255,255,255,255);
         emitter.force = Vector2(10, 10);
-        emitter.min_particles = 1;
-        emitter.max_particles = 1;
-        emitter.life_min = 1.100f;
-        emitter.life_max = 1.300f;
+        emitter.min_particles = 8;
+        emitter.max_particles = 12;
+        emitter.life_min = 0.200f;
+        emitter.life_max = 0.400f;
         emitter.angle_min = 0;
         emitter.angle_max = 360;
-        emitter.speed_min = 30;
-        emitter.speed_max = 30;
+        emitter.speed_min = 16;
+        emitter.speed_max = 24;
         emitter.size_min = 3;
         emitter.size_max = 5;
         emitter.size_end_min = 6.200f;
         emitter.size_end_max = 9;
     }
     
-    path.text = "C:\\temp\\test.particle";
+    path.text = "C:\\temp\\temp_g\\particles\\explosion.particle";
     path.w = 300;
     path.x = gw - path.w;
     path.y = gh - 20; 

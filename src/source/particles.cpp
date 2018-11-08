@@ -2,6 +2,8 @@
 #include "renderer.h"
 
 namespace Particles {
+	static float x_variance = 10.0f;
+
     void emit(ParticleContainer &c, const Emitter &p_config) {
 		int particle_count = RNG::range_i(p_config.min_particles, p_config.max_particles);
 		for(int i = 0; i < particle_count; ++i) {
