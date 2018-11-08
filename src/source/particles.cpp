@@ -50,15 +50,10 @@ namespace Particles {
 
 			particles[i].size += particles[i].size_shift * dt;
 
-    		particles[i].color[0] += particles[i].color_shift[0] * dt;
-			particles[i].color[1] += particles[i].color_shift[1] * dt;
-			particles[i].color[2] += particles[i].color_shift[2] * dt;
-			particles[i].color[3] += particles[i].color_shift[3] * dt;
-
-			particles[i].color[0] = Math::clamp_f(particles[i].color[0], 0, 255);
-			particles[i].color[1] = Math::clamp_f(particles[i].color[1], 0, 255);
-			particles[i].color[2] = Math::clamp_f(particles[i].color[2], 0, 255);
-			particles[i].color[3] = Math::clamp_f(particles[i].color[3], 0, 255);
+    		particles[i].color[0] = Math::clamp_f(particles[i].color[0] + particles[i].color_shift[0] * dt, 0, 255);
+			particles[i].color[1] = Math::clamp_f(particles[i].color[1] + particles[i].color_shift[1] * dt, 0, 255);
+			particles[i].color[2] = Math::clamp_f(particles[i].color[2] + particles[i].color_shift[2] * dt, 0, 255);
+			particles[i].color[3] = Math::clamp_f(particles[i].color[3] + particles[i].color_shift[3] * dt, 0, 255);
 		}
 	}
 
