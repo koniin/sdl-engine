@@ -212,29 +212,6 @@ void system_player_handle_input() {
     }
 }
 
-template<typename T>
-void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprites) {
-    for(int i = 0; i < players.length; i++) {
-        PlayerInput &pi = players.input[i];
-        const PlayerConfiguration &player_config = players.config[i];
-        int exhaust_id = players.get_child_sprite_index(player_config.exhaust_id);
-
-        auto &exhaust_animation = players.child_sprites.animation[exhaust_id];
-        auto &local_position = players.child_sprites.local_position[exhaust_id];
-     
-        if(pi.move_y > 0) {
-            local_position = Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance);
-            exhaust_animation.start = 24;
-            exhaust_animation.end = 28;
-        }
-        else {
-            local_position = Vector2(-player_config.gun_barrel_distance + 3, -player_config.gun_barrel_distance + 3);
-            exhaust_animation.start = 4;
-            exhaust_animation.end = 6;
-        }
-    }
-}
-
 void system_collision_resolution(CollisionPairs &collision_pairs) {
     collision_pairs.sort_by_distance();
     std::unordered_set<ECS::EntityId> handled_collisions;
