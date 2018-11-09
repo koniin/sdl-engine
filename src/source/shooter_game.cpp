@@ -9,7 +9,6 @@
 #include "systems.h"
 #include "particles.h"
 
-static PlayerConfiguration player_config;
 static TargetConfiguration target_config;
 static ECS::EntityManager entity_manager;
 static Player players;
@@ -79,13 +78,18 @@ void spawn_player(Vector2 position) {
     s.layer = 1;
     set_sprite(players, e, s);
 
+    PlayerConfiguration pcfg;
+
+    auto handle = players.get_handle(e);
+    players.config[handle.i] = pcfg;
+
     SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
     child_sprite.h = child_sprite.h + (child_sprite.h / 2);
     child_sprite.layer = 0;
     auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
-    players.create_child_sprite(player_config.exhaust_id, e, 
+    players.create_child_sprite(pcfg.exhaust_id, e, 
         position, 
-        Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance),
+        Vector2(-pcfg.gun_barrel_distance, -pcfg.gun_barrel_distance),
         child_sprite,
         animation);
     
@@ -153,6 +157,7 @@ void system_player_handle_input() {
         PlayerInput &pi = players.input[i];
         Velocity &velocity = players.velocity[i];
         Direction &direction = players.direction[i];
+        const PlayerConfiguration &player_config = players.config[i];
         
         // Update rotation based on rotational speed
         direction.angle += pi.move_x * player_config.rotation_speed;
@@ -209,9 +214,11 @@ void system_player_handle_input() {
 
 template<typename T>
 void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprites) {
-    for(size_t i = 0; i < child_sprites.length; ++i) {
-        int exhaust_id = players.get_child_sprite_index(player_config.exhaust_id);
+    for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
+        const PlayerConfiguration &player_config = players.config[i];
+        int exhaust_id = players.get_child_sprite_index(player_config.exhaust_id);
+
         auto &exhaust_animation = players.child_sprites.animation[exhaust_id];
         auto &local_position = players.child_sprites.local_position[exhaust_id];
      
@@ -353,7 +360,7 @@ void debug() {
     
     if(Input::key_pressed(SDLK_UP)) {
         bullet_speed++;
-        player_config.bullet_speed = bullet_speed / 0.016667f;
+        players.config[0].bullet_speed = bullet_speed / 0.016667f;
     }
 
     if(Input::key_pressed(SDLK_l)) {
@@ -380,7 +387,7 @@ void debug() {
     FrameLog::log("Targets: " + std::to_string(targets.length));
     FrameLog::log("Particles: " + std::to_string(particles.length));
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
-    FrameLog::log("Bullet speed: " + std::to_string(player_config.bullet_speed));
+    FrameLog::log("Bullet speed: " + std::to_string(players.config[0].bullet_speed));
     FrameLog::log("Bullet speed (UP to change): " + std::to_string(bullet_speed));
     FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
     
@@ -395,7 +402,7 @@ void debug() {
         d.x = (int16_t)players.position[i].value.x;
         d.y = (int16_t)players.position[i].value.y;
         d.type = DebugRenderData::Circle;
-        d.radius = (int16_t)player_config.radius;
+        d.radius = (int16_t)players.config[i].radius;
         debug_config.render_data.push_back(d);
     }
 
@@ -433,7 +440,7 @@ void load_resources() {
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
 
     particles = Particles::make(4096);
-    players.allocate(2);
+    players.allocate(1);
     projectiles.allocate(128);
     targets.allocate(128);
     effects.allocate(128);
@@ -544,7 +551,7 @@ void update_shooter() {
     system_player_get_input(players);
     system_player_handle_input();
     movement();
-    system_drag(players, player_config.drag);
+    system_drag(players);
     system_child_sprite_position(players.child_sprites, players);
     system_child_sprite_exhaust(players, players.child_sprites);
     system_animation_ping_pong(players.child_sprites);

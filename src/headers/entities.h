@@ -125,25 +125,28 @@ struct ChildSprite {
 };
 
 struct Player : ECS::EntityData {
+    PlayerConfiguration *config;
     Position *position;
     Velocity *velocity;
     Direction *direction;
     PlayerInput *input;
     SpriteComponent *sprite;
-
+    
     ChildSprite child_sprites;
 
     std::unordered_map<int, size_t> child_map;
     
     void allocate(size_t n) {
+        config = new PlayerConfiguration[n];
         position = new Position[n];
         velocity = new Velocity[n];
         direction = new Direction[n];
         input = new PlayerInput[n];
         sprite = new SpriteComponent[n];
 
-        allocate_entities(n, 5);
+        allocate_entities(n, 6);
 
+        add(config);
         add(position);
         add(velocity);
         add(direction);
