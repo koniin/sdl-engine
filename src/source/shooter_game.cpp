@@ -83,11 +83,12 @@ void spawn_player(Vector2 position) {
     child_sprite.h = child_sprite.h + (child_sprite.h / 2);
     child_sprite.layer = 0;
     auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
-    players.child_sprites.add(e, 
+    players.create_child_sprite(player_config.exhaust_id, e, 
         position, 
         Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance),
         child_sprite,
         animation);
+    
 }
 
 void spawn_target(Vector2 position) {
@@ -209,16 +210,11 @@ void system_player_handle_input() {
 template<typename T>
 void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprites) {
     for(size_t i = 0; i < child_sprites.length; ++i) {
-        int exhaust_id = 0;
+        int exhaust_id = players.get_child_sprite_index(player_config.exhaust_id);
         PlayerInput &pi = players.input[i];
         auto &exhaust_animation = players.child_sprites.animation[exhaust_id];
         auto &local_position = players.child_sprites.local_position[exhaust_id];
-        /*
-        child_sprite.h = child_sprite.h + (child_sprite.h / 2);
-        child_sprite.layer = 0;
-        auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
-        */
-
+     
         if(pi.move_y > 0) {
             local_position = Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance);
             exhaust_animation.start = 24;
@@ -230,19 +226,6 @@ void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprite
             exhaust_animation.end = 6;
         }
     }
-
-/*
-    for(size_t i = 0; i < child_sprites.length; ++i) {
-        if(entity_data.contains(child_sprites.parent[i])) {
-           const auto handle = entity_data.get_handle(child_sprites.parent[i]);
-           child_sprites.position[i].value = entity_data.position[handle.i].value + child_sprites.local_position[i] * entity_data.direction[handle.i].value;
-           child_sprites.sprite[i].rotation = entity_data.sprite[handle.i].rotation;
-        } else {
-            // Remove it
-            child_sprites.remove(i);
-        }
-    }
-*/
 }
 
 void system_collision_resolution(CollisionPairs &collision_pairs) {

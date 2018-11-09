@@ -96,8 +96,8 @@ struct ChildSprite {
         animation.reserve(n);
     }
 
-    size_t add(const ECS::Entity &p, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
-        parent.push_back(p);
+    size_t add(const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
+        parent.push_back(e);
         position.push_back({ pos });
         local_position.push_back(local_pos);
         sprite.push_back(s);
@@ -130,9 +130,11 @@ struct Player : ECS::EntityData {
     Direction *direction;
     PlayerInput *input;
     SpriteComponent *sprite;
-    
+
     ChildSprite child_sprites;
 
+    std::unordered_map<int, size_t> child_map;
+    
     void allocate(size_t n) {
         position = new Position[n];
         velocity = new Velocity[n];
@@ -149,6 +151,20 @@ struct Player : ECS::EntityData {
         add(sprite);
 
         child_sprites.allocate(16);
+    }
+
+    void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
+        size_t new_sprite_id = child_sprites.add(e, 
+            pos, 
+            local_pos,
+            s,
+            a);
+
+        child_map[id] = new_sprite_id;
+    }
+
+    size_t get_child_sprite_index(int id) {
+        return child_map[id];
     }
 };
 

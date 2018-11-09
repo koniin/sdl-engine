@@ -89,6 +89,7 @@ struct PlayerConfiguration {
     float gun_barrel_distance = 11.0f; // distance from center
     float fire_knockback = 2.0f; // pixels
     float fire_knockback_camera = -6.0f;
+    int exhaust_id = 1;
 };
 
 struct TargetConfiguration {
