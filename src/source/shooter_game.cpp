@@ -155,6 +155,11 @@ void system_player_handle_input() {
         
         // Update rotation based on rotational speed
         direction.angle += pi.move_x * player_config.rotation_speed;
+        if(direction.angle > 360.0f) {
+            direction.angle = 0;
+        } else if(direction.angle < 0.0f) {
+            direction.angle = 360.0f;
+        }
         float rotation = direction.angle / Math::RAD_TO_DEGREE;
         direction.value.x = cos(rotation);
         direction.value.y = sin(rotation);
@@ -162,10 +167,12 @@ void system_player_handle_input() {
 	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
 
+        const auto &player_position = players.position[i];
+
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
             pi.fire_cooldown = player_config.fire_cooldown;
 
-            auto projectile_pos = players.position[i];
+            auto projectile_pos = player_position;
 
             // auto fire_dir = Math::direction(Vector2(Input::mousex, Input::mousey), projectile_pos.value);
             // const Vector2 bullet_direction = fire_dir;
@@ -197,6 +204,45 @@ void system_player_handle_input() {
             players.position[i].value.y -= bullet_direction.y * player_config.fire_knockback;
         }
     }
+}
+
+template<typename T>
+void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprites) {
+    for(size_t i = 0; i < child_sprites.length; ++i) {
+        int exhaust_id = 0;
+        PlayerInput &pi = players.input[i];
+        auto &exhaust_animation = players.child_sprites.animation[exhaust_id];
+        auto &local_position = players.child_sprites.local_position[exhaust_id];
+        /*
+        child_sprite.h = child_sprite.h + (child_sprite.h / 2);
+        child_sprite.layer = 0;
+        auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
+        */
+
+        if(pi.move_y > 0) {
+            local_position = Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance);
+            exhaust_animation.start = 24;
+            exhaust_animation.end = 28;
+        }
+        else {
+            local_position = Vector2(-player_config.gun_barrel_distance + 3, -player_config.gun_barrel_distance + 3);
+            exhaust_animation.start = 4;
+            exhaust_animation.end = 6;
+        }
+    }
+
+/*
+    for(size_t i = 0; i < child_sprites.length; ++i) {
+        if(entity_data.contains(child_sprites.parent[i])) {
+           const auto handle = entity_data.get_handle(child_sprites.parent[i]);
+           child_sprites.position[i].value = entity_data.position[handle.i].value + child_sprites.local_position[i] * entity_data.direction[handle.i].value;
+           child_sprites.sprite[i].rotation = entity_data.sprite[handle.i].rotation;
+        } else {
+            // Remove it
+            child_sprites.remove(i);
+        }
+    }
+*/
 }
 
 void system_collision_resolution(CollisionPairs &collision_pairs) {
@@ -349,6 +395,7 @@ void debug() {
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
+    FrameLog::log("Particles: " + std::to_string(particles.length));
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Bullet speed: " + std::to_string(player_config.bullet_speed));
     FrameLog::log("Bullet speed (UP to change): " + std::to_string(bullet_speed));
@@ -468,8 +515,8 @@ void load_resources() {
     smoke_emitter.force = Vector2(0, 0);
     smoke_emitter.min_particles = 26;
     smoke_emitter.max_particles = 34;
-    smoke_emitter.life_min = 0.400f;
-    smoke_emitter.life_max = 0.800f;
+    smoke_emitter.life_min = 0.200f;
+    smoke_emitter.life_max = 0.400f;
     smoke_emitter.angle_min = 0;
     smoke_emitter.angle_max = 320.400f;
     smoke_emitter.speed_min = 3;
@@ -515,7 +562,8 @@ void update_shooter() {
     system_player_handle_input();
     movement();
     system_drag(players, player_config.drag);
-    system_child_sprites(players.child_sprites, players);
+    system_child_sprite_position(players.child_sprites, players);
+    system_child_sprite_exhaust(players, players.child_sprites);
     system_animation_ping_pong(players.child_sprites);
     system_collisions(collisions, projectiles, targets);
     system_collision_resolution(collisions);

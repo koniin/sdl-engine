@@ -243,7 +243,7 @@ void system_camera_follow(const T &entity_data, int i, float distance) {
 }
 
 template<typename T>
-void system_child_sprites(ChildSprite &child_sprites, const T &entity_data) {
+void system_child_sprite_position(ChildSprite &child_sprites, const T &entity_data) {
     for(size_t i = 0; i < child_sprites.length; ++i) {
         if(entity_data.contains(child_sprites.parent[i])) {
            const auto handle = entity_data.get_handle(child_sprites.parent[i]);

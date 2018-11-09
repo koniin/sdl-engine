@@ -96,14 +96,14 @@ struct ChildSprite {
         animation.reserve(n);
     }
 
-    void add(const ECS::Entity &p, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
+    size_t add(const ECS::Entity &p, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
         parent.push_back(p);
         position.push_back({ pos });
         local_position.push_back(local_pos);
         sprite.push_back(s);
         animation.push_back(a);
 
-        ++length;
+        return length++;
     }
 
     void remove(size_t i) {
@@ -130,7 +130,7 @@ struct Player : ECS::EntityData {
     Direction *direction;
     PlayerInput *input;
     SpriteComponent *sprite;
-
+    
     ChildSprite child_sprites;
 
     void allocate(size_t n) {
