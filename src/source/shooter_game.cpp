@@ -265,9 +265,9 @@ void system_player_ship_animate() {
 
     for(int i = 0; i < players.length; i++) {
         if(players.input[i].move_x > 0) {
-            players.sprite[i].sprite_name = "enemy_1.png";
+            players.sprite[i].sprite_name = "player_turn_right.png";
         } else if(players.input[i].move_x < 0) {
-            players.sprite[i].sprite_name = "enemy_1.png";
+            players.sprite[i].sprite_name = "player_turn_left.png";
         } else {
             players.sprite[i].sprite_name = "player_1.png";
         }
