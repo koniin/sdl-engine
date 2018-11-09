@@ -7,6 +7,11 @@ namespace FrameLog {
 }
 
 namespace Engine {
+	void init() {
+		Input::init();
+		Sound::init();
+	}
+
 	static bool logging_enabled = true;
 	void toggle_logging() {
 		logging_enabled = !logging_enabled;
@@ -60,6 +65,7 @@ namespace Engine {
 		if(pause_timer > 0.0f) {
 			pause_timer -= Time::deltaTime;
 		}
+		Sound::play_all();
 	}
 }
 
@@ -498,6 +504,96 @@ namespace Tiling {
     }
 }
 
+namespace Sound {
+	struct PlayMessage { 
+		SoundId id;
+  		int volume;
+	};
+
+	const int MAX_QUEUE_SIZE = 16;
+	static int queue_head;
+  	static int queue_tail;
+  	static PlayMessage play_queue[MAX_QUEUE_SIZE];
+
+	// Resource things
+	SDL_AudioSpec wavSpec;
+	Uint32 wavLength;
+	Uint8 *wavBuffer;
+
+	// Audio device
+	SDL_AudioDeviceID deviceId;
+
+	SoundId load(const std::string &file_name) {
+		std::string path = Engine::get_base_data_folder() + "sound/" + file_name;
+
+		auto audio_spec = SDL_LoadWAV(path.c_str(), &wavSpec, &wavBuffer, &wavLength);
+		if(audio_spec == NULL) {
+			Engine::logn("Could not load -> %s", path.c_str());
+		}
+
+		return  0;
+	}
+
+	void init() {
+    	queue_head = 0;
+    	queue_tail = 0;
+		
+		// open audio device
+		deviceId = SDL_OpenAudioDevice(NULL, 0, &wavSpec, NULL, 0);
+  	}
+
+	void play_all() {
+		while(queue_head != queue_tail) {
+			play_next();
+		}
+	}
+
+	void play_sound() {
+		SDL_DequeueAudio(deviceId, wavBuffer, wavLength);
+		int success = SDL_QueueAudio(deviceId, wavBuffer, wavLength);
+		Engine::logn("SDL_QueueAudio returned: %d", success);
+		SDL_PauseAudioDevice(deviceId, 0);
+	}
+
+	void play_next() {
+		// If there are no pending requests, do nothing.
+		if (queue_head == queue_tail) {
+			return;
+		}
+
+		Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);
+		
+		play_sound();
+		// ResourceId resource = loadSound(queue[queue_head].id);
+		// int channel = findOpenChannel();
+		// if (channel == -1) return;
+		// startSound(resource, channel, queue[queue_head].volume);
+
+		queue_head = (queue_head + 1) % MAX_QUEUE_SIZE;
+	}
+
+	void queue(SoundId id, int volume) {
+		ASSERT_WITH_MSG((queue_tail + 1) % MAX_QUEUE_SIZE != queue_head, "TOO MANY SOUNDS IN QUEUE, up the size!");
+		
+		HANDLE MULTIPLE REQUEST OF THE SAME SOUND
+
+		// Walk the pending requests.
+		for (int i = head_; i != tail_; i = (i + 1) % MAX_PENDING) {
+			if (pending_[i].id == id) {
+				// Use the larger of the two volumes.
+				pending_[i].volume = max(volume, pending_[i].volume);
+
+				// Don't need to enqueue.
+				return;
+			}
+		}
+
+  		// Add to the end of the list.
+		play_queue[queue_tail].id = id;
+		play_queue[queue_tail].volume = volume;
+		queue_tail = (queue_tail + 1) % MAX_QUEUE_SIZE;
+	}
+};
 /*
 void eventqueue_Init(EventQueue *e) {
     e->listener_count = 0;

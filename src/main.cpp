@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	Input::init();
-
+	Engine::init();
+	
 	game_load();
 	
 	// Initiate timer

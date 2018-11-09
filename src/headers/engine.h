@@ -52,6 +52,9 @@ typedef float (*easing_t)(float);
 namespace Engine {
 	static int32_t current_fps = 0;
 	static bool _is_running = true;
+
+	void init();
+
 	inline void exit() {
 		_is_running = false;
 	}
@@ -621,8 +624,17 @@ namespace Tiling {
 	unsigned tilemap_index(const TileMap &tile_map, const unsigned layer, const unsigned x, const unsigned y);
 	void tilemap_load(const std::string map_name, TileMap &tile_map);
 	void tilemap_make(TileMap &tile_map, unsigned layers, unsigned columns, unsigned rows, unsigned tile_size, unsigned default_tile = 0);
-}
+};
 
+namespace Sound {
+	typedef size_t SoundId;
+	// Load/Cache a sound from the sound folder
+	SoundId load(const std::string &file);
+	void init();
+	void play_next();
+	void play_all();
+	void queue(SoundId id, int volume);
+};
 /*
 struct GameEvent {
     int id;

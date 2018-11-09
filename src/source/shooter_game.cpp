@@ -208,12 +208,18 @@ void system_player_handle_input() {
             // Player knockback
             players.position[i].value.x -= bullet_direction.x * player_config.fire_knockback;
             players.position[i].value.y -= bullet_direction.y * player_config.fire_knockback;
+
+            Sound::queue(200, 2);
         }
     }
 }
 
 void system_collision_resolution(CollisionPairs &collision_pairs) {
     collision_pairs.sort_by_distance();
+
+    // This set will contain all collisions that we have handled
+    // Since first in this instance is projectile and the list is sorted by distance
+    // we only care about the collision with the shortest distance in this implementation
     std::unordered_set<ECS::EntityId> handled_collisions;
     for(int i = 0; i < collision_pairs.count; ++i) {
         if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
@@ -242,7 +248,9 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
             spawn_explosion(second_pos.value, 10, 10);
 
+            Sound::queue(100, 2);
             /*
+            Spawn explosion particles:
             explosion_emitter.position = second_pos.value;
             Particles::emit(particles, explosion_emitter);
             */
@@ -431,6 +439,8 @@ void load_resources() {
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     // Set up a white copy of the sprite sheet
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
+
+    Sound::SoundId testId = Sound::load("test.wav");
 
     particles = Particles::make(4096);
     players.allocate(1);
