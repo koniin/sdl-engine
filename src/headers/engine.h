@@ -436,6 +436,10 @@ namespace Math {
             return normalize(direction);
 	}
 
+	inline float degrees_between_v(const Vector2 &a, const Vector2 &b) {
+    	return atan2(b.y - a.y, b.x - a.x) * RAD_TO_DEGREE;
+	}
+
 	inline float rads_between_f(const float &x1, const float &y1, const float &x2, const float &y2) {
     	return atan2(y2 - y1, x2 - x1);
 	}

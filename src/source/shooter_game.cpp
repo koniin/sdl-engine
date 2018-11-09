@@ -228,8 +228,12 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
             explosion_emitter.position = second_pos.value;
             Particles::emit(particles, explosion_emitter);
             */
-
+            
+            const auto &pos = get_position(projectiles, collision_pairs[i].first);
+            float angle = Math::degrees_between_v(pos.last, collision_pairs[i].collision_point);
             hit_emitter.position = collision_pairs[i].collision_point;
+            hit_emitter.angle_min = angle - 10.0f;
+            hit_emitter.angle_max = angle + 10.0f;
             Particles::emit(particles, hit_emitter);
         }
     }

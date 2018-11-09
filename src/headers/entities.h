@@ -261,35 +261,35 @@ void sprite_effect(const Effect &effects, const int &i, const std::string &modif
 
 template<typename T>
 Position &get_position(T &entity_data, ECS::Entity e) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     return entity_data.position[handle.i];
 }
 
 template<typename T>
 Velocity &get_velocity(T &entity_data, ECS::Entity e) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     return entity_data.velocity[handle.i];
 }
 
 template<typename T>
 void set_position(T &entity_data, ECS::Entity e, Position p) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     entity_data.position[handle.i] = p;
 }
 
 template<typename T>
 void set_velocity(T &entity_data, ECS::Entity e, Velocity v) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     entity_data.velocity[handle.i] = v;
 }
 
 template<typename T>
 void set_sprite(T &entity_data, ECS::Entity e, SpriteComponent s) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     entity_data.sprite[handle.i] = s;
 }
