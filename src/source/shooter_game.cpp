@@ -258,6 +258,23 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
     collision_pairs.clear();
 }
 
+void system_player_ship_animate() {
+    system_child_sprite_position(players.child_sprites, players);
+    system_child_sprite_exhaust(players, players.child_sprites);
+    system_animation_ping_pong(players.child_sprites);
+
+    for(int i = 0; i < players.length; i++) {
+        if(players.input[i].move_x > 0) {
+            players.sprite[i].sprite_name = "enemy_1.png";
+        } else if(players.input[i].move_x < 0) {
+            players.sprite[i].sprite_name = "enemy_1.png";
+        } else {
+            players.sprite[i].sprite_name = "player_1.png";
+        }
+        
+    }
+}
+
 void remove_destroyed_entities() {
     for(size_t i = 0; i < entities_to_destroy.size(); i++) {
         Engine::logn("destroying: %d", entities_to_destroy[i].id);
@@ -529,9 +546,7 @@ void update_shooter() {
     system_player_handle_input();
     movement();
     system_drag(players);
-    system_child_sprite_position(players.child_sprites, players);
-    system_child_sprite_exhaust(players, players.child_sprites);
-    system_animation_ping_pong(players.child_sprites);
+    system_player_ship_animate();
     system_collisions(collisions, projectiles, targets);
     system_collision_resolution(collisions);
     system_effects(effects, players, targets);

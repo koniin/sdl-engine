@@ -28,11 +28,10 @@ Do movement and then:
 
 Particles
 [X] Particle spray on explosion?
-[ ] Smoke or something when firing from ship
+[X] Smoke or something when firing from ship
 [X] Small Particle spray on hit enemy (and not dead)
-[ ] Particle trail from player when moving
 
-[ ] Only show ship exhaust fire when moving
+[X] Only show ship exhaust fire when moving
 
 Then:
 [ ] Player ship rotation animation (exists in sheet)
@@ -42,13 +41,14 @@ Then:
 
 [ ] More base in sound effects
 
-[ ] Particle follow bullet first few frames (for very very fast moving things like railgun/lazer?)
-
 * Leave something behind when something is killed
     - destroy hit enemy
     - respawn after some time at random pos on screen
     - debris at spawn site that doesn't move away - how it looks does not matter now
     - nice probably -> pieces flies out at full color and then gradually gets darker and then at some point they stay floating
+
+[ ] Particle follow bullet first few frames (for very very fast moving things like railgun/lazer?)
+([ ] Particle trail from player when moving)
 
 * Smoke on explosion - particles
 

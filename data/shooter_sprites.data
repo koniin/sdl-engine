@@ -1,8 +1,10 @@
 shooter_sprites.png
-6
+8
 0 bullet_1.png 0 24 16 16 
-1 bullet_2.png 48 0 12 12 
+1 bullet_2.png 0 40 12 12 
 2 enemy_1.png 16 24 16 16 
 3 explosion_1.png 0 0 24 24 
 4 explosion_2.png 24 0 24 24 
 5 player_1.png 32 24 16 16 
+6 player_turn_1.png 48 0 16 16 
+7 player_turn_2.png 48 16 16 16 
