@@ -271,7 +271,6 @@ void system_player_ship_animate() {
         } else {
             players.sprite[i].sprite_name = "player_1.png";
         }
-        
     }
 }
 
