@@ -22,6 +22,8 @@ static CollisionPairs collisions;
 static Particles::ParticleContainer particles;
 static Particles::Emitter explosion_emitter;
 static Particles::Emitter hit_emitter;
+static Particles::Emitter exhaust_emitter;
+static Particles::Emitter smoke_emitter;
 
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
@@ -186,6 +188,9 @@ void system_player_handle_input() {
             camera_shake(0.1f);
 
             camera_displace(bullet_direction * player_config.fire_knockback_camera);
+
+            smoke_emitter.position = muzzle_pos.value;
+            Particles::emit(particles, smoke_emitter);
 
             // Player knockback
             players.position[i].value.x -= bullet_direction.x * player_config.fire_knockback;
@@ -439,6 +444,40 @@ void load_resources() {
     hit_emitter.size_max = 2.600f;
     hit_emitter.size_end_min = 0;
     hit_emitter.size_end_max = 0.600f;
+
+    exhaust_emitter.position = Vector2(320, 180);
+    exhaust_emitter.color_start = Colors::make(229,130,0,255);
+    exhaust_emitter.color_end = Colors::make(255,255,255,255);
+    exhaust_emitter.force = Vector2(10, 10);
+    exhaust_emitter.min_particles = 26;
+    exhaust_emitter.max_particles = 34;
+    exhaust_emitter.life_min = 0.100f;
+    exhaust_emitter.life_max = 0.200f;
+    exhaust_emitter.angle_min = 0;
+    exhaust_emitter.angle_max = 10.800f;
+    exhaust_emitter.speed_min = 106;
+    exhaust_emitter.speed_max = 130;
+    exhaust_emitter.size_min = 0.600f;
+    exhaust_emitter.size_max = 1.400f;
+    exhaust_emitter.size_end_min = 1.800f;
+    exhaust_emitter.size_end_max = 3;
+
+    smoke_emitter.position = Vector2(320, 180);
+    smoke_emitter.color_start = Colors::make(165, 165, 165, 255);
+    smoke_emitter.color_end = Colors::make(0, 0, 0, 255);
+    smoke_emitter.force = Vector2(0, 0);
+    smoke_emitter.min_particles = 26;
+    smoke_emitter.max_particles = 34;
+    smoke_emitter.life_min = 0.400f;
+    smoke_emitter.life_max = 0.800f;
+    smoke_emitter.angle_min = 0;
+    smoke_emitter.angle_max = 320.400f;
+    smoke_emitter.speed_min = 3;
+    smoke_emitter.speed_max = 6;
+    smoke_emitter.size_min = 2;
+    smoke_emitter.size_max = 4;
+    smoke_emitter.size_end_min = 1;
+    smoke_emitter.size_end_max = 2;
 }
 
 void init_scene() {
