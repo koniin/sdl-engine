@@ -34,8 +34,9 @@ Particles
 [X] Only show ship exhaust fire when moving
 
 Then:
-[ ] Player ship rotation animation (exists in sheet)
+[X] Player ship rotation animation (exists in sheet)
 [ ] Sound - just test with a fire sound and hit sound
+
 [ ] Animatons
     - Enemy => a round or squarish metal/black sprite with a blinking light
 
@@ -58,7 +59,7 @@ When solid objects that are unbreakable:
 For GUNS
 * Gun gfx
 * Gun kick - make it smaller or something when firing
-* Smoke on fire gun
+[X] Smoke on fire gun
 [ ] Shells or something fly out on fire weapon (make it a "machine gun") - depends on bullets/gun
 
 * BIG random explosions
