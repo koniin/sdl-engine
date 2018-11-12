@@ -251,6 +251,13 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
             
             Engine::pause(0.03f);
 
+            // Knockback
+            auto &velocity = get_velocity(projectiles, collision_pairs[i].first);
+            auto &second_pos = get_position(targets, collision_pairs[i].second);
+            Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
+            second_pos.value.x += dir.x * damage.force;
+            second_pos.value.y += dir.y * damage.force;
+
             // Emit hit particles
             const auto &pos = get_position(projectiles, collision_pairs[i].first);
             float angle = Math::degrees_between_v(pos.last, collision_pairs[i].collision_point);
@@ -266,8 +273,6 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
                 camera_shake(0.1f);
                 
-                auto &second_pos = get_position(targets, collision_pairs[i].second);
-
                 // Spawn explosion particles:
                 explosion_emitter.position = second_pos.value;
                 Particles::emit(particles, explosion_emitter);
@@ -279,13 +284,6 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
                 // Sound::queue(test_sound_id, 2);
 
                 blink_sprite(targets, collision_pairs[i].second, 29, 5);
-                
-                // Knockback
-                auto &velocity = get_velocity(projectiles, collision_pairs[i].first);
-                auto &second_pos = get_position(targets, collision_pairs[i].second);
-                Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-                second_pos.value.x += dir.x * damage.force;
-                second_pos.value.y += dir.y * damage.force;
             }
         }
     }
@@ -589,6 +587,9 @@ void update_shooter() {
     system_effects(effects, players, targets);
     system_blink_effect(targets);
     system_camera_follow(players, 0, 100.0f);
+
+    system_remove_no_health_left(targets);
+    system_remove_no_health_left(players);
 
     spawn_projectiles();
     spawn_effects();

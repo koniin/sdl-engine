@@ -295,4 +295,14 @@ void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprite
         }
     }
 }
+
+template<typename T>
+void system_remove_no_health_left(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.health[i].hp <= 0) {
+            queue_remove_entity(entity_data.entity[i]);
+        }
+    }
+}
+
 #endif
