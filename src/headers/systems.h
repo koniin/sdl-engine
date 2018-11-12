@@ -299,7 +299,7 @@ void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprite
 template<typename T>
 void system_invulnerability(T &entity_data, const float dt) {
     for(int i = 0; i < entity_data.length; i++) {
-        if(entity_data.health[i].invulnerability_timer >= 0.0f) {
+        if(entity_data.health[i].invulnerability_timer > 0.0f) {
             entity_data.health[i].invulnerability_timer -= dt;
             Engine::logn("invul: %.2f", entity_data.health[i].invulnerability_timer);
         }

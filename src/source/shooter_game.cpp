@@ -396,9 +396,9 @@ void debug() {
         players.config[0].bullet_speed = bullet_speed / 0.016667f;
     }
 
-    // if(Input::key_pressed(SDLK_l)) {
-    //     target_config.knockback_on_hit = target_config.knockback_on_hit > 0 ? 0 : 2.0f;
-    // }
+    if(Input::key_pressed(SDLK_l)) {
+        players.health[0].hp -= 1;
+    }
 
     if(Input::key_pressed(SDLK_n)) {
         Particles::emit(particles, explosion_emitter);
@@ -617,6 +617,19 @@ void render_shooter() {
     debug_render();
 }
 
+void render_health_bar(int x, int y, int width, int height, float value, float max) {
+    const int border_size = 1;
+    const int border_size_d = 2;
+    float ratio = value / max;
+    auto hp_bar_width = (ratio * (float)width) - border_size_d;
+    draw_g_rectangle_filled_RGBA(x, y, width, height, 255, 255, 255, 255);
+    draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, width - border_size_d, height - 2, 0, 0, 0, 255);
+    draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, (int)hp_bar_width, 13, 255, 0, 0, 255);
+}
+
 void render_shooter_ui() {
+    if(players.length > 0) {
+        render_health_bar(10, 10, 100, 15, (float)players.health[0].hp, (float)players.health[0].hp_max);
+    }
     draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
 }
