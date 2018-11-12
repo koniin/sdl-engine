@@ -73,6 +73,10 @@ namespace Engine {
 		}
 		Sound::play_all();
 	}
+
+	void cleanup() {
+		Sound::quit();
+	}
 }
 
 namespace FrameLog {

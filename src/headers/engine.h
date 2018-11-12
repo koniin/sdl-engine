@@ -72,6 +72,8 @@ namespace Engine {
 	void pause(float time);
 
 	void update();
+
+	void cleanup();
 }
 
 struct Point;

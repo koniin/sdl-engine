@@ -104,8 +104,9 @@ int main(int argc, char* argv[]) {
 	
 	game_unload();
 
+	Engine::cleanup();
 	renderer_destroy();
-	
+
     return 0;
 }
 
