@@ -14,6 +14,8 @@ SET SDL_TTFINC=%~dp0lib\SDL2_ttf-2.0.14\include\
 SET SDL_TTFLIB=%~dp0lib\SDL2_ttf-2.0.14\lib\x86\
 SET SDL_IMGINC=%~dp0lib\SDL2_image-2.0.3\include\
 SET SDL_IMGLIB=%~dp0lib\SDL2_image-2.0.3\lib\x86\
+SET AUDIO_INC=%~dp0lib\SDL2_mixer-2.0.4\include\
+SET AUDIO_LIB=%~dp0lib\SDL2_mixer-2.0.4\lib\x86\
 
 REM cl /EHsc .\src\main.cpp /link /OUT:C:\temp\sdl\bin\main /SUBSYSTEM:CONSOLE
 
@@ -41,7 +43,7 @@ IF "%ARG1%"=="release" (
     REM cl /MP /MTd /DEBUG /Zi /EHsc %SOURCE% /I %SDLINC% /I %SDL_TTFINC% /I %~dp0src\headers\ /link /LIBPATH:%SDLLIB% /LIBPATH:%SDL_TTFLIB% /LIBPATH:.\ SDL2main.lib SDL2.lib SDL2_ttf.lib opengl32.lib extern.lib /out:%OUTPUT% /SUBSYSTEM:CONSOLE
 
 	REM --- ORIGINAL BUILD ALL ---
-	cl /nologo /EHsc /W4 /MP /MTd /wd4996 /wd4100 /DEBUG /Zi %SOURCE% /I %SDLINC% /I %SDL_TTFINC% /I %SDL_IMGINC% /I %~dp0src\headers\ /link /LIBPATH:%SDLLIB% /LIBPATH:%SDL_TTFLIB% /LIBPATH:%SDL_IMGLIB% SDL2main.lib SDL2.lib SDL2_ttf.lib SDL2_image.lib opengl32.lib /out:%OUTPUT% /SUBSYSTEM:CONSOLE
+	cl /nologo /EHsc /W4 /MP /MTd /wd4996 /wd4100 /DEBUG /Zi %SOURCE% /I %SDLINC% /I %SDL_TTFINC% /I %SDL_IMGINC% /I %AUDIO_INC% /I %~dp0src\headers\ /link /LIBPATH:%SDLLIB% /LIBPATH:%SDL_TTFLIB% /LIBPATH:%SDL_IMGLIB% /LIBPATH:%AUDIO_LIB% SDL2main.lib SDL2.lib SDL2_ttf.lib SDL2_image.lib SDL2_mixer.lib opengl32.lib /out:%OUTPUT% /SUBSYSTEM:CONSOLE
 	
     echo ---- COMPLETED DEBUG BUILD ---- 
 )

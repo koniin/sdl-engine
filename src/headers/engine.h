@@ -333,7 +333,7 @@ namespace Math {
     	return x;
 	}
 
-	inline int max(int a, int b) {
+	inline int max_i(int a, int b) {
 		return std::max(a, b);
 	}
 
@@ -631,6 +631,7 @@ namespace Sound {
 	// Load/Cache a sound from the sound folder
 	SoundId load(const std::string &file);
 	void init();
+	void quit();
 	void play_next();
 	void play_all();
 	void queue(SoundId id, int volume);
