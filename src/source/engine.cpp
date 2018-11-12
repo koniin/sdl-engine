@@ -2,6 +2,12 @@
 #include <unordered_set>
 #include <fstream>
 
+// #define SOUND_SDL_MIXER
+
+#ifdef SOUND_SDL_MIXER
+	#include "sdl_mixer_wrapper.h"
+#endif
+
 namespace FrameLog {
 	void clear();
 }
@@ -504,7 +510,6 @@ namespace Tiling {
     }
 }
 
-#include "sdl_mixer_wrapper.h"
 namespace Sound {
 	struct PlayMessage { 
 		SoundId id;
@@ -518,12 +523,9 @@ namespace Sound {
 
 	SoundId load(const std::string &file_name) {
 		std::string path = Engine::get_base_data_folder() + "sound/" + file_name;
-
-		// auto audio_spec = SDL_LoadWAV(path.c_str(), &wavSpec, &wavBuffer, &wavLength);
-		// if(audio_spec == NULL) {
-		// 	Engine::logn("Could not load -> %s", path.c_str());
-		// }
+#ifdef SOUND_SDL_MIXER
 		sdl_mix_load(path);
+#endif
 		return  0;
 	}
 
@@ -531,11 +533,21 @@ namespace Sound {
     	queue_head = 0;
     	queue_tail = 0;
 
+#ifdef SOUND_SDL_MIXER
 		sdl_mix_init();
+#endif
   	}
 
 	void quit() {
+#ifdef SOUND_SDL_MIXER
 		sdl_mix_exit();
+#endif
+	}
+
+	void play_sound(SoundId id, int volume) {
+#ifdef SOUND_SDL_MIXER
+		sdl_mix_play();
+#endif
 	}
 
 	void play_all() {
@@ -550,10 +562,9 @@ namespace Sound {
 			return;
 		}
 
-		
 		if(play_queue[queue_head].id == 200) {
 			Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);	
-			sdl_mix_play();
+			play_sound(play_queue[queue_head].id, play_queue[queue_head].volume);
 		} else {
 			Engine::logn("NOT Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);	
 		}
