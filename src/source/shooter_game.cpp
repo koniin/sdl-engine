@@ -8,6 +8,7 @@
 #include "entities.h"
 #include "systems.h"
 #include "particles.h"
+#include "event_queue.h"
 
 static ECS::EntityManager entity_manager;
 static Player players;
@@ -43,17 +44,6 @@ void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     entity_data.blink[handle.i] = b;
 }
 
-// This is one thing?
-//////////////////////////////////
-struct SpawnProjectile {
-    Position position;
-    Velocity velocity;
-};
-std::vector<SpawnProjectile> projectile_queue;
-
-void queue_projectile(Position p, Vector2 velocity) {
-    projectile_queue.push_back({ p, {velocity.x, velocity.y} });
-}
 void spawn_projectile(Position p, Velocity v) {
     auto e = entity_manager.create();
     projectiles.create(e);
@@ -66,13 +56,16 @@ void spawn_projectile(Position p, Velocity v) {
     projectiles.damage[handle.i] = { 1, 2.0f };
     projectiles.collision[handle.i] = { 8 };
 }
-void spawn_projectiles() {
-    for(size_t i = 0; i < projectile_queue.size(); i++) {
-        spawn_projectile(projectile_queue[i].position, projectile_queue[i].velocity);
-    }
-    projectile_queue.clear();
+
+void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, const EffectData ef) {
+    auto e = entity_manager.create();
+    effects.create(e);
+    auto handle = effects.get_handle(e);
+    effects.position[handle.i] = p;
+    effects.velocity[handle.i] = v;
+    effects.sprite[handle.i] = s;
+    effects.effect[handle.i] = ef;
 }
-//////////////////////////////////
 
 void spawn_player(Vector2 position) {
     auto e = entity_manager.create();
@@ -111,57 +104,11 @@ void spawn_target(Vector2 position) {
     targets.velocity[handle.i] = { 0, 0 };
     targets.health[handle.i] = { 2, 2 };
     targets.collision[handle.i] = { 8 };
+    targets.ai[handle.i] = { 100.0f };
     SpriteComponent s = SpriteComponent("shooter", "enemy_1.png");
     s.layer = 1;
     targets.sprite[handle.i] = s;
 }
-
-// This is one thing?
-//////////////////////////////////
-struct SpawnEffect {
-    Position position;
-    Velocity velocity;
-    SpriteComponent sprite;
-    EffectData effect;
-};
-std::vector<SpawnEffect> effect_queue;
-
-void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
-    auto spr = SpriteComponent("shooter", "bullet_1.png");
-    spr.layer = effects.effect_layer;
-    auto effect = EffectData(2);
-    effect.follow = parent;
-    effect.local_position = local_position;
-    effect.has_target = true;
-    effect_queue.push_back({ p, Velocity(), spr, effect });
-}
-void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
-    auto spr = SpriteComponent("shooter", "explosion_1.png");
-    spr.layer = 0;
-    auto effect = EffectData(4);
-    effect.modifier_enabled = true;
-    effect.modifier_data_s = "explosion_2.png";
-    effect.modifier_frame = 2;
-    effect.modifier = sprite_effect;
-    Vector2 blast_position = position;
-    blast_position.x += RNG::range_f(-offset_x, offset_x);
-    blast_position.y += RNG::range_f(-offset_y, offset_y);
-    effect_queue.push_back({ { blast_position }, Velocity(), spr, effect });
-}
-void spawn_effects() {
-    for(size_t i = 0; i < effect_queue.size(); i++) {
-        auto e = entity_manager.create();
-        effects.create(e);
-        set_position(effects, e, effect_queue[i].position);
-        set_velocity(effects, e, effect_queue[i].velocity);
-        set_sprite(effects, e, effect_queue[i].sprite);
-        auto handle = effects.get_handle(e);
-        effects.effect[handle.i] = effect_queue[i].effect;
-    }
-    effect_queue.clear();
-}
-
-//////////////////////////////////
 
 void system_player_handle_input() {
     for(int i = 0; i < players.length; i++) {
@@ -587,6 +534,7 @@ void movement() {
 void update_shooter() {
     system_player_get_input(players);
     system_player_handle_input();
+    system_ai_input(targets, players);
     movement();
     system_drag(players);
     system_player_ship_animate();

@@ -46,6 +46,7 @@ void system_player_get_input(Player players) {
         }
 
         pi.fire_cooldown = Math::max_f(0.0f, pi.fire_cooldown - Time::delta_time);
+
         if(Input::key_down(key_map.fire)) {
             pi.fire_x = pi.fire_y = 1;
         }
@@ -311,6 +312,30 @@ void system_remove_no_health_left(T &entity_data) {
     for(int i = 0; i < entity_data.length; i++) {
         if(entity_data.health[i].hp <= 0) {
             queue_remove_entity(entity_data.entity[i]);
+        }
+    }
+}
+
+template<typename AI, typename T>
+void system_ai_input(AI &entity_data, T &entity_search_targets) {
+    for(int i = 0; i < entity_data.length; i++) {
+        entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
+
+        if(entity_data.ai[i].fire_cooldown > 0.0f) {
+            continue;
+        }
+
+        for(int t_i = 0; t_i < entity_search_targets.length; t_i++) {
+            const auto target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]);
+            if(entity_data.ai[i].search_area > Math::distance_v(entity_data.position[i].value, target_position.value)) {
+                Engine::logn("Fire at target");
+
+                entity_data.ai[i].fire_cooldown = 0.5f;
+
+                Vector2 projectile_velocity = Vector2(10.0f, 10.0f);
+                queue_projectile(entity_data.position[i], projectile_velocity);
+                continue; // only fire at one target
+            }
         }
     }
 }

@@ -225,6 +225,12 @@ struct BlinkEffect {
     size_t white_sheet;
 };
 
+struct AI {
+    float search_area = 0.0f;
+    bool has_target = false;
+    float fire_cooldown = 0.0f;
+};
+
 struct Target : ECS::EntityData {
     Position *position;
     Velocity *velocity;
@@ -232,6 +238,7 @@ struct Target : ECS::EntityData {
     BlinkEffect* blink;
     Health *health;
     CollisionData *collision;
+    AI *ai;
     
     void allocate(size_t n) {
         position = new Position[n];
@@ -240,8 +247,9 @@ struct Target : ECS::EntityData {
         blink = new BlinkEffect[n];
         health = new Health[n];
         collision = new CollisionData[n];
+        ai = new AI[n];
 
-        allocate_entities(n, 6);
+        allocate_entities(n, 7);
 
         add(position);
         add(velocity);
@@ -249,6 +257,7 @@ struct Target : ECS::EntityData {
         add(blink);
         add(health);
         add(collision);
+        add(ai);
     }
 };
 
@@ -283,8 +292,6 @@ struct Effect : ECS::EntityData {
     Velocity *velocity;
     SpriteComponent *sprite;
     EffectData *effect;
-
-    const int effect_layer = 2;
 
     void allocate(size_t n) {
         position = new Position[n];
