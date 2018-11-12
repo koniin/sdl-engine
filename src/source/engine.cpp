@@ -5,7 +5,7 @@
 #define SOUND_SDL_MIXER
 
 #ifdef SOUND_SDL_MIXER
-	#include "sdl_mixer_wrapper.h"
+#include "sound_sdl_mixer.h"
 #endif
 
 namespace FrameLog {
@@ -523,31 +523,18 @@ namespace Sound {
 
 	SoundId load(const std::string &file_name) {
 		std::string path = Engine::get_base_data_folder() + "sound/" + file_name;
-#ifdef SOUND_SDL_MIXER
-		sdl_mix_load(path);
-#endif
+		sound_load(path);
 		return  0;
 	}
 
 	void init() {
     	queue_head = 0;
     	queue_tail = 0;
-
-#ifdef SOUND_SDL_MIXER
-		sdl_mix_init();
-#endif
+		sound_init();
   	}
 
 	void quit() {
-#ifdef SOUND_SDL_MIXER
-		sdl_mix_exit();
-#endif
-	}
-
-	void play_sound(SoundId id, int volume) {
-#ifdef SOUND_SDL_MIXER
-		sdl_mix_play(id, volume);
-#endif
+		sound_exit();
 	}
 
 	void play_all() {
@@ -563,8 +550,8 @@ namespace Sound {
 		}
 
 		Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);
-		play_sound(play_queue[queue_head].id, play_queue[queue_head].volume);
-
+		sound_play(play_queue[queue_head].id, play_queue[queue_head].volume);
+		
 		queue_head = (queue_head + 1) % MAX_QUEUE_SIZE;
 	}
 
