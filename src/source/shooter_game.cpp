@@ -89,7 +89,7 @@ void spawn_player(Vector2 position) {
 
     players.health[handle.i] = { 10, 10 };
 
-    // players.collision[handle.i] = { 12 };
+    players.collision[handle.i] = { 8 };
 
     SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
     child_sprite.h = child_sprite.h + (child_sprite.h / 2);
