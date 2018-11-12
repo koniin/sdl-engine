@@ -2,7 +2,7 @@
 #include <unordered_set>
 #include <fstream>
 
-// #define SOUND_SDL_MIXER
+#define SOUND_SDL_MIXER
 
 #ifdef SOUND_SDL_MIXER
 	#include "sdl_mixer_wrapper.h"
@@ -546,7 +546,7 @@ namespace Sound {
 
 	void play_sound(SoundId id, int volume) {
 #ifdef SOUND_SDL_MIXER
-		sdl_mix_play();
+		sdl_mix_play(id);
 #endif
 	}
 
@@ -562,14 +562,9 @@ namespace Sound {
 			return;
 		}
 
-		if(play_queue[queue_head].id == 200) {
-			Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);	
-			play_sound(play_queue[queue_head].id, play_queue[queue_head].volume);
-		} else {
-			Engine::logn("NOT Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);	
-		}
+		Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);
+		play_sound(play_queue[queue_head].id, play_queue[queue_head].volume);
 
-		
 		// ResourceId resource = loadSound(queue[queue_head].id);
 		// int channel = findOpenChannel();
 		// if (channel == -1) return;

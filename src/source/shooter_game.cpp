@@ -24,6 +24,8 @@ static Particles::Emitter hit_emitter;
 static Particles::Emitter exhaust_emitter;
 static Particles::Emitter smoke_emitter;
 
+static Sound::SoundId test_sound_id;
+
 template<typename T>
 void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
@@ -209,7 +211,7 @@ void system_player_handle_input() {
             players.position[i].value.x -= bullet_direction.x * player_config.fire_knockback;
             players.position[i].value.y -= bullet_direction.y * player_config.fire_knockback;
 
-            Sound::queue(200, 2);
+            Sound::queue(test_sound_id, 2);
         }
     }
 }
@@ -248,7 +250,7 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
             spawn_explosion(second_pos.value, 10, 10);
 
-            Sound::queue(100, 2);
+            // Sound::queue(test_sound_id, 2);
             /*
             Spawn explosion particles:
             explosion_emitter.position = second_pos.value;
@@ -440,7 +442,7 @@ void load_resources() {
     // Set up a white copy of the sprite sheet
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
 
-    Sound::SoundId testId = Sound::load("test.wav");
+    test_sound_id = Sound::load("test.wav");
 
     particles = Particles::make(4096);
     players.allocate(1);
