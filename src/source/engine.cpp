@@ -546,7 +546,7 @@ namespace Sound {
 
 	void play_sound(SoundId id, int volume) {
 #ifdef SOUND_SDL_MIXER
-		sdl_mix_play(id);
+		sdl_mix_play(id, volume);
 #endif
 	}
 
@@ -564,11 +564,6 @@ namespace Sound {
 
 		Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);
 		play_sound(play_queue[queue_head].id, play_queue[queue_head].volume);
-
-		// ResourceId resource = loadSound(queue[queue_head].id);
-		// int channel = findOpenChannel();
-		// if (channel == -1) return;
-		// startSound(resource, channel, queue[queue_head].volume);
 
 		queue_head = (queue_head + 1) % MAX_QUEUE_SIZE;
 	}
