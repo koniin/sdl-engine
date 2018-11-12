@@ -199,13 +199,13 @@ template<typename First, typename Second>
 void system_collisions(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second) {
     for(int i = 0; i < entity_first.length; ++i) {
         const Vector2 &p_pos = entity_first.position[i].value;
-        const float projectile_radius = (float)entity_first.radius;
-        
+        const float projectile_radius = (float)entity_first.collision[i].radius;
+        const Vector2 &p_last = entity_first.position[i].last;
+
         for(int j = 0; j < entity_second.length; ++j) {
             const Vector2 &t_pos = entity_second.position[j].value;
-            const float t_radius = (float)entity_second.radius;
-            const Vector2 &p_last = entity_first.position[i].last;
-
+            const float t_radius = (float)entity_second.collision[j].radius;
+            
             // Distance from projectiles last position and targets new position
             // should get the closest target in projectiles path
             float dist = Math::distance_v(p_last, t_pos);

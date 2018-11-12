@@ -40,6 +40,22 @@ struct Direction {
     }
 };
 
+struct Health {
+    int hp = 0;
+    int hp_max = 0;
+    float invulnerability_timer = 0.0f;
+};
+
+struct Damage {
+    int value;
+    float force; // knockback value ?
+    // int faction_to_hit;
+};
+
+struct CollisionData {
+    int radius;
+};
+
 struct SpriteComponent {
     float scale;
     float rotation;
@@ -131,7 +147,9 @@ struct Player : ECS::EntityData {
     Direction *direction;
     PlayerInput *input;
     SpriteComponent *sprite;
-    
+    Health *health;
+    CollisionData *collision;
+
     ChildSprite child_sprites;
 
     std::unordered_map<int, size_t> child_map;
@@ -143,8 +161,10 @@ struct Player : ECS::EntityData {
         direction = new Direction[n];
         input = new PlayerInput[n];
         sprite = new SpriteComponent[n];
+        health = new Health[n];
+        collision = new CollisionData[n];
 
-        allocate_entities(n, 6);
+        allocate_entities(n, 8);
 
         add(config);
         add(position);
@@ -152,6 +172,8 @@ struct Player : ECS::EntityData {
         add(direction);
         add(input);
         add(sprite);
+        add(health);
+        add(collision);
 
         child_sprites.allocate(16);
     }
@@ -175,19 +197,23 @@ struct Projectile : ECS::EntityData {
     Position *position;
     Velocity *velocity;
     SpriteComponent *sprite;
-
-    const int radius = 8;
+    Damage *damage;
+    CollisionData *collision;
 
     void allocate(size_t n) {
         position = new Position[n];
         velocity = new Velocity[n];
         sprite = new SpriteComponent[n];
+        damage = new Damage[n];
+        collision = new CollisionData[n];
 
-        allocate_entities(n, 3);
+        allocate_entities(n, 5);
 
         add(position);
         add(velocity);
         add(sprite);
+        add(damage);
+        add(collision);
     }
 };
 
@@ -204,23 +230,25 @@ struct Target : ECS::EntityData {
     Velocity *velocity;
     SpriteComponent *sprite;
     BlinkEffect* blink;
-
-    const int radius = 8;
-
-    // Here you can put a list of base data for different targets
-
+    Health *health;
+    CollisionData *collision;
+    
     void allocate(size_t n) {
         position = new Position[n];
         velocity = new Velocity[n];
         sprite = new SpriteComponent[n];
         blink = new BlinkEffect[n];
+        health = new Health[n];
+        collision = new CollisionData[n];
 
-        allocate_entities(n, 4);
+        allocate_entities(n, 6);
 
         add(position);
         add(velocity);
         add(sprite);
         add(blink);
+        add(health);
+        add(collision);
     }
 };
 
@@ -293,6 +321,20 @@ Velocity &get_velocity(T &entity_data, ECS::Entity e) {
 }
 
 template<typename T>
+Health &get_health(T &entity_data, ECS::Entity e) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
+    auto handle = entity_data.get_handle(e);
+    return entity_data.health[handle.i];
+}
+
+template<typename T>
+Damage &get_damage(T &entity_data, ECS::Entity e) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
+    auto handle = entity_data.get_handle(e);
+    return entity_data.damage[handle.i];
+}
+
+template<typename T>
 void set_position(T &entity_data, ECS::Entity e, Position p) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
@@ -311,6 +353,20 @@ void set_sprite(T &entity_data, ECS::Entity e, SpriteComponent s) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     entity_data.sprite[handle.i] = s;
+}
+
+template<typename T>
+void set_health(T &entity_data, ECS::Entity e, const Health h) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
+    auto handle = entity_data.get_handle(e);
+    entity_data.health[handle.i] = h;
+}
+
+template<typename T>
+void set_damage(T &entity_data, ECS::Entity e, const Damage d) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
+    auto handle = entity_data.get_handle(e);
+    entity_data.damage[handle.i] = d;
 }
 
 #endif

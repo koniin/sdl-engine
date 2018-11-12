@@ -26,10 +26,6 @@ struct PlayerConfiguration {
     int exhaust_id = 1;
 };
 
-struct TargetConfiguration {
-    float knockback_on_hit = 2.0f;
-};
-
 static const size_t RENDER_BUFFER_MAX = 256;
 
 void load_shooter();
