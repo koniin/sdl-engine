@@ -181,8 +181,8 @@ void system_player_handle_input() {
         direction.value.x = cos(rotation);
         direction.value.y = sin(rotation);
         
-	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::deltaTime;
-	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::deltaTime;
+	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::delta_time;
+	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
 
         const auto &player_position = players.position[i];
 
@@ -247,16 +247,20 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
             auto &damage = get_damage(projectiles, collision_pairs[i].first);
             auto &health = get_health(targets, collision_pairs[i].second);
 
-            health.hp -= damage.value;
-            
-            Engine::pause(0.03f);
-
             // Knockback
             auto &velocity = get_velocity(projectiles, collision_pairs[i].first);
             auto &second_pos = get_position(targets, collision_pairs[i].second);
             Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
             second_pos.value.x += dir.x * damage.force;
             second_pos.value.y += dir.y * damage.force;
+
+            if(is_invulnerable(health)) {
+                continue;
+            } 
+
+            health.hp -= damage.value;
+
+            Engine::pause(0.03f);
 
             // Emit hit particles
             const auto &pos = get_position(projectiles, collision_pairs[i].first);
@@ -282,8 +286,12 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
             } else {
                 // play hit sound
                 // Sound::queue(test_sound_id, 2);
+                
+                int blink_frames = 29;
 
-                blink_sprite(targets, collision_pairs[i].second, 29, 5);
+                set_invulnerable(health, 29 * Time::delta_time_fixed);
+
+                blink_sprite(targets, collision_pairs[i].second, blink_frames, 5);
             }
         }
     }
@@ -587,7 +595,8 @@ void update_shooter() {
     system_effects(effects, players, targets);
     system_blink_effect(targets);
     system_camera_follow(players, 0, 100.0f);
-
+    system_invulnerability(targets, Time::delta_time);
+    system_invulnerability(players, Time::delta_time);
     system_remove_no_health_left(targets);
     system_remove_no_health_left(players);
 
@@ -595,7 +604,7 @@ void update_shooter() {
     spawn_effects();
     remove_destroyed_entities();
 
-    Particles::update(particles, Time::deltaTime);
+    Particles::update(particles, Time::delta_time);
     
     export_render_info();
 

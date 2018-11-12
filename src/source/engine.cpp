@@ -69,7 +69,7 @@ namespace Engine {
 			FrameLog::clear();
 		}
 		if(pause_timer > 0.0f) {
-			pause_timer -= Time::deltaTime;
+			pause_timer -= Time::delta_time;
 		}
 		Sound::play_all();
 	}
@@ -151,7 +151,8 @@ float Vector2::dot(const Vector2 &v) const {
 }
 
 namespace Time {
-	float deltaTime = 0.0f;
+	float delta_time = 0.0f;
+	float delta_time_fixed = 0.0f;
 }
 
 namespace Input {

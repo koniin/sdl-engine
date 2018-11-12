@@ -369,4 +369,13 @@ void set_damage(T &entity_data, ECS::Entity e, const Damage d) {
     entity_data.damage[handle.i] = d;
 }
 
+// time in seconds
+void set_invulnerable(Health &health, const float &time) {
+    health.invulnerability_timer = time * Time::delta_time_fixed * 60.0f;
+}
+
+bool is_invulnerable(const Health &health) {
+    return health.invulnerability_timer > 0.0f;
+}
+
 #endif

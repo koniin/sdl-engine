@@ -964,7 +964,7 @@ static const float maxOffsetY = 10; // pixels
 static float camera_speed = 0.2f;
 
 void camera_update() {
-	float interpolation = camera_speed * Time::deltaTime;
+	float interpolation = camera_speed * Time::delta_time;
 	camera.x = Math::lerp(camera.x, camera.follow_x, interpolation);
 	camera.y = Math::lerp(camera.y, camera.follow_y, interpolation);
 	
@@ -1009,6 +1009,6 @@ void camera_update() {
 	// }
 
 	// Engine::logn("trauma: %f   |   offset: %d , %d", camera.trauma, camera.offset_x, camera.offset_y);
-	camera.shake_duration -= Time::deltaTime;
-	//camera.trauma -= traumaDropOff * Time::deltaTime;
+	camera.shake_duration -= Time::delta_time;
+	//camera.trauma -= traumaDropOff * Time::delta_time;
 }

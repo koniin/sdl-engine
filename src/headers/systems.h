@@ -45,7 +45,7 @@ void system_player_get_input(Player players) {
             pi.move_x = 1;
         }
 
-        pi.fire_cooldown = Math::max_f(0.0f, pi.fire_cooldown - Time::deltaTime);
+        pi.fire_cooldown = Math::max_f(0.0f, pi.fire_cooldown - Time::delta_time);
         if(Input::key_down(key_map.fire)) {
             pi.fire_x = pi.fire_y = 1;
         }
@@ -63,8 +63,8 @@ void system_player_get_input(Player players) {
 template<typename T>
 void move_forward(T &entityData) {
     for(int i = 0; i < entityData.length; i++) {
-        entityData.position[i].value.x += entityData.velocity[i].value.x * Time::deltaTime;
-        entityData.position[i].value.y += entityData.velocity[i].value.y * Time::deltaTime;
+        entityData.position[i].value.x += entityData.velocity[i].value.x * Time::delta_time;
+        entityData.position[i].value.y += entityData.velocity[i].value.y * Time::delta_time;
     }
 }
 
@@ -261,7 +261,7 @@ template<typename T>
 void system_animation_ping_pong(T &entity_data) {
     for(size_t i = 0; i < entity_data.length; ++i) {
         auto &animation = entity_data.animation[i];
-        animation.timer += Time::deltaTime;
+        animation.timer += Time::delta_time;
 		if(animation.timer > animation.duration * 2) {
 			animation.timer = 0;
         }
@@ -292,6 +292,16 @@ void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprite
             local_position = Vector2(-player_config.gun_barrel_distance + 3, -player_config.gun_barrel_distance + 3);
             exhaust_animation.start = 4;
             exhaust_animation.end = 6;
+        }
+    }
+}
+
+template<typename T>
+void system_invulnerability(T &entity_data, const float dt) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.health[i].invulnerability_timer >= 0.0f) {
+            entity_data.health[i].invulnerability_timer -= dt;
+            Engine::logn("invul: %.2f", entity_data.health[i].invulnerability_timer);
         }
     }
 }

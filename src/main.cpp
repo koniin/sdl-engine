@@ -71,7 +71,8 @@ int main(int argc, char* argv[]) {
 	Uint32 fps_current; //the current FPS.
 	Uint32 fps_frames = 0; //frames passed since the last recorded fps.
 
-	Time::deltaTime = (float)timer.fixed_dt;
+	Time::delta_time = (float)timer.fixed_dt;
+	Time::delta_time_fixed = (float)timer.fixed_dt;
 
     while (Engine::is_running()) {
 		timer.last = timer.now;

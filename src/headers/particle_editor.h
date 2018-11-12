@@ -612,7 +612,7 @@ void load_particle_editor() {
 }
 
 void update_particle_editor() {
-    Particles::update(particles, Time::deltaTime);
+    Particles::update(particles, Time::delta_time);
 
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Particles: " + std::to_string(particles.length));
