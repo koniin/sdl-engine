@@ -30,7 +30,7 @@ static std::vector<SpawnEffect> effect_queue;
 void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
     auto spr = SpriteComponent("shooter", "bullet_1.png");
     spr.layer = 2;
-    auto effect = EffectData(2);
+    auto effect = EffectData(2 * Time::delta_time_fixed);
     effect.follow = parent;
     effect.local_position = local_position;
     effect.has_target = true;
@@ -40,10 +40,10 @@ void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) 
 void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
     auto spr = SpriteComponent("shooter", "explosion_1.png");
     spr.layer = 0;
-    auto effect = EffectData(4);
+    auto effect = EffectData(4 * Time::delta_time_fixed);
     effect.modifier_enabled = true;
     effect.modifier_data_s = "explosion_2.png";
-    effect.modifier_frame = 2;
+    effect.modifier_time = 2 * Time::delta_time_fixed;
     effect.modifier = sprite_effect;
     Vector2 blast_position = position;
     blast_position.x += RNG::range_f(-offset_x, offset_x);

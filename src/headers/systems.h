@@ -107,27 +107,30 @@ void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
 template<typename T>
 void system_blink_effect(T &entity_data) {
     for(int i = 0; i < entity_data.length; ++i) {
-        ++entity_data.blink[i].frame_counter;
-        if(entity_data.blink[i].frame_counter > entity_data.blink[i].frames_to_live) {
-            entity_data.blink[i].frame_counter = 0;
-            if(entity_data.blink[i].frames_to_live > 0) {
+        entity_data.blink[i].timer += Time::delta_time;
+        entity_data.blink[i].interval_timer += Time::delta_time;
+
+        if(entity_data.blink[i].timer > entity_data.blink[i].time_to_live) {
+            entity_data.blink[i].timer = 0.0f;
+            if(entity_data.blink[i].time_to_live > 0) {
                 entity_data.sprite[i].sprite_sheet_index = entity_data.blink[i].original_sheet;
             }
-            entity_data.blink[i].frames_to_live = 0;
+            entity_data.blink[i].time_to_live = 0;
             continue;
         }
         
-        if(!(entity_data.blink[i].frame_counter % entity_data.blink[i].interval)) {
+        if(entity_data.blink[i].interval_timer > entity_data.blink[i].interval) {
             entity_data.sprite[i].sprite_sheet_index = 
                 entity_data.sprite[i].sprite_sheet_index == entity_data.blink[i].original_sheet 
                     ? entity_data.blink[i].white_sheet : entity_data.blink[i].original_sheet;
+            entity_data.blink[i].interval_timer = 0;
         }
     }
 }
 
 void system_effects(Effect effects, Player players, Target targets) {
     for(int i = 0; i < effects.length; ++i) {
-        if(effects.effect[i].frame_counter > effects.effect[i].frames_to_live) {
+        if(effects.effect[i].timer > effects.effect[i].time_to_live) {
             queue_remove_entity(effects.entity[i]);
             continue;
         }
@@ -148,12 +151,18 @@ void system_effects(Effect effects, Player players, Target targets) {
         
         auto &effect = effects.effect[i];
         if(effects.effect[i].modifier_enabled) {
-            if(effect.frame_counter == effects.effect[i].modifier_frame) {
+            if(effect.timer == effects.effect[i].modifier_time) {
                 effect.modifier(effects, i, effect.modifier_data_s);
             }
         }
-        
-        effects.effect[i].frame_counter++;
+
+/*
+        auto &effect = effects.effect[i];
+        if(effect.modifier_enabled && effect.timer > effect.modifier_time) {
+            effect.modifier(effects, i, effect.modifier_data_s);
+        }
+*/      
+        effect.timer += Time::delta_time;
     }
 }
 

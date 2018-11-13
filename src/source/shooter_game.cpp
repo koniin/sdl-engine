@@ -28,15 +28,15 @@ static Particles::Emitter smoke_emitter;
 static Sound::SoundId test_sound_id;
 
 template<typename T>
-void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
+void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
     auto handle = entity_data.get_handle(e);
 
-    if(entity_data.blink[handle.i].frame_counter > 0)
+    if(entity_data.blink[handle.i].timer > 0)
         return;
 
     BlinkEffect b;
-    b.frames_to_live = frames;
+    b.time_to_live = ttl;
     b.interval = interval;
     b.original_sheet = entity_data.sprite[handle.i].sprite_sheet_index;
     // We assume the next sheet is the white version
@@ -206,14 +206,13 @@ void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &enti
     } else if(amount_dealt > 0) {
         // play hit sound
         // Sound::queue(test_sound_id, 2);
-        
+
         camera_shake(0.1f);
 
-        int blink_frames = 29;
-
-        set_invulnerable(health, 29 * Time::delta_time_fixed);
-
-        blink_sprite(p, entities.second, blink_frames, 5);
+        // 29 frames because that is so cool
+        float invulnerability_time = 29 * Time::delta_time_fixed;
+        set_invulnerable(health, invulnerability_time);
+        blink_sprite(p, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
     } else {
         Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt on player");
         // Do we need to handle this case?
@@ -252,11 +251,10 @@ void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &enti
         // play hit sound
         // Sound::queue(test_sound_id, 2);
         
-        int blink_frames = 29;
-
-        set_invulnerable(health, 29 * Time::delta_time_fixed);
-
-        blink_sprite(t, entities.second, blink_frames, 5);
+        // 29 frames because that is so cool
+        float invulnerability_time = 29 * Time::delta_time_fixed;
+        set_invulnerable(health, invulnerability_time);
+        blink_sprite(t, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
     } else {
         Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt");
         // Do we need to handle this case?

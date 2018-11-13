@@ -116,9 +116,10 @@ struct TargetConfiguration {
 };
 
 struct BlinkEffect {
-    int frames_to_live = 0;
-    int frame_counter = 0;
-    int interval;
+    float time_to_live = 0;
+    float timer = 0;
+    float interval = 0;
+    float interval_timer = 0;
     size_t original_sheet;
     size_t white_sheet;
 };
@@ -324,8 +325,8 @@ struct EffectModifer;
 typedef void (*effect_modifier)(const Effect &effects, const int &i, const std::string &modifier_data_s);
 
 struct EffectData {
-    int frames_to_live;
-    int frame_counter;
+    float time_to_live;
+    float timer;
     
     // follow
     bool has_target = false;
@@ -334,14 +335,16 @@ struct EffectData {
 
     // frame_counter effects
     bool modifier_enabled;
-    int modifier_frame; 
+    float modifier_time;
     effect_modifier modifier;
     int modifier_data_i;
     std::string modifier_data_s;
 
     EffectData(){};
-    EffectData(int frames) : frames_to_live(frames) {
-        frame_counter = 0;
+    EffectData(float ttl) : time_to_live(ttl) {
+        timer = 0;
+        modifier_time = 0.0f;
+        modifier_enabled = false;
     }
 };
 
