@@ -110,7 +110,7 @@ void system_blink_effect(T &entity_data) {
         entity_data.blink[i].timer += Time::delta_time;
         entity_data.blink[i].interval_timer += Time::delta_time;
 
-        if(entity_data.blink[i].timer > entity_data.blink[i].time_to_live) {
+        if(entity_data.blink[i].timer >= entity_data.blink[i].time_to_live) {
             entity_data.blink[i].timer = 0.0f;
             if(entity_data.blink[i].time_to_live > 0) {
                 entity_data.sprite[i].sprite_sheet_index = entity_data.blink[i].original_sheet;

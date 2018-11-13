@@ -569,7 +569,12 @@ void update_shooter() {
 
     system_effects(effects, players, targets);
     system_blink_effect(targets);
-    system_blink_effect(players);
+    if(Engine::is_paused()) {
+        system_blink_effect(players);
+    } else {
+        system_blink_effect(players);
+    }
+    
     system_camera_follow(players, 0, 100.0f);
     system_invulnerability(targets, Time::delta_time);
     system_invulnerability(players, Time::delta_time);

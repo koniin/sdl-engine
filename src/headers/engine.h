@@ -290,6 +290,7 @@ struct Rectangle {
 namespace Time {
 	extern float delta_time;
 	extern float delta_time_fixed;
+	extern float delta_time_raw;
 }
 
 namespace Input {

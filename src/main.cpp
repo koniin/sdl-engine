@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) {
 
 	Time::delta_time = (float)timer.fixed_dt;
 	Time::delta_time_fixed = (float)timer.fixed_dt;
+	Time::delta_time_raw = (float)timer.fixed_dt;
 
     while (Engine::is_running()) {
 		timer.last = timer.now;
@@ -84,9 +85,10 @@ int main(int argc, char* argv[]) {
         while (timer.accumulator >= timer.fixed_dt) {	
 			input();
 			Engine::update();
-			if(!Engine::is_paused()) {
-				game_update();
-			}
+			Time::delta_time = Engine::is_paused() ? 0.0f : Time::delta_time_raw;
+			FrameLog::log("dt: " + std::to_string(Time::delta_time));
+			game_update();
+			
             timer.accumulator -= timer.fixed_dt;
         }
 		
