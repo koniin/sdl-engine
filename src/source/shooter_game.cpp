@@ -174,6 +174,94 @@ void system_player_handle_input() {
     }
 }
 
+void on_hit(Projectile &projectile, Player &p, const CollisionPair &entities) {
+    // Player is hit
+}
+
+void on_hit(Projectile &projectile, Target &t, const CollisionPair &entities) {
+    // Knockback
+    auto &damage = get_damage(projectile, entities.first);
+    auto &velocity = get_velocity(projectile, entities.first);
+    auto &second_pos = get_position(t, entities.second);
+    Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
+    second_pos.value.x += dir.x * damage.force;
+    second_pos.value.y += dir.y * damage.force;
+}
+
+// Player is dealt damage
+void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities) {
+    int amount_dealt = deal_damage(projectile, entities.first, p, entities.second);
+
+    camera_shake(0.1f);
+
+    auto &health = get_health(p, entities.second);
+    if(health.hp <= 0) {
+        // Spawn explosion particles:
+        auto &second_pos = get_position(p, entities.second);
+        explosion_emitter.position = second_pos.value;
+        Particles::emit(particles, explosion_emitter);
+
+        // spawn explision sprite
+        spawn_explosion(second_pos.value, 10, 10);
+
+        // Trigger some kind of death thing so we know game is over
+    } else if(amount_dealt > 0) {
+        // play hit sound
+        // Sound::queue(test_sound_id, 2);
+        
+        int blink_frames = 29;
+
+        set_invulnerable(health, 29 * Time::delta_time_fixed);
+
+        blink_sprite(p, entities.second, blink_frames, 5);
+    } else {
+        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt on player");
+        // Do we need to handle this case?
+    }
+}
+
+void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities) {
+    int amount_dealt = deal_damage(projectile, entities.first, t, entities.second);
+    
+    Engine::pause(0.03f);
+
+    // Emit hit particles
+    const auto &pos = get_position(projectile, entities.first);
+    float angle = Math::degrees_between_v(pos.last, entities.collision_point);
+    hit_emitter.position = entities.collision_point;
+    hit_emitter.angle_min = angle - 10.0f;
+    hit_emitter.angle_max = angle + 10.0f;
+    Particles::emit(particles, hit_emitter);
+    
+    auto &health = get_health(t, entities.second);
+    if(health.hp <= 0) {
+        // play explosion sound / death sound
+        // OR DO THIS IN SPAWN EXPLOSION METHOD
+        // Sound::queue(test_sound_id, 2);
+
+        camera_shake(0.1f);
+        
+        // Spawn explosion particles:
+        auto &second_pos = get_position(t, entities.second);
+        explosion_emitter.position = second_pos.value;
+        Particles::emit(particles, explosion_emitter);
+
+        // spawn explision sprite
+        spawn_explosion(second_pos.value, 10, 10);
+    } else if(amount_dealt > 0) {
+        // play hit sound
+        // Sound::queue(test_sound_id, 2);
+        
+        int blink_frames = 29;
+
+        set_invulnerable(health, 29 * Time::delta_time_fixed);
+
+        blink_sprite(t, entities.second, blink_frames, 5);
+    } else {
+        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt");
+        // Do we need to handle this case?
+    }
+}
 
 template<typename First, typename Second>
 void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second) {
@@ -187,63 +275,17 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
         if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
             continue;
         }
+        handled_collisions.insert(collision_pairs[i].first.id);
         debug_config.last_collision_point = collision_pairs[i].collision_point;
 
-        handled_collisions.insert(collision_pairs[i].first.id);
-
+        // Always remove the projectile (since we don't have anything that says otherwise, like pierce or something)
         queue_remove_entity(collision_pairs[i].first);
 
-        if(entity_second.contains(collision_pairs[i].second)) {
-            auto &damage = get_damage(entity_first, collision_pairs[i].first);
-            auto &health = get_health(entity_second, collision_pairs[i].second);
-
-            // Knockback
-            auto &velocity = get_velocity(entity_first, collision_pairs[i].first);
-            auto &second_pos = get_position(entity_second, collision_pairs[i].second);
-            Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-            second_pos.value.x += dir.x * damage.force;
-            second_pos.value.y += dir.y * damage.force;
-
-            if(is_invulnerable(health)) {
-                continue;
-            } 
-
-            deal_damage(entity_first, collision_pairs[i].first, entity_second, collision_pairs[i].second);
-            
-            Engine::pause(0.03f);
-
-            // Emit hit particles
-            const auto &pos = get_position(entity_first, collision_pairs[i].first);
-            float angle = Math::degrees_between_v(pos.last, collision_pairs[i].collision_point);
-            hit_emitter.position = collision_pairs[i].collision_point;
-            hit_emitter.angle_min = angle - 10.0f;
-            hit_emitter.angle_max = angle + 10.0f;
-            Particles::emit(particles, hit_emitter);
-
-            if(health.hp <= 0) {
-                // play explosion sound / death sound
-                // OR DO THIS IN SPAWN EXPLOSION METHOD
-                // Sound::queue(test_sound_id, 2);
-
-                camera_shake(0.1f);
-                
-                // Spawn explosion particles:
-                explosion_emitter.position = second_pos.value;
-                Particles::emit(particles, explosion_emitter);
-
-                // spawn explision sprite
-                spawn_explosion(second_pos.value, 10, 10);
-            } else {
-                // play hit sound
-                // Sound::queue(test_sound_id, 2);
-                
-                int blink_frames = 29;
-
-                set_invulnerable(health, 29 * Time::delta_time_fixed);
-
-                blink_sprite(entity_second, collision_pairs[i].second, blink_frames, 5);
-            }
+        on_hit(entity_first, entity_second, collision_pairs[i]);
+        if(is_invulnerable(entity_second, collision_pairs[i].second)) {
+            continue;
         }
+        on_deal_damage(entity_first, entity_second, collision_pairs[i]);
     }
 }
 

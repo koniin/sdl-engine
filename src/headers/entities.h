@@ -439,22 +439,26 @@ void set_invulnerable(Health &health, const float &time) {
     health.invulnerability_timer = time * Time::delta_time_fixed * 60.0f;
 }
 
-bool is_invulnerable(const Health &health) {
+template<typename T>
+bool is_invulnerable(const T &entity, ECS::Entity e) {
+    auto &health = get_health(entity, e);
     return health.invulnerability_timer > 0.0f;
 }
 
-void deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Target &target, ECS::Entity target_entity) {
+int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Target &target, ECS::Entity target_entity) {
     auto &damage = get_damage(projectile, projectile_entity);
     auto &health = get_health(target, target_entity);
     health.hp -= damage.value;
     Engine::logn("Deal damage to target: %d", damage.value);
+    return damage.value;
 }
 
-void deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Player &player, ECS::Entity player_entity) {
+int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Player &player, ECS::Entity player_entity) {
     auto &damage = get_damage(projectile, projectile_entity);
     auto &health = get_health(player, player_entity);
     health.hp -= damage.value;
     Engine::logn("Deal damage to player: %d", damage.value);
+    return damage.value;
 }
 
 #endif
