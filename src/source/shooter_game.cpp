@@ -45,7 +45,6 @@ void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     entity_data.blink[handle.i] = b;
 }
 
-template<typename Projectile>
 void spawn_projectile(Projectile &entity_data, Vector2 p, Vector2 v) {
     auto e = entity_manager.create();
     entity_data.create(e);
@@ -268,6 +267,7 @@ void remove_destroyed_entities() {
         Engine::logn("destroying: %d", entities_to_destroy[i].id);
         players.remove(entities_to_destroy[i]);
         projectiles_player.remove(entities_to_destroy[i]);
+        projectiles_target.remove(entities_to_destroy[i]);
         targets.remove(entities_to_destroy[i]);
         effects.remove(entities_to_destroy[i]);
 
@@ -294,6 +294,10 @@ void export_render_info() {
 
     for(int i = 0; i < projectiles_player.length; ++i) {
         export_sprite_data(projectiles_player, i, sprite_data_buffer[sprite_count++]);
+	}
+
+    for(int i = 0; i < projectiles_target.length; ++i) {
+        export_sprite_data(projectiles_target, i, sprite_data_buffer[sprite_count++]);
 	}
 
     for(int i = 0; i < targets.length; ++i) {
@@ -366,6 +370,7 @@ void debug() {
     FrameLog::log("Press F8 to toggle debug render");
     FrameLog::log("Players: " + std::to_string(players.length));
     FrameLog::log("Projectiles player: " + std::to_string(projectiles_player.length));
+    FrameLog::log("Projectiles target: " + std::to_string(projectiles_target.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
     FrameLog::log("Particles: " + std::to_string(particles.length));
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
@@ -382,6 +387,8 @@ void debug() {
     debug_export_render_data_circles(players);
     debug_export_render_data_circles(projectiles_player);
     debug_export_render_data_lines(projectiles_player);
+    debug_export_render_data_circles(projectiles_target);
+    debug_export_render_data_lines(projectiles_target);
     debug_export_render_data_circles(targets);
 }
 
@@ -399,6 +406,7 @@ void load_resources() {
     particles = Particles::make(4096);
     players.allocate(1);
     projectiles_player.allocate(128);
+    projectiles_target.allocate(256);
     targets.allocate(128);
     effects.allocate(128);
     entities_to_destroy.reserve(64);
@@ -497,6 +505,8 @@ void movement() {
     keep_in_bounds(targets, world_bounds);
     set_last_position(projectiles_player);
     move_forward(projectiles_player);
+    set_last_position(projectiles_target);
+    move_forward(projectiles_target);
 }
 
 void update_shooter() {
@@ -506,8 +516,12 @@ void update_shooter() {
     movement();
     system_drag(players);
     system_player_ship_animate();
+
+    // Collision between player and target projectiles
+
     system_collisions(collisions, projectiles_player, targets);
     system_collision_resolution(collisions);
+
     system_effects(effects, players, targets);
     system_blink_effect(targets);
     system_camera_follow(players, 0, 100.0f);
@@ -517,8 +531,10 @@ void update_shooter() {
     system_remove_no_health_left(players);
 
     remove_out_of_bounds(projectiles_player, world_bounds);
+    remove_out_of_bounds(projectiles_target, world_bounds);
 
     spawn_projectiles(projectiles_player);
+    spawn_projectiles(projectiles_target);
     spawn_effects();
     remove_destroyed_entities();
 

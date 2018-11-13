@@ -4,16 +4,13 @@
 
 #include "entities.h"
 
-template<typename T>
-void queue_projectile(T &entity_data, Vector2 p, Vector2 v) {
+inline void queue_projectile(Projectile &entity_data, Vector2 p, Vector2 v) {
     entity_data.projectile_queue.push_back({ p , v });
 }
 
-template<typename T>
-void spawn_projectile(T &entity_data, Vector2 p, Vector2 v);
+void spawn_projectile(Projectile &entity_data, Vector2 p, Vector2 v);
 
-template<typename T>
-inline void spawn_projectiles(T &entity_data) {
+inline void spawn_projectiles(Projectile &entity_data) {
     for(size_t i = 0; i < entity_data.projectile_queue.size(); i++) {
         spawn_projectile(entity_data, entity_data.projectile_queue[i].position, entity_data.projectile_queue[i].velocity);
     }
