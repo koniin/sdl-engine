@@ -2,11 +2,7 @@
 #include <unordered_set>
 #include <fstream>
 
-#define SOUND_SDL_MIXER
-
-#ifdef SOUND_SDL_MIXER
-#include "sound_sdl_mixer.h"
-#endif
+#include "sound.h"
 
 namespace FrameLog {
 	void clear();

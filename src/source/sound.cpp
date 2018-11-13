@@ -1,17 +1,19 @@
-#ifndef SOUND_IMPL_H
-#define SOUND_IMPL_H
+#define USE_SDL_MIXER
 
+#ifdef USE_SDL_MIXER
+
+#include "engine.h"
 #include "SDL_mixer.h"
 
 static Mix_Chunk **sounds;
 static size_t sound_count = 0;
 static bool sound_disabled = false;
 
-inline void sound_init() {
+void sound_init() {
     SDL_Init(SDL_INIT_AUDIO);
 
     if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 2048 ) < 0 ) { 
-        printf( "SDL_mixer failed. Disabling sound. SDL_mixer Error: %s\n", Mix_GetError() ); 
+        Engine::logn("SDL_mixer failed. Disabling sound. SDL_mixer Error: %s\n", Mix_GetError()); 
         sound_disabled = true;
         return;
     }
@@ -20,7 +22,7 @@ inline void sound_init() {
     sounds = new Mix_Chunk*[128];
 }
 
-inline size_t sound_load(std::string file) {
+size_t sound_load(std::string file) {
     if(sound_disabled) {
         return 0;
     }
@@ -32,7 +34,7 @@ inline size_t sound_load(std::string file) {
     return sound_count++;
 }
 
-inline void sound_play(size_t id, int volume) {
+void sound_play(size_t id, int volume) {
     if(sound_disabled) {
         return;
     }
@@ -46,7 +48,7 @@ inline void sound_play(size_t id, int volume) {
     Mix_PlayChannel(0, sounds[id], 0);
 }
 
-inline void sound_exit() {
+void sound_exit() {
     if(sound_disabled) {
         return;
     }

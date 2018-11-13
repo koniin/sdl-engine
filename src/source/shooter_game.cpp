@@ -45,17 +45,9 @@ void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
     entity_data.blink[handle.i] = b;
 }
 
-void spawn_projectile(Projectile &entity_data, Vector2 p, Vector2 v) {
+void spawn_projectile(Projectile &projectiles, Vector2 p, Vector2 v) {
     auto e = entity_manager.create();
-    entity_data.create(e);
-    auto handle = entity_data.get_handle(e);
-    Position pos = { p, p };
-    entity_data.position[handle.i] = pos;
-    entity_data.velocity[handle.i] = Velocity(v.x, v.y);
-    SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
-    entity_data.sprite[handle.i] = s;
-    entity_data.damage[handle.i] = { 1, 2.0f };
-    entity_data.collision[handle.i] = { 8 };
+    projectiles.create(e, p, v);
 }
 
 void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, const EffectData ef) {

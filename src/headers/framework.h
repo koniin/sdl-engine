@@ -3,6 +3,7 @@
 
 #include "engine.h"
 #include <queue>
+#include <memory>
 
 namespace ECS {
     const unsigned ENTITY_INDEX_BITS = 22;
@@ -154,6 +155,122 @@ namespace ECS {
                         (char*)containers[i] + (lastIndex * container_sizes[i]), 
                         container_sizes[i]);
                     //((char*)containers[i])[index] = ((char*)containers[i])[lastIndex];
+                }
+
+                // Update map entry for the swapped entity
+                _map[lastEntity.id] = index;
+                // Remove the map entry for the destroyed entity
+                _map.erase(entityToDestroy.id);
+
+                // Decrease count
+                length--;
+            }
+        }
+    };
+
+    struct BaseContainer {
+        virtual void move(int index, int last_index) = 0;
+    };
+
+    template<typename T>
+    struct ComponentContainer : BaseContainer {
+        std::vector<T> *items;
+
+        void move(int index, int last_index) override {
+            items->at(index) = items->at(last_index);
+        }
+    };
+
+    struct EntityData_new {
+        int length;
+        int size;
+        std::vector<Entity> entity;
+        std::unordered_map<EntityId, unsigned> _map;
+        std::vector<BaseContainer*> containers;
+        
+        void allocate_entities(size_t count) {
+            size = count;
+            entity.reserve(count);
+            for(size_t i = 0; i < count; i++) {
+                entity.emplace_back();
+            }
+        }
+
+        template<typename T>
+        void initialize(std::vector<T> *items) {
+            for(int i = 0; i < size; i++) {
+                items->emplace_back();
+            }
+            auto c = new ComponentContainer<T>();
+            c->items = items;
+            containers.push_back(c);
+        }
+
+        static const int invalid_handle = -1;
+
+        struct Handle {
+            int i = -1;
+        };
+
+        Handle get_handle(Entity e) {
+            auto a = _map.find(e.id);
+            if(a != _map.end()) {
+                return { (int)a->second };
+            }
+            return { invalid_handle };
+        }
+
+        const Handle get_handle(Entity e) const {
+            auto a = _map.find(e.id);
+            if(a != _map.end()) {
+                return { (int)a->second };
+            }
+            return { invalid_handle };
+        }
+
+        bool contains(Entity e) {
+            auto a = _map.find(e.id);
+            return a != _map.end();
+        }
+
+        const bool contains(Entity e) const {
+            auto a = _map.find(e.id);
+            return a != _map.end();
+        }
+
+        bool is_valid(Handle h) {
+            return h.i != invalid_handle;
+        }
+
+        void add_entity(Entity e) {
+            ASSERT_WITH_MSG(length <= size, "Component storage is full, n:" + std::to_string(length));
+            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
+            
+            unsigned int index = length;
+            _map[e.id] = index;
+            entity[index] = e;
+            length++;
+        }
+
+        void remove(Entity e) {
+            if(!contains(e))
+                return;
+
+            auto a = _map.find(e.id);
+            const int index = a->second;
+            const int lastIndex = length - 1;
+
+            if (lastIndex >= 0) {
+                // Get the entity at the index to destroy
+                Entity entityToDestroy = entity[index];
+                // Get the entity at the end of the array
+                Entity lastEntity = entity[lastIndex];
+
+                // Move last entity's data
+                entity[index] = entity[lastIndex];
+
+                for(size_t i = 0; i < containers.size(); i++) {
+                    containers[i]->move(index, lastIndex);
                 }
 
                 // Update map entry for the swapped entity

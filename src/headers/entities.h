@@ -258,12 +258,12 @@ struct Player : ECS::EntityData {
     }
 };
 
-struct Projectile : ECS::EntityData {
-    Position *position;
-    Velocity *velocity;
-    SpriteComponent *sprite;
-    Damage *damage;
-    CollisionData *collision;
+struct Projectile : ECS::EntityData_new {
+    std::vector<Position> position;
+    std::vector<Velocity> velocity;
+    std::vector<SpriteComponent> sprite;
+    std::vector<Damage> damage;
+    std::vector<CollisionData> collision;
 
     Projectile() {    
         projectile_queue.reserve(64);
@@ -276,19 +276,24 @@ struct Projectile : ECS::EntityData {
     std::vector<SpawnProjectile> projectile_queue;
 
     void allocate(size_t n) {
-        position = new Position[n];
-        velocity = new Velocity[n];
-        sprite = new SpriteComponent[n];
-        damage = new Damage[n];
-        collision = new CollisionData[n];
+        allocate_entities(n);
+        initialize(&position);
+        initialize(&velocity);
+        initialize(&sprite);
+        initialize(&damage);
+        initialize(&collision);
+    }
 
-        allocate_entities(n, 5);
-
-        add(position);
-        add(velocity);
-        add(sprite);
-        add(damage);
-        add(collision);
+    void create(ECS::Entity e, Vector2 p, Vector2 v) {
+        add_entity(e);
+        auto handle = get_handle(e);
+        Position pos = { p, p };
+        position[handle.i] = pos;
+        velocity[handle.i] = Velocity(v.x, v.y);
+        SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
+        sprite[handle.i] = s;
+        damage[handle.i] = { 1, 2.0f };
+        collision[handle.i] = { 8 };
     }
 };
 
