@@ -33,4 +33,31 @@ void debug_render() {
     draw_g_circle_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
 }
 
+template<typename T> 
+void debug_export_render_data_circles(const T &entity_data) {
+    const auto &camera = get_camera();
+    for(int i = 0; i < entity_data.length; i++) {
+        DebugRenderData d;
+        d.x = (int16_t)(entity_data.position[i].value.x - camera.x);
+        d.y = (int16_t)(entity_data.position[i].value.y - camera.y);
+        d.type = DebugRenderData::Circle;
+        d.radius = (int16_t)entity_data.collision[i].radius;
+        debug_config.render_data.push_back(d);
+    }
+}
+
+template<typename T> 
+void debug_export_render_data_lines(const T &entity_data) {
+    const auto &camera = get_camera();
+    for(int i = 0; i < entity_data.length; ++i) {
+        DebugRenderData d;
+        d.x = (int16_t)(entity_data.position[i].value.x - camera.x);
+        d.y = (int16_t)(entity_data.position[i].value.y - camera.y);
+        d.type = DebugRenderData::Line;
+        d.x2 = (int16_t)(entity_data.position[i].last.x - camera.x);
+        d.y2 = (int16_t)(entity_data.position[i].last.y - camera.y);
+        debug_config.render_data.push_back(d);
+    }
+}
+
 #endif

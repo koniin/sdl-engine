@@ -88,6 +88,14 @@ void keep_in_bounds(T &entityData, Rectangle &bounds) {
 }
 
 template<typename T>
+void set_last_position(T &entity_data) {
+    // Set last position of projectile so we can use that in collision handling etc
+    for(int i = 0; i < entity_data.length; ++i) {
+        entity_data.position[i].last = entity_data.position[i].value;
+    }
+}
+
+template<typename T>
 void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
     for(int i = 0; i < entityData.length; i++) {
         if(!bounds.contains((int)entityData.position[i].value.x, (int)entityData.position[i].value.y)) {
@@ -316,8 +324,8 @@ void system_remove_no_health_left(T &entity_data) {
     }
 }
 
-template<typename AI, typename T>
-void system_ai_input(AI &entity_data, T &entity_search_targets) {
+template<typename AI, typename Enemy, typename Projectile>
+void system_ai_input(const AI &entity_data, const Enemy &entity_search_targets, Projectile &projectiles) {
     for(int i = 0; i < entity_data.length; i++) {
         entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
 
@@ -326,14 +334,17 @@ void system_ai_input(AI &entity_data, T &entity_search_targets) {
         }
 
         for(int t_i = 0; t_i < entity_search_targets.length; t_i++) {
-            const auto target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]);
-            if(entity_data.ai[i].search_area > Math::distance_v(entity_data.position[i].value, target_position.value)) {
-                Engine::logn("Fire at target");
+            const Vector2 &ai_position = entity_data.position[i].value;
+            const Vector2 &target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]).value;
+            if(entity_data.ai[i].search_area > Math::distance_v(ai_position, target_position)) {
+                entity_data.ai[i].fire_cooldown = entity_data.weapon[i].fire_cooldown;;
 
-                entity_data.ai[i].fire_cooldown = 0.5f;
-
-                Vector2 projectile_velocity = Vector2(10.0f, 10.0f);
-                queue_projectile(entity_data.position[i], projectile_velocity);
+                const Vector2 direction = Math::direction(target_position, ai_position);
+                const Vector2 projectile_position = ai_position;
+                
+                Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;
+                queue_projectile(projectiles, projectile_position, projectile_velocity);
+                
                 continue; // only fire at one target
             }
         }

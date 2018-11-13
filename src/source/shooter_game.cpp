@@ -12,7 +12,8 @@
 
 static ECS::EntityManager entity_manager;
 static Player players;
-static Projectile projectiles;
+static Projectile projectiles_player;
+static Projectile projectiles_target;
 static Target targets;
 static Effect effects;
 static Rectangle world_bounds;
@@ -44,17 +45,18 @@ void blink_sprite(T &entity_data, ECS::Entity e, int frames, int interval) {
     entity_data.blink[handle.i] = b;
 }
 
-void spawn_projectile(Position p, Velocity v) {
+template<typename Projectile>
+void spawn_projectile(Projectile &entity_data, Vector2 p, Vector2 v) {
     auto e = entity_manager.create();
-    projectiles.create(e);
-    auto handle = projectiles.get_handle(e);
-    p.last = p.value;
-    projectiles.position[handle.i] = p;
-    projectiles.velocity[handle.i] = v;
+    entity_data.create(e);
+    auto handle = entity_data.get_handle(e);
+    Position pos = { p, p };
+    entity_data.position[handle.i] = pos;
+    entity_data.velocity[handle.i] = Velocity(v.x, v.y);
     SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
-    projectiles.sprite[handle.i] = s;
-    projectiles.damage[handle.i] = { 1, 2.0f };
-    projectiles.collision[handle.i] = { 8 };
+    entity_data.sprite[handle.i] = s;
+    entity_data.damage[handle.i] = { 1, 2.0f };
+    entity_data.collision[handle.i] = { 8 };
 }
 
 void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, const EffectData ef) {
@@ -134,38 +136,39 @@ void system_player_handle_input() {
         const auto &player_position = players.position[i];
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            pi.fire_cooldown = player_config.fire_cooldown;
+            pi.fire_cooldown = players.weapon[i].fire_cooldown;
 
             auto projectile_pos = player_position;
 
             // auto fire_dir = Math::direction(Vector2(Input::mousex, Input::mousey), projectile_pos.value);
-            // const Vector2 bullet_direction = fire_dir;
-            const Vector2 bullet_direction = direction.value;
+            // const Vector2 projectile_direction = fire_dir;
+            const Vector2 projectile_direction = direction.value;
 
             // set the projectile position to be gun_barrel_distance infront of the ship
-            projectile_pos.value.x += bullet_direction.x * player_config.gun_barrel_distance;
-            projectile_pos.value.y += bullet_direction.y * player_config.gun_barrel_distance;        
+            projectile_pos.value.x += projectile_direction.x * player_config.gun_barrel_distance;
+            projectile_pos.value.y += projectile_direction.y * player_config.gun_barrel_distance;        
             auto muzzle_pos = projectile_pos;
 
             // Accuracy
             const float accuracy = 8; // how far from initial position it can maximaly spawn
-            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * bullet_direction.y;
-            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * bullet_direction.x;
+            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * projectile_direction.y;
+            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * projectile_direction.x;
 
-            Vector2 bullet_velocity = Vector2(bullet_direction.x * player_config.bullet_speed, bullet_direction.y * player_config.bullet_speed);
-            queue_projectile(projectile_pos, bullet_velocity);
+            float projectile_speed = players.weapon[i].projectile_speed;
+            Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
+            queue_projectile(projectiles_player, projectile_pos.value, projectile_velocity);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
 
-            camera_displace(bullet_direction * player_config.fire_knockback_camera);
+            camera_displace(projectile_direction * player_config.fire_knockback_camera);
 
             smoke_emitter.position = muzzle_pos.value;
             Particles::emit(particles, smoke_emitter);
 
             // Player knockback
-            players.position[i].value.x -= bullet_direction.x * player_config.fire_knockback;
-            players.position[i].value.y -= bullet_direction.y * player_config.fire_knockback;
+            players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
+            players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
 
             Sound::queue(test_sound_id, 2);
         }
@@ -183,7 +186,6 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
         if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
             continue;
         }
-
         debug_config.last_collision_point = collision_pairs[i].collision_point;
 
         handled_collisions.insert(collision_pairs[i].first.id);
@@ -191,11 +193,11 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
         queue_remove_entity(collision_pairs[i].first);
 
         if(targets.contains(collision_pairs[i].second)) {
-            auto &damage = get_damage(projectiles, collision_pairs[i].first);
+            auto &damage = get_damage(projectiles_player, collision_pairs[i].first);
             auto &health = get_health(targets, collision_pairs[i].second);
 
             // Knockback
-            auto &velocity = get_velocity(projectiles, collision_pairs[i].first);
+            auto &velocity = get_velocity(projectiles_player, collision_pairs[i].first);
             auto &second_pos = get_position(targets, collision_pairs[i].second);
             Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
             second_pos.value.x += dir.x * damage.force;
@@ -205,12 +207,12 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
                 continue;
             } 
 
-            health.hp -= damage.value;
-
+            deal_damage(damage, health);
+            
             Engine::pause(0.03f);
 
             // Emit hit particles
-            const auto &pos = get_position(projectiles, collision_pairs[i].first);
+            const auto &pos = get_position(projectiles_player, collision_pairs[i].first);
             float angle = Math::degrees_between_v(pos.last, collision_pairs[i].collision_point);
             hit_emitter.position = collision_pairs[i].collision_point;
             hit_emitter.angle_min = angle - 10.0f;
@@ -265,7 +267,7 @@ void remove_destroyed_entities() {
     for(size_t i = 0; i < entities_to_destroy.size(); i++) {
         Engine::logn("destroying: %d", entities_to_destroy[i].id);
         players.remove(entities_to_destroy[i]);
-        projectiles.remove(entities_to_destroy[i]);
+        projectiles_player.remove(entities_to_destroy[i]);
         targets.remove(entities_to_destroy[i]);
         effects.remove(entities_to_destroy[i]);
 
@@ -290,8 +292,8 @@ void export_render_info() {
         // export_sprite_data_values(players.child_sprites.position[i], players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
     }
 
-    for(int i = 0; i < projectiles.length; ++i) {
-        export_sprite_data(projectiles, i, sprite_data_buffer[sprite_count++]);
+    for(int i = 0; i < projectiles_player.length; ++i) {
+        export_sprite_data(projectiles_player, i, sprite_data_buffer[sprite_count++]);
 	}
 
     for(int i = 0; i < targets.length; ++i) {
@@ -336,11 +338,11 @@ void debug() {
 
     // Engine::logn("%d", sizeof(Particles::Particle));
 
-    static float bullet_speed = 8.0f;
+    static float projectile_speed = 8.0f;
     
     if(Input::key_pressed(SDLK_UP)) {
-        bullet_speed++;
-        players.config[0].bullet_speed = bullet_speed / 0.016667f;
+        projectile_speed++;
+        players.weapon[0].projectile_speed = projectile_speed / 0.016667f;
     }
 
     if(Input::key_pressed(SDLK_l)) {
@@ -363,12 +365,12 @@ void debug() {
 
     FrameLog::log("Press F8 to toggle debug render");
     FrameLog::log("Players: " + std::to_string(players.length));
-    FrameLog::log("Projectiles: " + std::to_string(projectiles.length));
+    FrameLog::log("Projectiles player: " + std::to_string(projectiles_player.length));
     FrameLog::log("Targets: " + std::to_string(targets.length));
     FrameLog::log("Particles: " + std::to_string(particles.length));
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
-    FrameLog::log("Bullet speed: " + std::to_string(players.config[0].bullet_speed));
-    FrameLog::log("Bullet speed (UP to change): " + std::to_string(bullet_speed));
+    FrameLog::log("projectile speed: " + std::to_string(players.weapon[0].projectile_speed));
+    FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
     // FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
     
     if(!debug_config.enable_render) {
@@ -377,39 +379,10 @@ void debug() {
 
     debug_config.render_data.clear();
 
-    const auto &camera = get_camera();
-
-    for(int i = 0; i < players.length; i++) {
-        DebugRenderData d;
-        d.x = (int16_t)(players.position[i].value.x - camera.x);
-        d.y = (int16_t)(players.position[i].value.y - camera.y);
-        d.type = DebugRenderData::Circle;
-        d.radius = (int16_t)players.collision[i].radius;
-        debug_config.render_data.push_back(d);
-    }
-
-    for(int i = 0; i < projectiles.length; ++i) {
-        DebugRenderData d;
-        d.x = (int16_t)(projectiles.position[i].value.x - camera.x);
-        d.y = (int16_t)(projectiles.position[i].value.y - camera.y);
-        d.type = DebugRenderData::Circle;
-        d.radius = (int16_t)projectiles.collision[i].radius;
-        debug_config.render_data.push_back(d);
-        
-        d.type = DebugRenderData::Line;
-        d.x2 = (int16_t)(projectiles.position[i].last.x - camera.x);
-        d.y2 = (int16_t)(projectiles.position[i].last.y - camera.y);
-        debug_config.render_data.push_back(d);
-	}
-
-    for(int i = 0; i < targets.length; ++i) {
-        DebugRenderData d;
-        d.x = (int16_t)(targets.position[i].value.x - camera.x);
-        d.y = (int16_t)(targets.position[i].value.y - camera.y);
-        d.type = DebugRenderData::Circle;
-        d.radius = (int16_t)targets.collision[i].radius;
-        debug_config.render_data.push_back(d);
-	}
+    debug_export_render_data_circles(players);
+    debug_export_render_data_circles(projectiles_player);
+    debug_export_render_data_lines(projectiles_player);
+    debug_export_render_data_circles(targets);
 }
 
 void load_resources() {
@@ -425,10 +398,9 @@ void load_resources() {
 
     particles = Particles::make(4096);
     players.allocate(1);
-    projectiles.allocate(128);
+    projectiles_player.allocate(128);
     targets.allocate(128);
     effects.allocate(128);
-    projectile_queue.reserve(64);
     entities_to_destroy.reserve(64);
     collisions.allocate(128);
 
@@ -523,22 +495,18 @@ void movement() {
     keep_in_bounds(players, world_bounds);
     move_forward(targets);
     keep_in_bounds(targets, world_bounds);
-    // Set last position of projectile so we can use that in collision handling etc
-    for(int i = 0; i < projectiles.length; ++i) {
-        projectiles.position[i].last = projectiles.position[i].value;
-    }
-    move_forward(projectiles);
-    remove_out_of_bounds(projectiles, world_bounds);
+    set_last_position(projectiles_player);
+    move_forward(projectiles_player);
 }
 
 void update_shooter() {
     system_player_get_input(players);
     system_player_handle_input();
-    system_ai_input(targets, players);
+    system_ai_input(targets, players, projectiles_target);
     movement();
     system_drag(players);
     system_player_ship_animate();
-    system_collisions(collisions, projectiles, targets);
+    system_collisions(collisions, projectiles_player, targets);
     system_collision_resolution(collisions);
     system_effects(effects, players, targets);
     system_blink_effect(targets);
@@ -548,7 +516,9 @@ void update_shooter() {
     system_remove_no_health_left(targets);
     system_remove_no_health_left(players);
 
-    spawn_projectiles();
+    remove_out_of_bounds(projectiles_player, world_bounds);
+
+    spawn_projectiles(projectiles_player);
     spawn_effects();
     remove_destroyed_entities();
 

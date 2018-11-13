@@ -4,6 +4,23 @@
 #include "engine.h"
 #include "framework.h"
 
+
+// Pixels per frame
+constexpr float player_move_acceleration() {
+    return 10.0f / 0.016667f;
+}
+
+struct PlayerConfiguration {
+    int16_t radius = 8;
+	float rotation_speed = 3.0f; // degrees
+	float move_acceleration = player_move_acceleration();
+	float drag = 0.04f;
+    float gun_barrel_distance = 11.0f; // distance from center
+    float fire_knockback = 2.0f; // pixels
+    float fire_knockback_camera = -6.0f;
+    int exhaust_id = 1;
+};
+
 struct PlayerInput {
 	// Input
 	float move_x;
@@ -49,11 +66,26 @@ struct Health {
 struct Damage {
     int value;
     float force; // knockback value ?
-    // int faction_to_hit;
+    
+    // int damage_type;
 };
+
+void deal_damage(const Damage &damage, Health &health) {
+    health.hp -= damage.value;
+}
 
 struct CollisionData {
     int radius;
+};
+
+// Pixels per frame
+constexpr float player_projectile_speed() {
+    return 8.0f / 0.016667f;
+}
+// Remember no fancy stuff, just plain data
+struct WeaponConfgiruation {
+    float fire_cooldown = 0.15f; // s
+	float projectile_speed = player_projectile_speed();
 };
 
 struct SpriteComponent {
@@ -149,11 +181,14 @@ struct Player : ECS::EntityData {
     SpriteComponent *sprite;
     Health *health;
     CollisionData *collision;
+    WeaponConfgiruation *weapon;
 
     ChildSprite child_sprites;
 
     std::unordered_map<int, size_t> child_map;
     
+    const int faction = 1;
+
     void allocate(size_t n) {
         config = new PlayerConfiguration[n];
         position = new Position[n];
@@ -163,8 +198,9 @@ struct Player : ECS::EntityData {
         sprite = new SpriteComponent[n];
         health = new Health[n];
         collision = new CollisionData[n];
+        weapon = new WeaponConfgiruation[n];
 
-        allocate_entities(n, 8);
+        allocate_entities(n, 9);
 
         add(config);
         add(position);
@@ -174,6 +210,7 @@ struct Player : ECS::EntityData {
         add(sprite);
         add(health);
         add(collision);
+        add(weapon);
 
         child_sprites.allocate(16);
     }
@@ -200,6 +237,16 @@ struct Projectile : ECS::EntityData {
     Damage *damage;
     CollisionData *collision;
 
+    Projectile() {    
+        projectile_queue.reserve(64);
+    }
+
+    struct SpawnProjectile {
+        Vector2 position;
+        Vector2 velocity;
+    };
+    std::vector<SpawnProjectile> projectile_queue;
+
     void allocate(size_t n) {
         position = new Position[n];
         velocity = new Velocity[n];
@@ -217,6 +264,10 @@ struct Projectile : ECS::EntityData {
     }
 };
 
+struct TargetConfiguration {
+
+};
+
 struct BlinkEffect {
     int frames_to_live = 0;
     int frame_counter = 0;
@@ -232,6 +283,7 @@ struct AI {
 };
 
 struct Target : ECS::EntityData {
+    TargetConfiguration *config;
     Position *position;
     Velocity *velocity;
     SpriteComponent *sprite;
@@ -239,8 +291,12 @@ struct Target : ECS::EntityData {
     Health *health;
     CollisionData *collision;
     AI *ai;
+    WeaponConfgiruation *weapon;
     
+    const int faction = 2;
+
     void allocate(size_t n) {
+        config = new TargetConfiguration[n];
         position = new Position[n];
         velocity = new Velocity[n];
         sprite = new SpriteComponent[n];
@@ -248,9 +304,11 @@ struct Target : ECS::EntityData {
         health = new Health[n];
         collision = new CollisionData[n];
         ai = new AI[n];
+        weapon = new WeaponConfgiruation[n];
 
-        allocate_entities(n, 7);
+        allocate_entities(n, 9);
 
+        add(config);
         add(position);
         add(velocity);
         add(sprite);
@@ -258,6 +316,7 @@ struct Target : ECS::EntityData {
         add(health);
         add(collision);
         add(ai);
+        add(weapon);
     }
 };
 

@@ -4,25 +4,20 @@
 
 #include "entities.h"
 
-// This is one thing?
-//////////////////////////////////
-struct SpawnProjectile {
-    Position position;
-    Velocity velocity;
-};
-std::vector<SpawnProjectile> projectile_queue;
-
-void queue_projectile(Position p, Vector2 velocity) {
-    projectile_queue.push_back({ p, {velocity.x, velocity.y} });
+template<typename T>
+void queue_projectile(T &entity_data, Vector2 p, Vector2 v) {
+    entity_data.projectile_queue.push_back({ p , v });
 }
 
-void spawn_projectile(Position p, Velocity v);
+template<typename T>
+void spawn_projectile(T &entity_data, Vector2 p, Vector2 v);
 
-inline void spawn_projectiles() {
-    for(size_t i = 0; i < projectile_queue.size(); i++) {
-        spawn_projectile(projectile_queue[i].position, projectile_queue[i].velocity);
+template<typename T>
+inline void spawn_projectiles(T &entity_data) {
+    for(size_t i = 0; i < entity_data.projectile_queue.size(); i++) {
+        spawn_projectile(entity_data, entity_data.projectile_queue[i].position, entity_data.projectile_queue[i].velocity);
     }
-    projectile_queue.clear();
+    entity_data.projectile_queue.clear();
 }
 
 //////////////////////////////////

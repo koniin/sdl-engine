@@ -5,12 +5,15 @@
 
 static Mix_Chunk **sounds;
 static size_t sound_count = 0;
+static bool sound_disabled = false;
 
 inline void sound_init() {
     SDL_Init(SDL_INIT_AUDIO);
 
     if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 2048 ) < 0 ) { 
-        printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() ); 
+        printf( "SDL_mixer failed. Disabling sound. SDL_mixer Error: %s\n", Mix_GetError() ); 
+        sound_disabled = true;
+        return;
     }
 
     sound_count = 0;
@@ -18,6 +21,10 @@ inline void sound_init() {
 }
 
 inline size_t sound_load(std::string file) {
+    if(sound_disabled) {
+        return 0;
+    }
+
     Mix_Chunk *sound = Mix_LoadWAV(file.c_str());
     ASSERT_WITH_MSG(sound != NULL, Text::format("Failed to load sound effect! SDL_mixer Error: %s\n", Mix_GetError()).c_str());
     
@@ -26,6 +33,9 @@ inline size_t sound_load(std::string file) {
 }
 
 inline void sound_play(size_t id, int volume) {
+    if(sound_disabled) {
+        return;
+    }
     /* Set the volume in the range of 0-128 of a specific channel or chunk.
         If the specified channel is -1, set volume for all channels.
         Returns the original volume.
@@ -37,6 +47,10 @@ inline void sound_play(size_t id, int volume) {
 }
 
 inline void sound_exit() {
+    if(sound_disabled) {
+        return;
+    }
+
     for(size_t i = 0; i < sound_count; i++) {
         Mix_FreeChunk(sounds[i]);
     }
