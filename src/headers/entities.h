@@ -15,11 +15,16 @@ constexpr float player_move_rotation() {
     return 3.0f / 0.016667f;
 }
 
+// pixels per frame
+constexpr float player_drag() {
+    return 0.04f / 0.016667f;
+}
+
 struct PlayerConfiguration {
     int16_t radius = 8;
 	float rotation_speed = player_move_rotation(); // degrees
 	float move_acceleration = player_move_acceleration();
-	float drag = 0.04f;
+	float drag = player_drag();
     float gun_barrel_distance = 11.0f; // distance from center
     float fire_knockback = 2.0f; // pixels
     float fire_knockback_camera = -6.0f;

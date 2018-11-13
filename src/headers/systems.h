@@ -171,8 +171,9 @@ void system_drag(T &entity_data) {
     for(int i = 0; i < entity_data.length; i++) {
         const float drag = entity_data.config[i].drag;
         Velocity &velocity = entity_data.velocity[i];
-	    velocity.value.x = velocity.value.x - velocity.value.x * drag;
-	    velocity.value.y = velocity.value.y - velocity.value.y * drag;
+        velocity.value = velocity.value - velocity.value * drag * Time::delta_time;
+	    // velocity.value.x = velocity.value.x - velocity.value.x * drag * Time::delta_time;
+	    // velocity.value.y = velocity.value.y - velocity.value.y * drag * Time::delta_time;
     }
 }
 
