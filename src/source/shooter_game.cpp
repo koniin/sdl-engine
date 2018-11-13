@@ -192,8 +192,6 @@ void on_hit(Projectile &projectile, Target &t, const CollisionPair &entities) {
 void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities) {
     int amount_dealt = deal_damage(projectile, entities.first, p, entities.second);
 
-    camera_shake(0.1f);
-
     auto &health = get_health(p, entities.second);
     if(health.hp <= 0) {
         // Spawn explosion particles:
@@ -209,6 +207,8 @@ void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &enti
         // play hit sound
         // Sound::queue(test_sound_id, 2);
         
+        camera_shake(0.1f);
+
         int blink_frames = 29;
 
         set_invulnerable(health, 29 * Time::delta_time_fixed);
