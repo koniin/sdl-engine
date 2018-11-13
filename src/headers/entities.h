@@ -10,9 +10,14 @@ constexpr float player_move_acceleration() {
     return 10.0f / 0.016667f;
 }
 
+// degrees per frame
+constexpr float player_move_rotation() {
+    return 3.0f / 0.016667f;
+}
+
 struct PlayerConfiguration {
     int16_t radius = 8;
-	float rotation_speed = 3.0f; // degrees
+	float rotation_speed = player_move_rotation(); // degrees
 	float move_acceleration = player_move_acceleration();
 	float drag = 0.04f;
     float gun_barrel_distance = 11.0f; // distance from center

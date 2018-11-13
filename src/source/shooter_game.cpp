@@ -119,7 +119,7 @@ void system_player_handle_input() {
         const PlayerConfiguration &player_config = players.config[i];
         
         // Update rotation based on rotational speed
-        direction.angle += pi.move_x * player_config.rotation_speed;
+        direction.angle += pi.move_x * player_config.rotation_speed * Time::delta_time;
         if(direction.angle > 360.0f) {
             direction.angle = 0;
         } else if(direction.angle < 0.0f) {
