@@ -70,10 +70,6 @@ struct Damage {
     // int damage_type;
 };
 
-void deal_damage(const Damage &damage, Health &health) {
-    health.hp -= damage.value;
-}
-
 struct CollisionData {
     int radius;
 };
@@ -113,6 +109,24 @@ struct SpriteComponent {
         color_r = color_g = color_b = color_a = 255;
         layer = 0;
     }
+};
+
+struct TargetConfiguration {
+
+};
+
+struct BlinkEffect {
+    int frames_to_live = 0;
+    int frame_counter = 0;
+    int interval;
+    size_t original_sheet;
+    size_t white_sheet;
+};
+
+struct AI {
+    float search_area = 0.0f;
+    bool has_target = false;
+    float fire_cooldown = 0.0f;
 };
 
 struct Animation {
@@ -182,6 +196,7 @@ struct Player : ECS::EntityData {
     Health *health;
     CollisionData *collision;
     WeaponConfgiruation *weapon;
+    BlinkEffect* blink;
 
     ChildSprite child_sprites;
 
@@ -199,8 +214,9 @@ struct Player : ECS::EntityData {
         health = new Health[n];
         collision = new CollisionData[n];
         weapon = new WeaponConfgiruation[n];
+        blink = new BlinkEffect[n];
 
-        allocate_entities(n, 9);
+        allocate_entities(n, 10);
 
         add(config);
         add(position);
@@ -211,6 +227,7 @@ struct Player : ECS::EntityData {
         add(health);
         add(collision);
         add(weapon);
+        add(blink);
 
         child_sprites.allocate(16);
     }
@@ -262,24 +279,6 @@ struct Projectile : ECS::EntityData {
         add(damage);
         add(collision);
     }
-};
-
-struct TargetConfiguration {
-
-};
-
-struct BlinkEffect {
-    int frames_to_live = 0;
-    int frame_counter = 0;
-    int interval;
-    size_t original_sheet;
-    size_t white_sheet;
-};
-
-struct AI {
-    float search_area = 0.0f;
-    bool has_target = false;
-    float fire_cooldown = 0.0f;
 };
 
 struct Target : ECS::EntityData {
@@ -442,6 +441,20 @@ void set_invulnerable(Health &health, const float &time) {
 
 bool is_invulnerable(const Health &health) {
     return health.invulnerability_timer > 0.0f;
+}
+
+void deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Target &target, ECS::Entity target_entity) {
+    auto &damage = get_damage(projectile, projectile_entity);
+    auto &health = get_health(target, target_entity);
+    health.hp -= damage.value;
+    Engine::logn("Deal damage to target: %d", damage.value);
+}
+
+void deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Player &player, ECS::Entity player_entity) {
+    auto &damage = get_damage(projectile, projectile_entity);
+    auto &health = get_health(player, player_entity);
+    health.hp -= damage.value;
+    Engine::logn("Deal damage to player: %d", damage.value);
 }
 
 #endif

@@ -174,7 +174,9 @@ void system_player_handle_input() {
     }
 }
 
-void system_collision_resolution(CollisionPairs &collision_pairs) {
+
+template<typename First, typename Second>
+void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second) {
     collision_pairs.sort_by_distance();
 
     // This set will contain all collisions that we have handled
@@ -191,13 +193,13 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
         queue_remove_entity(collision_pairs[i].first);
 
-        if(targets.contains(collision_pairs[i].second)) {
-            auto &damage = get_damage(projectiles_player, collision_pairs[i].first);
-            auto &health = get_health(targets, collision_pairs[i].second);
+        if(entity_second.contains(collision_pairs[i].second)) {
+            auto &damage = get_damage(entity_first, collision_pairs[i].first);
+            auto &health = get_health(entity_second, collision_pairs[i].second);
 
             // Knockback
-            auto &velocity = get_velocity(projectiles_player, collision_pairs[i].first);
-            auto &second_pos = get_position(targets, collision_pairs[i].second);
+            auto &velocity = get_velocity(entity_first, collision_pairs[i].first);
+            auto &second_pos = get_position(entity_second, collision_pairs[i].second);
             Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
             second_pos.value.x += dir.x * damage.force;
             second_pos.value.y += dir.y * damage.force;
@@ -206,12 +208,12 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
                 continue;
             } 
 
-            deal_damage(damage, health);
+            deal_damage(entity_first, collision_pairs[i].first, entity_second, collision_pairs[i].second);
             
             Engine::pause(0.03f);
 
             // Emit hit particles
-            const auto &pos = get_position(projectiles_player, collision_pairs[i].first);
+            const auto &pos = get_position(entity_first, collision_pairs[i].first);
             float angle = Math::degrees_between_v(pos.last, collision_pairs[i].collision_point);
             hit_emitter.position = collision_pairs[i].collision_point;
             hit_emitter.angle_min = angle - 10.0f;
@@ -239,11 +241,10 @@ void system_collision_resolution(CollisionPairs &collision_pairs) {
 
                 set_invulnerable(health, 29 * Time::delta_time_fixed);
 
-                blink_sprite(targets, collision_pairs[i].second, blink_frames, 5);
+                blink_sprite(entity_second, collision_pairs[i].second, blink_frames, 5);
             }
         }
     }
-    collision_pairs.clear();
 }
 
 void system_player_ship_animate() {
@@ -517,13 +518,18 @@ void update_shooter() {
     system_drag(players);
     system_player_ship_animate();
 
-    // Collision between player and target projectiles
-
+    collisions.clear();
     system_collisions(collisions, projectiles_player, targets);
-    system_collision_resolution(collisions);
+    system_collision_resolution(collisions, projectiles_player, targets);
+
+    // Collision between player and target projectiles
+    collisions.clear();
+    system_collisions(collisions, projectiles_target, players);
+    system_collision_resolution(collisions, projectiles_target, players);
 
     system_effects(effects, players, targets);
     system_blink_effect(targets);
+    system_blink_effect(players);
     system_camera_follow(players, 0, 100.0f);
     system_invulnerability(targets, Time::delta_time);
     system_invulnerability(players, Time::delta_time);
