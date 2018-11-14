@@ -305,7 +305,7 @@ struct Target : ECS::EntityData_new {
 
 struct Effect;
 struct EffectModifer;
-typedef void (*effect_modifier)(const Effect &effects, const int &i, const std::string &modifier_data_s);
+typedef void (*effect_modifier)(Effect &effects, const int &i, const std::string &modifier_data_s);
 
 struct EffectData {
     float time_to_live;
@@ -331,28 +331,23 @@ struct EffectData {
     }
 };
 
-struct Effect : ECS::EntityData {
-    Position *position;
-    Velocity *velocity;
-    SpriteComponent *sprite;
-    EffectData *effect;
+struct Effect : ECS::EntityData_new {
+    std::vector<Position> position;
+    std::vector<Velocity> velocity;
+    std::vector<SpriteComponent> sprite;
+    std::vector<EffectData> effect;
 
     void allocate(size_t n) {
-        position = new Position[n];
-        velocity = new Velocity[n];
-        sprite = new SpriteComponent[n];
-        effect = new EffectData[n];
+        allocate_entities(n);
 
-        allocate_entities(n, 4);
-
-        add(position);
-        add(velocity);
-        add(sprite);
-        add(effect);
+        initialize(&position);
+        initialize(&velocity);
+        initialize(&sprite);
+        initialize(&effect);
     }
 };
 
-void sprite_effect(const Effect &effects, const int &i, const std::string &modifier_data_s) {
+void sprite_effect(Effect &effects, const int &i, const std::string &modifier_data_s) {
     Engine::logn("sprite change");
     effects.sprite[i].sprite_name = modifier_data_s;
 }

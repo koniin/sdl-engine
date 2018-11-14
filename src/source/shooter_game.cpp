@@ -52,7 +52,7 @@ void spawn_projectile(Projectile &projectiles, Vector2 p, Vector2 v) {
 
 void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, const EffectData ef) {
     auto e = entity_manager.create();
-    effects.create(e);
+    effects.add_entity(e);
     auto handle = effects.get_handle(e);
     effects.position[handle.i] = p;
     effects.velocity[handle.i] = v;
