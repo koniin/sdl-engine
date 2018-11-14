@@ -156,12 +156,6 @@ void system_effects(Effect effects, Player players, Target targets) {
             }
         }
 
-/*
-        auto &effect = effects.effect[i];
-        if(effect.modifier_enabled && effect.timer > effect.modifier_time) {
-            effect.modifier(effects, i, effect.modifier_data_s);
-        }
-*/      
         effect.timer += Time::delta_time;
     }
 }
@@ -172,8 +166,6 @@ void system_drag(T &entity_data) {
         const float drag = entity_data.config[i].drag;
         Velocity &velocity = entity_data.velocity[i];
         velocity.value = velocity.value - velocity.value * drag * Time::delta_time;
-	    // velocity.value.x = velocity.value.x - velocity.value.x * drag * Time::delta_time;
-	    // velocity.value.y = velocity.value.y - velocity.value.y * drag * Time::delta_time;
     }
 }
 
