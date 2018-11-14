@@ -265,10 +265,6 @@ struct Projectile : ECS::EntityData_new {
     std::vector<Damage> damage;
     std::vector<CollisionData> collision;
 
-    Projectile() {    
-        projectile_queue.reserve(64);
-    }
-
     struct SpawnProjectile {
         Vector2 position;
         Vector2 velocity;
@@ -277,11 +273,14 @@ struct Projectile : ECS::EntityData_new {
 
     void allocate(size_t n) {
         allocate_entities(n);
+
         initialize(&position);
         initialize(&velocity);
         initialize(&sprite);
         initialize(&damage);
         initialize(&collision);
+        
+        projectile_queue.reserve(64);
     }
 
     void create(ECS::Entity e, Vector2 p, Vector2 v) {
