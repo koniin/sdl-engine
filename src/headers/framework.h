@@ -168,20 +168,21 @@ namespace ECS {
         }
     };
 
-    struct BaseContainer {
-        virtual void move(int index, int last_index) = 0;
-    };
 
-    template<typename T>
-    struct ComponentContainer : BaseContainer {
-        std::vector<T> *items;
+    struct EntityData_new {    
+        struct BaseContainer {
+            virtual void move(int index, int last_index) = 0;
+        };
 
-        void move(int index, int last_index) override {
-            items->at(index) = items->at(last_index);
-        }
-    };
+        template<typename T>
+        struct ComponentContainer : BaseContainer {
+            std::vector<T> *items;
 
-    struct EntityData_new {
+            void move(int index, int last_index) override {
+                items->at(index) = items->at(last_index);
+            }
+        };
+        
         int length;
         int size;
         std::vector<Entity> entity;
@@ -198,6 +199,7 @@ namespace ECS {
 
         template<typename T>
         void initialize(std::vector<T> *items) {
+            items->reserve(size);
             for(int i = 0; i < size; i++) {
                 items->emplace_back();
             }
