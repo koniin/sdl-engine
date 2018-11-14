@@ -33,17 +33,11 @@ struct PlayerConfiguration {
 
 struct PlayerInput {
 	// Input
-	float move_x;
-	float move_y;
-	float fire_x;
-	float fire_y;
-	float fire_cooldown;
-	bool shield;
-
-    PlayerInput() {
-        fire_cooldown = 0.0f;
-        shield = false;
-    }
+	float move_x = 0;
+	float move_y = 0;
+	float fire_x = 0;
+	float fire_y = 0;
+	float fire_cooldown = 0;
 };
 
 struct Position {
@@ -74,14 +68,14 @@ struct Health {
 };
 
 struct Damage {
-    int value;
-    float force; // knockback value ?
+    int value = 0;
+    float force = 0; // knockback value ?
     
     // int damage_type;
 };
 
 struct CollisionData {
-    int radius;
+    int radius = 0;
 };
 
 // Pixels per frame
@@ -197,50 +191,41 @@ struct ChildSprite {
     }
 };
 
-struct Player : ECS::EntityData {
-    PlayerConfiguration *config;
-    Position *position;
-    Velocity *velocity;
-    Direction *direction;
-    PlayerInput *input;
-    SpriteComponent *sprite;
-    Health *health;
-    CollisionData *collision;
-    WeaponConfgiruation *weapon;
-    BlinkEffect* blink;
+struct Player : ECS::EntityData_new {
+    std::vector<PlayerConfiguration> config;
+    std::vector<Position> position;
+    std::vector<Velocity> velocity;
+    std::vector<Direction> direction;
+    std::vector<PlayerInput> input;
+    std::vector<SpriteComponent> sprite;
+    std::vector<Health> health;
+    std::vector<CollisionData> collision;
+    std::vector<WeaponConfgiruation> weapon;
+    std::vector<BlinkEffect> blink;
 
     ChildSprite child_sprites;
 
     std::unordered_map<int, size_t> child_map;
     
-    const int faction = 1;
-
     void allocate(size_t n) {
-        config = new PlayerConfiguration[n];
-        position = new Position[n];
-        velocity = new Velocity[n];
-        direction = new Direction[n];
-        input = new PlayerInput[n];
-        sprite = new SpriteComponent[n];
-        health = new Health[n];
-        collision = new CollisionData[n];
-        weapon = new WeaponConfgiruation[n];
-        blink = new BlinkEffect[n];
-
-        allocate_entities(n, 10);
-
-        add(config);
-        add(position);
-        add(velocity);
-        add(direction);
-        add(input);
-        add(sprite);
-        add(health);
-        add(collision);
-        add(weapon);
-        add(blink);
+        allocate_entities(n);
+        
+        initialize(&config);
+        initialize(&position);
+        initialize(&velocity);
+        initialize(&direction);
+        initialize(&input);
+        initialize(&sprite);
+        initialize(&health);
+        initialize(&collision);
+        initialize(&weapon);
+        initialize(&blink);
 
         child_sprites.allocate(16);
+    }
+
+    void create(ECS::Entity e) {
+        add_entity(e);
     }
 
     void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
@@ -279,7 +264,7 @@ struct Projectile : ECS::EntityData_new {
         initialize(&sprite);
         initialize(&damage);
         initialize(&collision);
-        
+
         projectile_queue.reserve(64);
     }
 
@@ -457,7 +442,7 @@ void set_invulnerable(Health &health, const float &time) {
 }
 
 template<typename T>
-bool is_invulnerable(const T &entity, ECS::Entity e) {
+bool is_invulnerable(T &entity, ECS::Entity e) {
     auto &health = get_health(entity, e);
     return health.invulnerability_timer > 0.0f;
 }

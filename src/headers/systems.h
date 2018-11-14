@@ -22,14 +22,14 @@ void queue_remove_entity(ECS::Entity entity) {
     entities_to_destroy.push_back(entity);
 }
 
-void system_player_get_input(Player players) {
+void system_player_get_input(Player &players) {
+    bool yes = false;
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
         pi.move_x = 0;
         pi.move_y = 0;
         pi.fire_x = 0;
         pi.fire_y = 0;
-        pi.shield = false;
 
         InputMapping key_map = input_maps[i];
 
@@ -49,15 +49,17 @@ void system_player_get_input(Player players) {
 
         if(Input::key_down(key_map.fire)) {
             pi.fire_x = pi.fire_y = 1;
-        }
-
-        if(Input::key_down(key_map.shield)) {
-            pi.shield = true;
+            yes = true;
         }
 
         if(Input::key_pressed(SDLK_p)) {
             Engine::pause(1.0f);
         }
+    }
+
+    if(yes) {
+        int a = 4;
+        a++;
     }
 }
 
@@ -128,7 +130,7 @@ void system_blink_effect(T &entity_data) {
     }
 }
 
-void system_effects(Effect effects, Player players, Target targets) {
+void system_effects(Effect &effects, Player &players, Target &targets) {
     for(int i = 0; i < effects.length; ++i) {
         if(effects.effect[i].timer > effects.effect[i].time_to_live) {
             queue_remove_entity(effects.entity[i]);
@@ -327,7 +329,7 @@ void system_remove_no_health_left(T &entity_data) {
 }
 
 template<typename AI, typename Enemy>
-void system_ai_input(const AI &entity_data, const Enemy &entity_search_targets, Projectile &projectiles) {
+void system_ai_input(const AI &entity_data, Enemy &entity_search_targets, Projectile &projectiles) {
     for(int i = 0; i < entity_data.length; i++) {
         entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
 
