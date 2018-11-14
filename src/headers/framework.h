@@ -61,115 +61,7 @@ namespace ECS {
         }
     };
 
-    struct EntityData {
-        int length;
-        int size;
-        Entity *entity;
-        std::unordered_map<EntityId, unsigned> _map;
-        int container_count = 0;
-        int max_container_count = 0;
-        void **containers;
-        size_t *container_sizes;
-    
-        void allocate_entities(size_t count, int max_containers) {
-            size = count;
-            entity = new Entity[count];
-            containers = new void*[max_containers];
-            container_sizes = new size_t[max_containers];
-            max_container_count = max_containers;
-        }
-
-        template<typename T>
-        void add(T *container) {
-            ASSERT_WITH_MSG(container_count < max_container_count, "Maximum container count reached, more components than containers");
-            containers[container_count] = container;
-            container_sizes[container_count] = sizeof(T);
-            container_count++;
-        }
-
-        static const int invalid_handle = -1;
-
-        struct Handle {
-            int i = -1;
-        };
-
-        Handle get_handle(Entity e) {
-            auto a = _map.find(e.id);
-            if(a != _map.end()) {
-                return { (int)a->second };
-            }
-            return { invalid_handle };
-        }
-
-        const Handle get_handle(Entity e) const {
-            auto a = _map.find(e.id);
-            if(a != _map.end()) {
-                return { (int)a->second };
-            }
-            return { invalid_handle };
-        }
-
-        bool contains(Entity e) {
-            auto a = _map.find(e.id);
-            return a != _map.end();
-        }
-
-        const bool contains(Entity e) const {
-            auto a = _map.find(e.id);
-            return a != _map.end();
-        }
-
-        bool is_valid(Handle h) {
-            return h.i != invalid_handle;
-        }
-
-        void create(Entity e) {
-            ASSERT_WITH_MSG(length <= size, "Component storage is full, n:" + std::to_string(length));
-            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
-            
-            unsigned int index = length;
-            _map[e.id] = index;
-            entity[index] = e;
-            length++;
-        }
-
-        void remove(Entity e) {
-            if(!contains(e))
-                return;
-
-            auto a = _map.find(e.id);
-            const int index = a->second;
-            const unsigned lastIndex = length - 1;
-
-            if (lastIndex >= 0) {
-                // Get the entity at the index to destroy
-                Entity entityToDestroy = entity[index];
-                // Get the entity at the end of the array
-                Entity lastEntity = entity[lastIndex];
-
-                // Move last entity's data
-                entity[index] = entity[lastIndex];
-
-                for(int i = 0; i < container_count; i++) {
-                    std::memcpy((char*)containers[i] + (index * container_sizes[i]), 
-                        (char*)containers[i] + (lastIndex * container_sizes[i]), 
-                        container_sizes[i]);
-                    //((char*)containers[i])[index] = ((char*)containers[i])[lastIndex];
-                }
-
-                // Update map entry for the swapped entity
-                _map[lastEntity.id] = index;
-                // Remove the map entry for the destroyed entity
-                _map.erase(entityToDestroy.id);
-
-                // Decrease count
-                length--;
-            }
-        }
-    };
-
-
-    struct EntityData_new {    
+    struct EntityData {    
         struct BaseContainer {
             virtual void move(int index, int last_index) = 0;
         };
@@ -183,24 +75,21 @@ namespace ECS {
             }
         };
         
-        int length;
-        int size;
         std::vector<Entity> entity;
         std::unordered_map<EntityId, unsigned> _map;
         std::vector<BaseContainer*> containers;
         
-        void allocate_entities(size_t count) {
-            size = count;
-            entity.reserve(count);
-            for(size_t i = 0; i < count; i++) {
-                entity.emplace_back();
-            }
+        size_t size = 0;
+        int length = 0;
+        void allocate_entities(size_t sz) {
+            size = sz;
+            entity.reserve(size);
         }
 
         template<typename T>
         void initialize(std::vector<T> *items) {
             items->reserve(size);
-            for(int i = 0; i < size; i++) {
+            for(size_t i = 0; i < size; i++) {
                 items->emplace_back();
             }
             auto c = new ComponentContainer<T>();
@@ -245,13 +134,14 @@ namespace ECS {
         }
 
         void add_entity(Entity e) {
-            ASSERT_WITH_MSG(length <= size, "Component storage is full, n:" + std::to_string(length));
+            ASSERT_WITH_MSG(entity.size() <= size, "Component storage is full, n:" + std::to_string(entity.size()));
             ASSERT_WITH_MSG(!contains(e), "Entity already has component");
             
-            unsigned int index = length;
+            unsigned int index = entity.size();
             _map[e.id] = index;
-            entity[index] = e;
-            length++;
+            entity.push_back(e);
+
+            ++length;
         }
 
         void remove(Entity e) {
@@ -260,7 +150,7 @@ namespace ECS {
 
             auto a = _map.find(e.id);
             const int index = a->second;
-            const int lastIndex = length - 1;
+            const int lastIndex = entity.size() - 1;
 
             if (lastIndex >= 0) {
                 // Get the entity at the index to destroy
@@ -281,7 +171,9 @@ namespace ECS {
                 _map.erase(entityToDestroy.id);
 
                 // Decrease count
-                length--;
+                entity.pop_back();
+
+                --length;
             }
         }
     };

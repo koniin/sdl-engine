@@ -191,7 +191,7 @@ struct ChildSprite {
     }
 };
 
-struct Player : ECS::EntityData_new {
+struct Player : ECS::EntityData {
     std::vector<PlayerConfiguration> config;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
@@ -239,7 +239,7 @@ struct Player : ECS::EntityData_new {
     }
 };
 
-struct Projectile : ECS::EntityData_new {
+struct Projectile : ECS::EntityData {
     std::vector<Position> position;
     std::vector<Velocity> velocity;
     std::vector<SpriteComponent> sprite;
@@ -277,7 +277,7 @@ struct Projectile : ECS::EntityData_new {
     }
 };
 
-struct Target : ECS::EntityData_new {
+struct Target : ECS::EntityData {
     std::vector<TargetConfiguration> config;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
@@ -331,7 +331,7 @@ struct EffectData {
     }
 };
 
-struct Effect : ECS::EntityData_new {
+struct Effect : ECS::EntityData {
     std::vector<Position> position;
     std::vector<Velocity> velocity;
     std::vector<SpriteComponent> sprite;
