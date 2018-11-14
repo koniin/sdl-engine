@@ -224,6 +224,36 @@ struct Player : ECS::EntityData {
         child_sprites.allocate(16);
     }
 
+    void create(const ECS::Entity &e, const Vector2 &p) {
+        add_entity(e);
+        auto handle = get_handle(e);
+        PlayerConfiguration pcfg;
+        config[handle.i] = pcfg;
+        position[handle.i] = { p };
+        velocity[handle.i] = Velocity();
+        direction[handle.i] = Direction();
+        input[handle.i] = PlayerInput();
+        
+        SpriteComponent s = SpriteComponent("shooter", "player_1.png");
+        s.layer = 1;
+        sprite[handle.i] = s;
+        health[handle.i] = { 10, 10 };
+        collision[handle.i] = { 8 };
+        weapon[handle.i] = WeaponConfgiruation();
+        blink[handle.i] = BlinkEffect();
+
+        SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
+        child_sprite.h = child_sprite.h + (child_sprite.h / 2);
+        child_sprite.layer = 0;
+        auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
+        create_child_sprite(pcfg.exhaust_id, e, 
+            p, 
+            Vector2(-pcfg.gun_barrel_distance, -pcfg.gun_barrel_distance),
+            child_sprite,
+            animation);
+    
+    }
+
     void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
         size_t new_sprite_id = child_sprites.add(e, 
             pos, 
@@ -267,8 +297,7 @@ struct Projectile : ECS::EntityData {
     void create(ECS::Entity e, Vector2 p, Vector2 v) {
         add_entity(e);
         auto handle = get_handle(e);
-        Position pos = { p, p };
-        position[handle.i] = pos;
+        position[handle.i] = { p, p };
         velocity[handle.i] = Velocity(v.x, v.y);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
         sprite[handle.i] = s;
@@ -300,6 +329,22 @@ struct Target : ECS::EntityData {
         initialize(&collision);
         initialize(&ai);
         initialize(&weapon);
+    }
+
+    void create(const ECS::Entity &e, const Vector2 &p) {
+        add_entity(e);
+        auto handle = get_handle(e);
+        config[handle.i] = TargetConfiguration();
+        position[handle.i] = { p };
+        velocity[handle.i] = Velocity(0, 0);
+        SpriteComponent s = SpriteComponent("shooter", "enemy_1.png");
+        s.layer = 1;
+        sprite[handle.i] = s;
+        blink[handle.i] = BlinkEffect();
+        health[handle.i] = { 2, 2 };
+        collision[handle.i] = { 8 };
+        ai[handle.i] = { 100.0f };
+        weapon[handle.i] = WeaponConfgiruation();
     }
 };
 
@@ -344,6 +389,15 @@ struct Effect : ECS::EntityData {
         initialize(&velocity);
         initialize(&sprite);
         initialize(&effect);
+    }
+
+    void create(ECS::Entity &e, const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
+        add_entity(e);
+        auto handle = get_handle(e);
+        position[handle.i] = p;
+        velocity[handle.i] = v;
+        sprite[handle.i] = s;
+        effect[handle.i] = ef;
     }
 };
 

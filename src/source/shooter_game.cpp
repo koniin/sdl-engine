@@ -50,57 +50,19 @@ void spawn_projectile(Projectile &projectiles, Vector2 p, Vector2 v) {
     projectiles.create(e, p, v);
 }
 
-void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, const EffectData ef) {
+void spawn_effect(const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
     auto e = entity_manager.create();
-    effects.add_entity(e);
-    auto handle = effects.get_handle(e);
-    effects.position[handle.i] = p;
-    effects.velocity[handle.i] = v;
-    effects.sprite[handle.i] = s;
-    effects.effect[handle.i] = ef;
+    effects.create(e, p, v, s, ef);
 }
 
 void spawn_player(Vector2 position) {
     auto e = entity_manager.create();
-    players.add_entity(e);
-    auto handle = players.get_handle(e);
-    players.position[handle.i] = { position };
-    
-    SpriteComponent s = SpriteComponent("shooter", "player_1.png");
-    s.layer = 1;
-    players.sprite[handle.i] = s;
-    
-    PlayerConfiguration pcfg;
-    players.config[handle.i] = pcfg;
-
-    players.health[handle.i] = { 10, 10 };
-
-    players.collision[handle.i] = { 8 };
-
-    SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
-    child_sprite.h = child_sprite.h + (child_sprite.h / 2);
-    child_sprite.layer = 0;
-    auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
-    players.create_child_sprite(pcfg.exhaust_id, e, 
-        position, 
-        Vector2(-pcfg.gun_barrel_distance, -pcfg.gun_barrel_distance),
-        child_sprite,
-        animation);
-    
+    players.create(e, position);
 }
 
 void spawn_target(Vector2 position) {
     auto e = entity_manager.create();
-    targets.add_entity(e);
-    auto handle = targets.get_handle(e);
-    targets.position[handle.i] = { position };
-    targets.velocity[handle.i] = { 0, 0 };
-    targets.health[handle.i] = { 2, 2 };
-    targets.collision[handle.i] = { 8 };
-    targets.ai[handle.i] = { 100.0f };
-    SpriteComponent s = SpriteComponent("shooter", "enemy_1.png");
-    s.layer = 1;
-    targets.sprite[handle.i] = s;
+    targets.create(e, position);
 }
 
 void system_player_handle_input() {

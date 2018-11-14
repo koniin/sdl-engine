@@ -89,7 +89,7 @@ namespace ECS {
         template<typename T>
         void initialize(std::vector<T> *items) {
             items->reserve(size);
-            for(size_t i = 0; i < size; i++) {
+            for(size_t i = 0; i < size; ++i) {
                 items->emplace_back();
             }
             auto c = new ComponentContainer<T>();
@@ -102,6 +102,17 @@ namespace ECS {
         struct Handle {
             int i = -1;
         };
+        
+        void add_entity(Entity e) {
+            ASSERT_WITH_MSG(entity.size() <= size, "Component storage is full, n:" + std::to_string(entity.size()));
+            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
+            
+            unsigned int index = entity.size();
+            _map[e.id] = index;
+            entity.push_back(e);
+
+            ++length;
+        }
 
         Handle get_handle(Entity e) {
             auto a = _map.find(e.id);
@@ -131,17 +142,6 @@ namespace ECS {
 
         bool is_valid(Handle h) {
             return h.i != invalid_handle;
-        }
-
-        void add_entity(Entity e) {
-            ASSERT_WITH_MSG(entity.size() <= size, "Component storage is full, n:" + std::to_string(entity.size()));
-            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
-            
-            unsigned int index = entity.size();
-            _map[e.id] = index;
-            entity.push_back(e);
-
-            ++length;
         }
 
         void remove(Entity e) {

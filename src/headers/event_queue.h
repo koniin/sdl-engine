@@ -51,7 +51,7 @@ void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
     effect_queue.push_back({ { blast_position }, Velocity(), spr, effect });
 }
 
-void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, const EffectData ef);
+void spawn_effect(const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef);
 
 void spawn_effects() {
     for(size_t i = 0; i < effect_queue.size(); i++) {
