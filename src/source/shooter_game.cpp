@@ -62,7 +62,7 @@ void spawn_effect(const Position p, const Velocity v, const SpriteComponent s, c
 
 void spawn_player(Vector2 position) {
     auto e = entity_manager.create();
-    players.create(e);
+    players.add_entity(e);
     auto handle = players.get_handle(e);
     players.position[handle.i] = { position };
     
@@ -91,7 +91,7 @@ void spawn_player(Vector2 position) {
 
 void spawn_target(Vector2 position) {
     auto e = entity_manager.create();
-    targets.create(e);
+    targets.add_entity(e);
     auto handle = targets.get_handle(e);
     targets.position[handle.i] = { position };
     targets.velocity[handle.i] = { 0, 0 };

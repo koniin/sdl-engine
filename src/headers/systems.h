@@ -329,7 +329,7 @@ void system_remove_no_health_left(T &entity_data) {
 }
 
 template<typename AI, typename Enemy>
-void system_ai_input(const AI &entity_data, Enemy &entity_search_targets, Projectile &projectiles) {
+void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &projectiles) {
     for(int i = 0; i < entity_data.length; i++) {
         entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
 

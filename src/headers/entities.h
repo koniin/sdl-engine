@@ -224,10 +224,6 @@ struct Player : ECS::EntityData_new {
         child_sprites.allocate(16);
     }
 
-    void create(ECS::Entity e) {
-        add_entity(e);
-    }
-
     void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
         size_t new_sprite_id = child_sprites.add(e, 
             pos, 
@@ -281,41 +277,29 @@ struct Projectile : ECS::EntityData_new {
     }
 };
 
-struct Target : ECS::EntityData {
-    TargetConfiguration *config;
-    Position *position;
-    Velocity *velocity;
-    SpriteComponent *sprite;
-    BlinkEffect* blink;
-    Health *health;
-    CollisionData *collision;
-    AI *ai;
-    WeaponConfgiruation *weapon;
-    
-    const int faction = 2;
+struct Target : ECS::EntityData_new {
+    std::vector<TargetConfiguration> config;
+    std::vector<Position> position;
+    std::vector<Velocity> velocity;
+    std::vector<SpriteComponent> sprite;
+    std::vector<BlinkEffect> blink;
+    std::vector<Health> health;
+    std::vector<CollisionData> collision;
+    std::vector<AI> ai;
+    std::vector<WeaponConfgiruation> weapon;
 
     void allocate(size_t n) {
-        config = new TargetConfiguration[n];
-        position = new Position[n];
-        velocity = new Velocity[n];
-        sprite = new SpriteComponent[n];
-        blink = new BlinkEffect[n];
-        health = new Health[n];
-        collision = new CollisionData[n];
-        ai = new AI[n];
-        weapon = new WeaponConfgiruation[n];
+        allocate_entities(n);
 
-        allocate_entities(n, 9);
-
-        add(config);
-        add(position);
-        add(velocity);
-        add(sprite);
-        add(blink);
-        add(health);
-        add(collision);
-        add(ai);
-        add(weapon);
+        initialize(&config);
+        initialize(&position);
+        initialize(&velocity);
+        initialize(&sprite);
+        initialize(&blink);
+        initialize(&health);
+        initialize(&collision);
+        initialize(&ai);
+        initialize(&weapon);
     }
 };
 
