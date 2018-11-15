@@ -119,9 +119,9 @@ struct ShooterGame {
 	// }
 };
 
-void load_shooter();
-void update_shooter();
-void render_shooter();
-void render_shooter_ui();
+void shooter_load();
+void shooter_update();
+void shooter_render();
+void shooter_render_ui();
 
 #endif

@@ -307,6 +307,22 @@ void system_child_sprite_exhaust(T &entity_data, ChildSprite &child_sprites) {
     }
 }
 
+inline void system_player_ship_animate(Player &players) {
+    system_child_sprite_position(players.child_sprites, players);
+    system_child_sprite_exhaust(players, players.child_sprites);
+    system_animation_ping_pong(players.child_sprites);
+
+    for(int i = 0; i < players.length; i++) {
+        if(players.input[i].move_x > 0) {
+            players.sprite[i].sprite_name = "player_turn_right.png";
+        } else if(players.input[i].move_x < 0) {
+            players.sprite[i].sprite_name = "player_turn_left.png";
+        } else {
+            players.sprite[i].sprite_name = "player_1.png";
+        }
+    }
+}
+
 template<typename T>
 void system_invulnerability(T &entity_data, const float dt) {
     for(int i = 0; i < entity_data.length; i++) {

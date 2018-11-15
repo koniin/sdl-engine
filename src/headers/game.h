@@ -8,6 +8,7 @@
 // #include "asteroids.h"
 // #include "bullet_physics.h"
 #include "shooter_game.h"
+#include "menu.h"
 // #include "particle_editor.h"
 // #include "collision_tests.h"
 #include <chrono>
@@ -39,7 +40,9 @@ inline void game_load() {
 	set_default_font(font);
     FrameLog::enable_at(5, 5);
 	
-	load_shooter();
+	shooter_load();
+	menu_load();
+
 }
 
 inline void game_update() {
@@ -48,7 +51,7 @@ inline void game_update() {
 	// collision_test_update();
 	// // asteroids_update();
 	// // tile_collisions_update();
-	update_shooter();
+	shooter_update();
 
 	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
@@ -78,9 +81,9 @@ inline void game_render() {
 	// // collision_test_render();
 	
 	renderer_clear();
-	render_shooter();
+	shooter_render();
 	renderer_draw_render_target_camera();
-	render_shooter_ui();
+	shooter_render_ui();
 	renderer_flip();
 
 	

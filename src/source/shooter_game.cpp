@@ -13,24 +13,6 @@ static ShooterGame *_g;
 static RenderBuffer render_buffer;
 static Sound::SoundId test_sound_id;
 
-template<typename T>
-void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
-    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
-    auto handle = entity_data.get_handle(e);
-
-    if(entity_data.blink[handle.i].timer > 0)
-        return;
-
-    BlinkEffect b;
-    b.time_to_live = ttl;
-    b.interval = interval;
-    b.original_sheet = entity_data.sprite[handle.i].sprite_sheet_index;
-    // We assume the next sheet is the white version
-    b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
-    entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
-    entity_data.blink[handle.i] = b;
-}
-
 void spawn_player(Vector2 position) {
     auto e = _g->entity_manager.create();
     _g->players.create(e, position);
@@ -151,6 +133,7 @@ void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &enti
     }
 }
 
+// Target is dealt damage
 void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities) {
     int amount_dealt = deal_damage(projectile, entities.first, t, entities.second);
     
@@ -218,24 +201,6 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
     }
 }
 
-void system_player_ship_animate() {
-    Player &players = _g->players;
-
-    system_child_sprite_position(players.child_sprites, players);
-    system_child_sprite_exhaust(players, players.child_sprites);
-    system_animation_ping_pong(players.child_sprites);
-
-    for(int i = 0; i < players.length; i++) {
-        if(players.input[i].move_x > 0) {
-            players.sprite[i].sprite_name = "player_turn_right.png";
-        } else if(players.input[i].move_x < 0) {
-            players.sprite[i].sprite_name = "player_turn_left.png";
-        } else {
-            players.sprite[i].sprite_name = "player_1.png";
-        }
-    }
-}
-
 void export_render_info() {
     render_buffer.sprite_count = 0;
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
@@ -272,36 +237,7 @@ void export_render_info() {
     std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
 }
 
-// Particles requirements
-// * emitters - to emit by position
-//      - just update emitter position after moving object
-// * no runtime allocations - allocate once
-// * draw as sprite or as gemoetry
-// * Simple API - update and render should handle itself?
-
-#include "particles.h"
-
 void debug() {
-    // Particles::Emitter cfg;
-	// cfg.position = Vector2((float)(gw / 2), (float)(gh / 2));
-	// cfg.color_start = Colors::make(255, 0, 0, 255);
-	// cfg.color_end = Colors::make(255, 0, 0, 0);
-	// cfg.force = Vector2(78, 500);
-	// cfg.min_particles = 21;
-	// cfg.max_particles = 39;
-	// cfg.life_min = 1;
-	// cfg.life_max = 1.8f;
-	// cfg.angle_min = 1.48f;
-	// cfg.angle_max = 90;
-	// cfg.speed_min = 142;
-	// cfg.speed_max = 166;
-	// cfg.size_min = 1;
-	// cfg.size_max = 3;
-	// cfg.size_end_min = 0;
-	// cfg.size_end_max = 0;
-
-    // Engine::logn("%d", sizeof(Particles::Particle));
-
     static float projectile_speed = 8.0f;
     
     if(Input::key_pressed(SDLK_UP)) {
@@ -377,7 +313,7 @@ void init_scene() {
     spawn_target(Vector2(350, 200));
 }
 
-void load_shooter() {
+void shooter_load() {
     load_resources();
     init_scene();
 }
@@ -391,15 +327,18 @@ void movement() {
     move_forward(_g->projectiles_player);
     set_last_position(_g->projectiles_target);
     move_forward(_g->projectiles_target);
+
+    system_drag(_g->players);
 }
 
-void update_shooter() {
+void shooter_update() {
     system_player_get_input(_g->players);
     system_player_handle_input();
     system_ai_input(_g->targets, _g->players, _g->projectiles_target);
+
     movement();
-    system_drag(_g->players);
-    system_player_ship_animate();
+    
+    system_player_ship_animate(_g->players);
 
     _g->collisions.clear();
     system_collisions(_g->collisions, _g->projectiles_player, _g->targets);
@@ -436,7 +375,7 @@ void update_shooter() {
     debug();
 }
 
-void render_shooter() {
+void shooter_render() {
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     Particles::render_circles_filled(_g->particles);
     debug_render();
@@ -452,7 +391,7 @@ void render_health_bar(int x, int y, int width, int height, float value, float m
     draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, (int)hp_bar_width, 13, 255, 0, 0, 255);
 }
 
-void render_shooter_ui() {
+void shooter_render_ui() {
     if(_g->players.length > 0) {
         render_health_bar(10, 10, 100, 15, (float)_g->players.health[0].hp, (float)_g->players.health[0].hp_max);
     }

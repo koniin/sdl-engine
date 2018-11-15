@@ -527,4 +527,21 @@ inline int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Pl
     return damage.value;
 }
 
+template<typename T>
+void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive");
+    auto handle = entity_data.get_handle(e);
+
+    if(entity_data.blink[handle.i].timer > 0)
+        return;
+
+    BlinkEffect b;
+    b.time_to_live = ttl;
+    b.interval = interval;
+    b.original_sheet = entity_data.sprite[handle.i].sprite_sheet_index;
+    // We assume the next sheet is the white version
+    b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
+    entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
+    entity_data.blink[handle.i] = b;
+}
 #endif
