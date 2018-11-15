@@ -8,7 +8,6 @@
 #include "entities.h"
 #include "systems.h"
 #include "particles.h"
-#include "event_queue.h"
 #include "emitter_config.h"
 
 struct ShooterGame {
@@ -49,12 +48,50 @@ struct ShooterGame {
         system_remove_deleted(effects);
     }
 
-    inline void spawn_projectiles(Projectile &entity_data) {
-        for(size_t i = 0; i < entity_data.projectile_queue.size(); i++) {
+    void spawn_projectiles() {
+        for(size_t i = 0; i < projectiles_player.projectile_queue.size(); i++) {
             auto e = entity_manager.create();
-            entity_data.create(e,entity_data.projectile_queue[i].position, entity_data.projectile_queue[i].velocity);
+            projectiles_player.create(e, projectiles_player.projectile_queue[i].position, projectiles_player.projectile_queue[i].velocity);
         }
-        entity_data.projectile_queue.clear();
+        projectiles_player.projectile_queue.clear();
+
+        for(size_t i = 0; i < projectiles_target.projectile_queue.size(); i++) {
+            auto e = entity_manager.create();
+            projectiles_target.create(e, projectiles_target.projectile_queue[i].position, projectiles_target.projectile_queue[i].velocity);
+        }
+        projectiles_target.projectile_queue.clear();
+    }
+
+    void spawn_effects() {
+        for(size_t i = 0; i < effects.effect_queue.size(); i++) {
+            auto e = entity_manager.create();
+            effects.create(e, effects.effect_queue[i].position, effects.effect_queue[i].velocity, effects.effect_queue[i].sprite, effects.effect_queue[i].effect);
+        }
+        effects.effect_queue.clear();
+    }
+
+    void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
+        auto spr = SpriteComponent("shooter", "bullet_1.png");
+        spr.layer = 2;
+        auto effect = EffectData(2 * Time::delta_time_fixed);
+        effect.follow = parent;
+        effect.local_position = local_position;
+        effect.has_target = true;
+        effects.effect_queue.push_back({ p, Velocity(), spr, effect });
+    }
+
+    void spawn_explosion(Vector2 position, float offset_x, float offset_y) {
+        auto spr = SpriteComponent("shooter", "explosion_1.png");
+        spr.layer = 0;
+        auto effect = EffectData(4 * Time::delta_time_fixed);
+        effect.modifier_enabled = true;
+        effect.modifier_data_s = "explosion_2.png";
+        effect.modifier_time = 2 * Time::delta_time_fixed;
+        effect.modifier = sprite_effect;
+        Vector2 blast_position = position;
+        blast_position.x += RNG::range_f(-offset_x, offset_x);
+        blast_position.y += RNG::range_f(-offset_y, offset_y);
+        effects.effect_queue.push_back({ { blast_position }, Velocity(), spr, effect });
     }
 
 	// WorldBounds bounds;
@@ -101,11 +138,6 @@ void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
     b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
     entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
     entity_data.blink[handle.i] = b;
-}
-
-void spawn_effect(const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
-    auto e = _g->entity_manager.create();
-    _g->effects.create(e, p, v, s, ef);
 }
 
 void spawn_player(Vector2 position) {
@@ -164,7 +196,7 @@ void system_player_handle_input() {
             float projectile_speed = players.weapon[i].projectile_speed;
             Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
             _g->projectiles_player.queue_projectile(projectile_pos.value, projectile_velocity);
-            spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
+            _g->spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
 
@@ -210,7 +242,7 @@ void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &enti
         Particles::emit(_g->particles, _g->explosion_emitter);
 
         // spawn explision sprite
-        spawn_explosion(second_pos.value, 10, 10);
+        _g->spawn_explosion(second_pos.value, 10, 10);
 
         // Trigger some kind of death thing so we know game is over
     } else if(amount_dealt > 0) {
@@ -255,8 +287,8 @@ void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &enti
         _g->explosion_emitter.position = second_pos.value;
         Particles::emit(_g->particles, _g->explosion_emitter);
 
-        // spawn explision sprite
-        spawn_explosion(second_pos.value, 10, 10);
+        // spawn explosion sprite
+        _g->spawn_explosion(second_pos.value, 10, 10);
     } else if(amount_dealt > 0) {
         // play hit sound
         // Sound::queue(test_sound_id, 2);
@@ -502,9 +534,8 @@ void update_shooter() {
     remove_out_of_bounds(_g->projectiles_target, _g->world_bounds);
     system_remove_completed_effects(_g->effects);
 
-    _g->spawn_projectiles(_g->projectiles_player);
-    _g->spawn_projectiles(_g->projectiles_target);
-    spawn_effects();
+    _g->spawn_projectiles();
+    _g->spawn_effects();
     
     _g->remove_deleted_entities();
     

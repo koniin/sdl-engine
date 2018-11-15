@@ -397,6 +397,14 @@ struct Effect : ECS::EntityData {
     std::vector<SpriteComponent> sprite;
     std::vector<EffectData> effect;
 
+    struct SpawnEffect {
+        Position position;
+        Velocity velocity;
+        SpriteComponent sprite;
+        EffectData effect;
+    };
+    std::vector<SpawnEffect> effect_queue;
+
     void allocate(size_t n) {
         allocate_entities(n);
     
