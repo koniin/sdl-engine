@@ -157,6 +157,7 @@ void system_player_handle_input() {
         Velocity &velocity = players.velocity[i];
         Direction &direction = players.direction[i];
         const PlayerConfiguration &player_config = players.config[i];
+        const auto &player_position = players.position[i];
         
         // Update rotation based on rotational speed
         direction.angle += pi.move_x * player_config.rotation_speed * Time::delta_time;
@@ -171,8 +172,6 @@ void system_player_handle_input() {
         
 	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::delta_time;
 	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
-
-        const auto &player_position = players.position[i];
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
             pi.fire_cooldown = players.weapon[i].fire_cooldown;
