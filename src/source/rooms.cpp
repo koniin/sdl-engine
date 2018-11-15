@@ -59,9 +59,12 @@ void room_update() {
     switch(current_room) {
         case MainMenu:
             menu_update();
+            break;
         case NewGame:
+            break;
         case Game:
             level_update();
+            break;
         case AfterGame:
             break;
     }
@@ -71,9 +74,11 @@ void room_render() {
     switch(current_room) {
         case MainMenu:
             menu_render();
+            break;
         case NewGame:
         case Game:
             level_render();
+            break;
         case AfterGame:
             break;
     }
@@ -83,9 +88,11 @@ void room_render_ui() {
     switch(current_room) {
         case MainMenu:
             menu_render_ui();
+            break;
         case NewGame:
         case Game:
             level_render_ui();
+            break;
         case AfterGame:
             break;
     }
