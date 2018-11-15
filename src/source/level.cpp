@@ -1,15 +1,15 @@
-#include "shooter_game.h"
+#include "level.h"
 
 #include <unordered_set>
 
-#include "framework.h"
+#include "level/framework.h"
 #include "debug.h"
 #include "rendering.h"
 #include "entities.h"
 #include "systems.h"
 #include "particles.h"
 
-static ShooterGame *_g;
+static Level *_g;
 static RenderBuffer render_buffer;
 static Sound::SoundId test_sound_id;
 
@@ -288,18 +288,18 @@ void debug() {
     debug_export_render_data_circles(_g->targets);
 }
 
-void load_resources() {
-    Resources::font_load("gameover", "pixeltype.ttf", 85);
+void level_load() {
+	Resources::font_load("gameover", "pixeltype.ttf", 85);
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     // Set up a white copy of the sprite sheet
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
     test_sound_id = Sound::load("test.wav");
 
     render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
-    _g = new ShooterGame();
+    _g = new Level();
 }
 
-void init_scene() {
+void level_init() {
     renderer_set_clear_color({ 8, 0, 18, 255 });
     _g->world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
 
@@ -310,11 +310,6 @@ void init_scene() {
     spawn_target(Vector2(10, 10));
     spawn_target(Vector2(400, 200));
     spawn_target(Vector2(350, 200));
-}
-
-void shooter_load() {
-    load_resources();
-    init_scene();
 }
 
 void movement() {
@@ -330,7 +325,7 @@ void movement() {
     system_drag(_g->players);
 }
 
-void shooter_update() {
+void level_update() {
     system_player_get_input(_g->players);
     system_player_handle_input();
     system_ai_input(_g->targets, _g->players, _g->projectiles_target);
@@ -374,7 +369,7 @@ void shooter_update() {
     debug();
 }
 
-void shooter_render() {
+void level_render() {
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
     Particles::render_circles_filled(_g->particles);
     debug_render();
@@ -390,14 +385,14 @@ void render_health_bar(int x, int y, int width, int height, float value, float m
     draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, (int)hp_bar_width, 13, 255, 0, 0, 255);
 }
 
-void shooter_render_ui() {
+void level_render_ui() {
     if(_g->players.length > 0) {
         render_health_bar(10, 10, 100, 15, (float)_g->players.health[0].hp, (float)_g->players.health[0].hp_max);
     }
     draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
 }
 
-void shooter_unload() {
+void level_unload() {
     delete [] _g->particles.particles;
     delete [] render_buffer.sprite_data_buffer;
     delete _g;

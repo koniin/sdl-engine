@@ -11,7 +11,11 @@
 
 static const size_t RENDER_BUFFER_MAX = 256;
 
-struct ShooterGame {
+struct LevelConfig {
+
+};
+
+struct Level {
     Rectangle world_bounds;
 
     ECS::EntityManager entity_manager;
@@ -29,7 +33,7 @@ struct ShooterGame {
     Particles::Emitter exhaust_emitter;
     Particles::Emitter smoke_emitter;
 
-    ShooterGame() {
+    Level() {
         particles = Particles::make(4096);
         players.allocate(1);
         projectiles_player.allocate(128);
@@ -119,10 +123,11 @@ struct ShooterGame {
 	// }
 };
 
-void shooter_load();
-void shooter_update();
-void shooter_render();
-void shooter_render_ui();
-void shooter_unload();
+void level_load();
+void level_init();
+void level_unload();
+void level_update();
+void level_render();
+void level_render_ui();
 
 #endif

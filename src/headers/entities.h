@@ -2,7 +2,7 @@
 #define ENTITIES_H
 
 #include "engine.h"
-#include "framework.h"
+#include "level/framework.h"
 
 
 // Pixels per frame
