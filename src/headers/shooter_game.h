@@ -29,7 +29,7 @@ struct ShooterGame {
     Particles::Emitter exhaust_emitter;
     Particles::Emitter smoke_emitter;
 
-    ShooterGame(const Rectangle &bounds) : world_bounds(bounds) {
+    ShooterGame() {
         particles = Particles::make(4096);
         players.allocate(1);
         projectiles_player.allocate(128);
@@ -123,5 +123,6 @@ void shooter_load();
 void shooter_update();
 void shooter_render();
 void shooter_render_ui();
+void shooter_unload();
 
 #endif

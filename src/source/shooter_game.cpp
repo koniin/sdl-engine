@@ -289,25 +289,24 @@ void debug() {
 }
 
 void load_resources() {
-    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
-
-	Resources::font_load("gameover", "pixeltype.ttf", 85);
-    
+    Resources::font_load("gameover", "pixeltype.ttf", 85);
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     // Set up a white copy of the sprite sheet
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
-
     test_sound_id = Sound::load("test.wav");
 
-    _g = new ShooterGame({ 0, 0, (int)gw * 2, (int)gh * 2 });
+    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
+    _g = new ShooterGame();
 }
 
 void init_scene() {
     renderer_set_clear_color({ 8, 0, 18, 255 });
-    
+    _g->world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
+
     Vector2 player_position = Vector2(100, 200);
     spawn_player(player_position);
     camera_lookat(player_position);
+    
     spawn_target(Vector2(10, 10));
     spawn_target(Vector2(400, 200));
     spawn_target(Vector2(350, 200));
@@ -396,4 +395,10 @@ void shooter_render_ui() {
         render_health_bar(10, 10, 100, 15, (float)_g->players.health[0].hp, (float)_g->players.health[0].hp_max);
     }
     draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
+}
+
+void shooter_unload() {
+    delete [] _g->particles.particles;
+    delete [] render_buffer.sprite_data_buffer;
+    delete _g;
 }

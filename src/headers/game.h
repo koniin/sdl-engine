@@ -51,7 +51,10 @@ inline void game_update() {
 	// collision_test_update();
 	// // asteroids_update();
 	// // tile_collisions_update();
-	shooter_update();
+	
+	// shooter_update();
+
+	menu_update();
 
 	std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
@@ -81,9 +84,15 @@ inline void game_render() {
 	// // collision_test_render();
 	
 	renderer_clear();
-	shooter_render();
+	
+	//shooter_render();
+	menu_render();
+
 	renderer_draw_render_target_camera();
-	shooter_render_ui();
+	
+	//shooter_render_ui();
+	menu_render_ui();
+	
 	renderer_flip();
 
 	
@@ -94,7 +103,7 @@ inline void game_render() {
 }
 
 inline void game_unload() {
-
+	shooter_unload();
 }
 
 
