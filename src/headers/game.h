@@ -54,7 +54,7 @@ inline void game_update() {
 
 inline void game_render() {
 	renderer_clear();
-	room_update();
+	room_render();
 	renderer_draw_render_target_camera();
 	room_render_ui();
 	renderer_flip();
