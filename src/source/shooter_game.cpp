@@ -49,6 +49,14 @@ struct ShooterGame {
         system_remove_deleted(effects);
     }
 
+    inline void spawn_projectiles(Projectile &entity_data) {
+        for(size_t i = 0; i < entity_data.projectile_queue.size(); i++) {
+            auto e = entity_manager.create();
+            entity_data.create(e,entity_data.projectile_queue[i].position, entity_data.projectile_queue[i].velocity);
+        }
+        entity_data.projectile_queue.clear();
+    }
+
 	// WorldBounds bounds;
 	// std::vector<AvoidThis> avoidThis;
 	// std::vector<RegularObject> regularObject;
@@ -93,11 +101,6 @@ void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
     b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
     entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
     entity_data.blink[handle.i] = b;
-}
-
-void spawn_projectile(Projectile &projectiles, Vector2 p, Vector2 v) {
-    auto e = _g->entity_manager.create();
-    projectiles.create(e, p, v);
 }
 
 void spawn_effect(const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
@@ -499,8 +502,8 @@ void update_shooter() {
     remove_out_of_bounds(_g->projectiles_target, _g->world_bounds);
     system_remove_completed_effects(_g->effects);
 
-    spawn_projectiles(_g->projectiles_player);
-    spawn_projectiles(_g->projectiles_target);
+    _g->spawn_projectiles(_g->projectiles_player);
+    _g->spawn_projectiles(_g->projectiles_target);
     spawn_effects();
     
     _g->remove_deleted_entities();

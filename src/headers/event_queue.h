@@ -4,15 +4,6 @@
 
 #include "entities.h"
 
-void spawn_projectile(Projectile &entity_data, Vector2 p, Vector2 v);
-
-inline void spawn_projectiles(Projectile &entity_data) {
-    for(size_t i = 0; i < entity_data.projectile_queue.size(); i++) {
-        spawn_projectile(entity_data, entity_data.projectile_queue[i].position, entity_data.projectile_queue[i].velocity);
-    }
-    entity_data.projectile_queue.clear();
-}
-
 //////////////////////////////////
 
 struct SpawnEffect {
