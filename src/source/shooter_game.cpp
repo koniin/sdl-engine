@@ -9,22 +9,72 @@
 #include "systems.h"
 #include "particles.h"
 #include "event_queue.h"
+#include "emitter_config.h"
 
-static ECS::EntityManager entity_manager;
-static Player players;
-static Projectile projectiles_player;
-static Projectile projectiles_target;
-static Target targets;
-static Effect effects;
-static Rectangle world_bounds;
+struct ShooterGame {
+    Rectangle world_bounds;
+
+    ECS::EntityManager entity_manager;
+    Player players;
+    Projectile projectiles_player;
+    Projectile projectiles_target;
+    Target targets;
+    Effect effects;
+    
+    CollisionPairs collisions;
+
+    Particles::ParticleContainer particles;
+    Particles::Emitter explosion_emitter;
+    Particles::Emitter hit_emitter;
+    Particles::Emitter exhaust_emitter;
+    Particles::Emitter smoke_emitter;
+
+    ShooterGame(const Rectangle &bounds) : world_bounds(bounds) {
+        particles = Particles::make(4096);
+        players.allocate(1);
+        projectiles_player.allocate(128);
+        projectiles_target.allocate(256);
+        targets.allocate(128);
+        effects.allocate(128);
+        collisions.allocate(128);
+
+        emitters_configure(this);
+    }
+
+    void remove_deleted_entities() {
+        system_remove_deleted(players);
+        system_remove_deleted(projectiles_player);
+        system_remove_deleted(projectiles_target);
+        system_remove_deleted(targets);
+        system_remove_deleted(effects);
+    }
+
+	// WorldBounds bounds;
+	// std::vector<AvoidThis> avoidThis;
+	// std::vector<RegularObject> regularObject;
+
+	// Game(const WorldBoundsComponent& bounds)
+	// 	: bounds(bounds)
+	// {
+	// 	// create regular objects that move
+	// 	regularObject.reserve(kObjectCount);
+	// 	for (auto i = 0; i < kObjectCount; ++i)
+	// 		regularObject.emplace_back(bounds);
+
+	// 	// create objects that should be avoided
+	// 	avoidThis.reserve(kAvoidCount);
+	// 	for (auto i = 0; i < kAvoidCount; ++i)
+	// 		avoidThis.emplace_back(bounds);
+	// }
+	// void Clear()
+	// {
+	// 	avoidThis.clear();
+	// 	regularObject.clear();
+	// }
+};
+
+static ShooterGame *_g;
 static RenderBuffer render_buffer;
-static CollisionPairs collisions;
-static Particles::ParticleContainer particles;
-static Particles::Emitter explosion_emitter;
-static Particles::Emitter hit_emitter;
-static Particles::Emitter exhaust_emitter;
-static Particles::Emitter smoke_emitter;
-
 static Sound::SoundId test_sound_id;
 
 template<typename T>
@@ -46,26 +96,27 @@ void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
 }
 
 void spawn_projectile(Projectile &projectiles, Vector2 p, Vector2 v) {
-    auto e = entity_manager.create();
+    auto e = _g->entity_manager.create();
     projectiles.create(e, p, v);
 }
 
 void spawn_effect(const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
-    auto e = entity_manager.create();
-    effects.create(e, p, v, s, ef);
+    auto e = _g->entity_manager.create();
+    _g->effects.create(e, p, v, s, ef);
 }
 
 void spawn_player(Vector2 position) {
-    auto e = entity_manager.create();
-    players.create(e, position);
+    auto e = _g->entity_manager.create();
+    _g->players.create(e, position);
 }
 
 void spawn_target(Vector2 position) {
-    auto e = entity_manager.create();
-    targets.create(e, position);
+    auto e = _g->entity_manager.create();
+    _g->targets.create(e, position);
 }
 
 void system_player_handle_input() {
+    Player &players = _g->players;
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
         Velocity &velocity = players.velocity[i];
@@ -109,15 +160,15 @@ void system_player_handle_input() {
 
             float projectile_speed = players.weapon[i].projectile_speed;
             Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
-            queue_projectile(projectiles_player, projectile_pos.value, projectile_velocity);
+            _g->projectiles_player.queue_projectile(projectile_pos.value, projectile_velocity);
             spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
 
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
 
-            smoke_emitter.position = muzzle_pos.value;
-            Particles::emit(particles, smoke_emitter);
+            _g->smoke_emitter.position = muzzle_pos.value;
+            Particles::emit(_g->particles, _g->smoke_emitter);
 
             // Player knockback
             players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
@@ -129,7 +180,9 @@ void system_player_handle_input() {
 }
 
 void on_hit(Projectile &projectile, Player &p, const CollisionPair &entities) {
+
     // Player is hit
+
 }
 
 void on_hit(Projectile &projectile, Target &t, const CollisionPair &entities) {
@@ -150,8 +203,8 @@ void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &enti
     if(health.hp <= 0) {
         // Spawn explosion particles:
         auto &second_pos = get_position(p, entities.second);
-        explosion_emitter.position = second_pos.value;
-        Particles::emit(particles, explosion_emitter);
+        _g->explosion_emitter.position = second_pos.value;
+        Particles::emit(_g->particles, _g->explosion_emitter);
 
         // spawn explision sprite
         spawn_explosion(second_pos.value, 10, 10);
@@ -181,10 +234,10 @@ void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &enti
     // Emit hit particles
     const auto &pos = get_position(projectile, entities.first);
     float angle = Math::degrees_between_v(pos.last, entities.collision_point);
-    hit_emitter.position = entities.collision_point;
-    hit_emitter.angle_min = angle - 10.0f;
-    hit_emitter.angle_max = angle + 10.0f;
-    Particles::emit(particles, hit_emitter);
+    _g->hit_emitter.position = entities.collision_point;
+    _g->hit_emitter.angle_min = angle - 10.0f;
+    _g->hit_emitter.angle_max = angle + 10.0f;
+    Particles::emit(_g->particles, _g->hit_emitter);
     
     auto &health = get_health(t, entities.second);
     if(health.hp <= 0) {
@@ -196,8 +249,8 @@ void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &enti
         
         // Spawn explosion particles:
         auto &second_pos = get_position(t, entities.second);
-        explosion_emitter.position = second_pos.value;
-        Particles::emit(particles, explosion_emitter);
+        _g->explosion_emitter.position = second_pos.value;
+        Particles::emit(_g->particles, _g->explosion_emitter);
 
         // spawn explision sprite
         spawn_explosion(second_pos.value, 10, 10);
@@ -230,9 +283,8 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
         handled_collisions.insert(collision_pairs[i].first.id);
         debug_config.last_collision_point = collision_pairs[i].collision_point;
 
-        // Always remove the projectile (since we don't have anything that says otherwise, like pierce or something)
-        queue_remove_entity(collision_pairs[i].first);
-
+        mark_for_deletion(entity_first, collision_pairs[i].first);
+        
         on_hit(entity_first, entity_second, collision_pairs[i]);
         if(is_invulnerable(entity_second, collision_pairs[i].second)) {
             continue;
@@ -242,6 +294,8 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
 }
 
 void system_player_ship_animate() {
+    Player &players = _g->players;
+
     system_child_sprite_position(players.child_sprites, players);
     system_child_sprite_exhaust(players, players.child_sprites);
     system_animation_ping_pong(players.child_sprites);
@@ -257,50 +311,36 @@ void system_player_ship_animate() {
     }
 }
 
-void remove_destroyed_entities() {
-    for(size_t i = 0; i < entities_to_destroy.size(); i++) {
-        Engine::logn("destroying: %d", entities_to_destroy[i].id);
-        players.remove(entities_to_destroy[i]);
-        projectiles_player.remove(entities_to_destroy[i]);
-        projectiles_target.remove(entities_to_destroy[i]);
-        targets.remove(entities_to_destroy[i]);
-        effects.remove(entities_to_destroy[i]);
-
-        entity_manager.destroy(entities_to_destroy[i]);
-    }
-    entities_to_destroy.clear();
-}
-
 void export_render_info() {
     render_buffer.sprite_count = 0;
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
     auto &sprite_count = render_buffer.sprite_count;
 
-    for(int i = 0; i < players.length; i++) {
-        Direction &d = players.direction[i];
-        players.sprite[i].rotation = d.angle + 90; // sprite is facing upwards so we need to adjust
-        export_sprite_data(players, i, sprite_data_buffer[sprite_count++]);
+    for(int i = 0; i < _g->players.length; i++) {
+        Direction &d = _g->players.direction[i];
+        _g->players.sprite[i].rotation = d.angle + 90; // sprite is facing upwards so we need to adjust
+        export_sprite_data(_g->players, i, sprite_data_buffer[sprite_count++]);
     }
 
-    for(size_t i = 0; i < players.child_sprites.length; ++i) {
-        export_sprite_data(players.child_sprites, i, sprite_data_buffer[sprite_count++]);
+    for(size_t i = 0; i < _g->players.child_sprites.length; ++i) {
+        export_sprite_data(_g->players.child_sprites, i, sprite_data_buffer[sprite_count++]);
         // export_sprite_data_values(players.child_sprites.position[i], players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
     }
 
-    for(int i = 0; i < projectiles_player.length; ++i) {
-        export_sprite_data(projectiles_player, i, sprite_data_buffer[sprite_count++]);
+    for(int i = 0; i < _g->projectiles_player.length; ++i) {
+        export_sprite_data(_g->projectiles_player, i, sprite_data_buffer[sprite_count++]);
 	}
 
-    for(int i = 0; i < projectiles_target.length; ++i) {
-        export_sprite_data(projectiles_target, i, sprite_data_buffer[sprite_count++]);
+    for(int i = 0; i < _g->projectiles_target.length; ++i) {
+        export_sprite_data(_g->projectiles_target, i, sprite_data_buffer[sprite_count++]);
 	}
 
-    for(int i = 0; i < targets.length; ++i) {
-        export_sprite_data(targets, i, sprite_data_buffer[sprite_count++]);
+    for(int i = 0; i < _g->targets.length; ++i) {
+        export_sprite_data(_g->targets, i, sprite_data_buffer[sprite_count++]);
 	}
 
-    for(int i = 0; i < effects.length; ++i) {
-        export_sprite_data(effects, i, sprite_data_buffer[sprite_count++]);
+    for(int i = 0; i < _g->effects.length; ++i) {
+        export_sprite_data(_g->effects, i, sprite_data_buffer[sprite_count++]);
 	}
 
     // Sort the render buffer by layer
@@ -341,15 +381,15 @@ void debug() {
     
     if(Input::key_pressed(SDLK_UP)) {
         projectile_speed++;
-        players.weapon[0].projectile_speed = projectile_speed / 0.016667f;
+        _g->players.weapon[0].projectile_speed = projectile_speed / 0.016667f;
     }
 
     if(Input::key_pressed(SDLK_l)) {
-        players.health[0].hp -= 1;
+        _g->players.health[0].hp -= 1;
     }
 
     if(Input::key_pressed(SDLK_n)) {
-        Particles::emit(particles, explosion_emitter);
+        Particles::emit(_g->particles, _g->explosion_emitter);
     }
 
     if(Input::key_pressed(SDLK_m)) {
@@ -363,13 +403,13 @@ void debug() {
     }
 
     FrameLog::log("Press F8 to toggle debug render");
-    FrameLog::log("Players: " + std::to_string(players.length));
-    FrameLog::log("Projectiles player: " + std::to_string(projectiles_player.length));
-    FrameLog::log("Projectiles target: " + std::to_string(projectiles_target.length));
-    FrameLog::log("Targets: " + std::to_string(targets.length));
-    FrameLog::log("Particles: " + std::to_string(particles.length));
+    FrameLog::log("Players: " + std::to_string(_g->players.length));
+    FrameLog::log("Projectiles player: " + std::to_string(_g->projectiles_player.length));
+    FrameLog::log("Projectiles target: " + std::to_string(_g->projectiles_target.length));
+    FrameLog::log("Targets: " + std::to_string(_g->targets.length));
+    FrameLog::log("Particles: " + std::to_string(_g->particles.length));
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
-    FrameLog::log("projectile speed: " + std::to_string(players.weapon[0].projectile_speed));
+    FrameLog::log("projectile speed: " + std::to_string(_g->players.weapon[0].projectile_speed));
     FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
     // FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
     
@@ -379,12 +419,12 @@ void debug() {
 
     debug_config.render_data.clear();
 
-    debug_export_render_data_circles(players);
-    debug_export_render_data_circles(projectiles_player);
-    debug_export_render_data_lines(projectiles_player);
-    debug_export_render_data_circles(projectiles_target);
-    debug_export_render_data_lines(projectiles_target);
-    debug_export_render_data_circles(targets);
+    debug_export_render_data_circles(_g->players);
+    debug_export_render_data_circles(_g->projectiles_player);
+    debug_export_render_data_lines(_g->projectiles_player);
+    debug_export_render_data_circles(_g->projectiles_target);
+    debug_export_render_data_lines(_g->projectiles_target);
+    debug_export_render_data_circles(_g->targets);
 }
 
 void load_resources() {
@@ -398,88 +438,12 @@ void load_resources() {
 
     test_sound_id = Sound::load("test.wav");
 
-    particles = Particles::make(4096);
-    players.allocate(1);
-    projectiles_player.allocate(128);
-    projectiles_target.allocate(256);
-    targets.allocate(128);
-    effects.allocate(128);
-    entities_to_destroy.reserve(64);
-    collisions.allocate(128);
-
-    explosion_emitter.position = Vector2(320, 180);
-    explosion_emitter.color_start = Colors::make(229,130,0,255);
-    explosion_emitter.color_end = Colors::make(255,255,255,255);
-    explosion_emitter.force = Vector2(10, 22);
-    explosion_emitter.min_particles = 8;
-    explosion_emitter.max_particles = 12;
-    explosion_emitter.life_min = 0.100f;
-    explosion_emitter.life_max = 0.250f;
-    explosion_emitter.angle_min = 0;
-    explosion_emitter.angle_max = 360;
-    explosion_emitter.speed_min = 32;
-    explosion_emitter.speed_max = 56;
-    explosion_emitter.size_min = 1.600f;
-    explosion_emitter.size_max = 5;
-    explosion_emitter.size_end_min = 6.200f;
-    explosion_emitter.size_end_max = 9;
-
-    hit_emitter.position = Vector2(320, 180);
-    hit_emitter.color_start = Colors::make(229,130,0,255);
-    hit_emitter.color_end = Colors::make(255,255,255,255);
-    hit_emitter.force = Vector2(0, 0);
-    hit_emitter.min_particles = 30;
-    hit_emitter.max_particles = 42;
-    hit_emitter.life_min = 0.100f;
-    hit_emitter.life_max = 0.200f;
-    hit_emitter.angle_min = 0;
-    hit_emitter.angle_max = 32.400f;
-    hit_emitter.speed_min = 122;
-    hit_emitter.speed_max = 138;
-    hit_emitter.size_min = 2.200f;
-    hit_emitter.size_max = 2.600f;
-    hit_emitter.size_end_min = 0;
-    hit_emitter.size_end_max = 0.600f;
-
-    exhaust_emitter.position = Vector2(320, 180);
-    exhaust_emitter.color_start = Colors::make(229,130,0,255);
-    exhaust_emitter.color_end = Colors::make(255,255,255,255);
-    exhaust_emitter.force = Vector2(10, 10);
-    exhaust_emitter.min_particles = 26;
-    exhaust_emitter.max_particles = 34;
-    exhaust_emitter.life_min = 0.100f;
-    exhaust_emitter.life_max = 0.200f;
-    exhaust_emitter.angle_min = 0;
-    exhaust_emitter.angle_max = 10.800f;
-    exhaust_emitter.speed_min = 106;
-    exhaust_emitter.speed_max = 130;
-    exhaust_emitter.size_min = 0.600f;
-    exhaust_emitter.size_max = 1.400f;
-    exhaust_emitter.size_end_min = 1.800f;
-    exhaust_emitter.size_end_max = 3;
-
-    smoke_emitter.position = Vector2(320, 180);
-    smoke_emitter.color_start = Colors::make(165, 165, 165, 255);
-    smoke_emitter.color_end = Colors::make(0, 0, 0, 255);
-    smoke_emitter.force = Vector2(0, 0);
-    smoke_emitter.min_particles = 26;
-    smoke_emitter.max_particles = 34;
-    smoke_emitter.life_min = 0.200f;
-    smoke_emitter.life_max = 0.400f;
-    smoke_emitter.angle_min = 0;
-    smoke_emitter.angle_max = 320.400f;
-    smoke_emitter.speed_min = 3;
-    smoke_emitter.speed_max = 6;
-    smoke_emitter.size_min = 2;
-    smoke_emitter.size_max = 4;
-    smoke_emitter.size_end_min = 1;
-    smoke_emitter.size_end_max = 2;
+    _g = new ShooterGame({ 0, 0, (int)gw * 2, (int)gh * 2 });
 }
 
 void init_scene() {
     renderer_set_clear_color({ 8, 0, 18, 255 });
-    world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
-
+    
     Vector2 player_position = Vector2(100, 200);
     spawn_player(player_position);
     camera_lookat(player_position);
@@ -494,56 +458,54 @@ void load_shooter() {
 }
 
 void movement() {
-    move_forward(players);
-    keep_in_bounds(players, world_bounds);
-    move_forward(targets);
-    keep_in_bounds(targets, world_bounds);
-    set_last_position(projectiles_player);
-    move_forward(projectiles_player);
-    set_last_position(projectiles_target);
-    move_forward(projectiles_target);
+    move_forward(_g->players);
+    keep_in_bounds(_g->players, _g->world_bounds);
+    move_forward(_g->targets);
+    keep_in_bounds(_g->targets, _g->world_bounds);
+    set_last_position(_g->projectiles_player);
+    move_forward(_g->projectiles_player);
+    set_last_position(_g->projectiles_target);
+    move_forward(_g->projectiles_target);
 }
 
 void update_shooter() {
-    system_player_get_input(players);
+    system_player_get_input(_g->players);
     system_player_handle_input();
-    system_ai_input(targets, players, projectiles_target);
+    system_ai_input(_g->targets, _g->players, _g->projectiles_target);
     movement();
-    system_drag(players);
+    system_drag(_g->players);
     system_player_ship_animate();
 
-    collisions.clear();
-    system_collisions(collisions, projectiles_player, targets);
-    system_collision_resolution(collisions, projectiles_player, targets);
+    _g->collisions.clear();
+    system_collisions(_g->collisions, _g->projectiles_player, _g->targets);
+    system_collision_resolution(_g->collisions, _g->projectiles_player, _g->targets);
 
     // Collision between player and target projectiles
-    collisions.clear();
-    system_collisions(collisions, projectiles_target, players);
-    system_collision_resolution(collisions, projectiles_target, players);
+    _g->collisions.clear();
+    system_collisions(_g->collisions, _g->projectiles_target, _g->players);
+    system_collision_resolution(_g->collisions, _g->projectiles_target, _g->players);
 
-    system_effects(effects, players, targets);
-    system_blink_effect(targets);
-    if(Engine::is_paused()) {
-        system_blink_effect(players);
-    } else {
-        system_blink_effect(players);
-    }
+    system_effects(_g->effects, _g->players, _g->targets);
+    system_blink_effect(_g->targets);
+    system_blink_effect(_g->players);
     
-    system_camera_follow(players, 0, 100.0f);
-    system_invulnerability(targets, Time::delta_time);
-    system_invulnerability(players, Time::delta_time);
-    system_remove_no_health_left(targets);
-    system_remove_no_health_left(players);
+    system_camera_follow(_g->players, 0, 100.0f);
+    system_invulnerability(_g->targets, Time::delta_time);
+    system_invulnerability(_g->players, Time::delta_time);
 
-    remove_out_of_bounds(projectiles_player, world_bounds);
-    remove_out_of_bounds(projectiles_target, world_bounds);
+    system_remove_no_health_left(_g->targets);
+    system_remove_no_health_left(_g->players);
+    remove_out_of_bounds(_g->projectiles_player, _g->world_bounds);
+    remove_out_of_bounds(_g->projectiles_target, _g->world_bounds);
+    system_remove_completed_effects(_g->effects);
 
-    spawn_projectiles(projectiles_player);
-    spawn_projectiles(projectiles_target);
+    spawn_projectiles(_g->projectiles_player);
+    spawn_projectiles(_g->projectiles_target);
     spawn_effects();
-    remove_destroyed_entities();
-
-    Particles::update(particles, Time::delta_time);
+    
+    _g->remove_deleted_entities();
+    
+    Particles::update(_g->particles, Time::delta_time);
     
     export_render_info();
 
@@ -552,7 +514,7 @@ void update_shooter() {
 
 void render_shooter() {
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-    Particles::render_circles_filled(particles);
+    Particles::render_circles_filled(_g->particles);
     debug_render();
 }
 
@@ -567,8 +529,8 @@ void render_health_bar(int x, int y, int width, int height, float value, float m
 }
 
 void render_shooter_ui() {
-    if(players.length > 0) {
-        render_health_bar(10, 10, 100, 15, (float)players.health[0].hp, (float)players.health[0].hp_max);
+    if(_g->players.length > 0) {
+        render_health_bar(10, 10, 100, 15, (float)_g->players.health[0].hp, (float)_g->players.health[0].hp_max);
     }
     draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
 }

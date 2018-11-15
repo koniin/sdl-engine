@@ -17,11 +17,6 @@ InputMapping input_maps[2] = {
 	{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
 };
 
-std::vector<ECS::Entity> entities_to_destroy;
-void queue_remove_entity(ECS::Entity entity) {
-    entities_to_destroy.push_back(entity);
-}
-
 void system_player_get_input(Player &players) {
     bool yes = false;
     for(int i = 0; i < players.length; i++) {
@@ -64,27 +59,27 @@ void system_player_get_input(Player &players) {
 }
 
 template<typename T>
-void move_forward(T &entityData) {
-    for(int i = 0; i < entityData.length; i++) {
-        entityData.position[i].value.x += entityData.velocity[i].value.x * Time::delta_time;
-        entityData.position[i].value.y += entityData.velocity[i].value.y * Time::delta_time;
+void move_forward(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        entity_data.position[i].value.x += entity_data.velocity[i].value.x * Time::delta_time;
+        entity_data.position[i].value.y += entity_data.velocity[i].value.y * Time::delta_time;
     }
 }
 
 template<typename T>
-void keep_in_bounds(T &entityData, Rectangle &bounds) {
-    for(int i = 0; i < entityData.length; i++) {
-        if(entityData.position[i].value.x < bounds.x) { 
-            entityData.position[i].value.x = (float)bounds.x; 
+void keep_in_bounds(T &entity_data, Rectangle &bounds) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.position[i].value.x < bounds.x) { 
+            entity_data.position[i].value.x = (float)bounds.x; 
         }
-        if(entityData.position[i].value.x > bounds.right()) { 
-            entityData.position[i].value.x = (float)bounds.right(); 
+        if(entity_data.position[i].value.x > bounds.right()) { 
+            entity_data.position[i].value.x = (float)bounds.right(); 
         }
-        if(entityData.position[i].value.y < bounds.y) { 
-            entityData.position[i].value.y = (float)bounds.y; 
+        if(entity_data.position[i].value.y < bounds.y) { 
+            entity_data.position[i].value.y = (float)bounds.y; 
         }
-        if(entityData.position[i].value.y > bounds.bottom()) { 
-            entityData.position[i].value.y = (float)bounds.bottom(); 
+        if(entity_data.position[i].value.y > bounds.bottom()) { 
+            entity_data.position[i].value.y = (float)bounds.bottom(); 
         }
     } 
 }
@@ -98,10 +93,10 @@ void set_last_position(T &entity_data) {
 }
 
 template<typename T>
-void remove_out_of_bounds(T &entityData, Rectangle &bounds) {
-    for(int i = 0; i < entityData.length; i++) {
-        if(!bounds.contains((int)entityData.position[i].value.x, (int)entityData.position[i].value.y)) {
-            queue_remove_entity(entityData.entity[i]);
+void remove_out_of_bounds(T &entity_data, Rectangle &bounds) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(!bounds.contains((int)entity_data.position[i].value.x, (int)entity_data.position[i].value.y)) {
+            mark_for_deletion(entity_data, entity_data.entity[i]);
         }
     } 
 }
@@ -132,11 +127,6 @@ void system_blink_effect(T &entity_data) {
 
 void system_effects(Effect &effects, Player &players, Target &targets) {
     for(int i = 0; i < effects.length; ++i) {
-        if(effects.effect[i].timer > effects.effect[i].time_to_live) {
-            queue_remove_entity(effects.entity[i]);
-            continue;
-        }
-
         if(effects.effect[i].has_target) {
             if(players.contains(effects.effect[i].follow)) {
                 auto handle = players.get_handle(effects.effect[i].follow);
@@ -159,6 +149,14 @@ void system_effects(Effect &effects, Player &players, Target &targets) {
         }
 
         effect.timer += Time::delta_time;
+    }
+}
+
+void system_remove_completed_effects(Effect &effects) {
+    for(int i = 0; i < effects.length; ++i) {
+        if(effects.effect[i].timer > effects.effect[i].time_to_live) {
+            mark_for_deletion(effects, effects.entity[i]);
+        }
     }
 }
 
@@ -287,14 +285,14 @@ void system_animation_ping_pong(T &entity_data) {
 }
 
 template<typename T>
-void system_child_sprite_exhaust(const T &entity_data, ChildSprite &child_sprites) {
-    for(int i = 0; i < players.length; i++) {
-        PlayerInput &pi = players.input[i];
-        const PlayerConfiguration &player_config = players.config[i];
-        int exhaust_id = players.get_child_sprite_index(player_config.exhaust_id);
+void system_child_sprite_exhaust(T &entity_data, ChildSprite &child_sprites) {
+    for(int i = 0; i < entity_data.length; i++) {
+        PlayerInput &pi = entity_data.input[i];
+        const PlayerConfiguration &player_config = entity_data.config[i];
+        int exhaust_id = entity_data.get_child_sprite_index(player_config.exhaust_id);
 
-        auto &exhaust_animation = players.child_sprites.animation[exhaust_id];
-        auto &local_position = players.child_sprites.local_position[exhaust_id];
+        auto &exhaust_animation = entity_data.child_sprites.animation[exhaust_id];
+        auto &local_position = entity_data.child_sprites.local_position[exhaust_id];
      
         if(pi.move_y > 0) {
             local_position = Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance);
@@ -323,7 +321,7 @@ template<typename T>
 void system_remove_no_health_left(T &entity_data) {
     for(int i = 0; i < entity_data.length; i++) {
         if(entity_data.health[i].hp <= 0) {
-            queue_remove_entity(entity_data.entity[i]);
+            mark_for_deletion(entity_data, entity_data.entity[i]);
         }
     }
 }
@@ -346,11 +344,20 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 const Vector2 direction = Math::direction(target_position, ai_position);
                 const Vector2 projectile_position = ai_position;
                 
-                Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;
-                queue_projectile(projectiles, projectile_position, projectile_velocity);
-                
+                Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
+                projectiles.queue_projectile(projectile_position, projectile_velocity);
                 continue; // only fire at one target
             }
+        }
+    }
+}
+
+template<typename T>
+void system_remove_deleted(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.life_time[i].marked_for_deletion) {
+            entity_data.life_time[i].marked_for_deletion = false;
+            entity_data.remove(entity_data.entity[i]);
         }
     }
 }

@@ -15,23 +15,31 @@
 // static TileMap the_map;
 // static SpriteSheet the_sheet;
 
+
+/* 
+	How it works 
+	- allocate memory for everything on application start
+	- load all resources used in the application
+	- shooter_game has a method to setup entities and "level" so you call that when starting a level
+		- it will just clear everything current (not freeing any memory) and load the new data into it's caches
+	
+	- all menu screens also have methods to allocate their data and render methods
+
+	- rendering states is just a matter of calling methods
+	
+
+*/ 
+
+
+
 inline void game_load() {
+	// Allocate memory and load resources
 	Engine::set_base_data_folder("data");
 	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
     FrameLog::enable_at(5, 5);
 	
-	// asteroids_load();
-	// bullet_load();
-	// collision_test_load();
-	// Resources::sprite_load("bkg", "bkg.png");
-	// Tiling::tilemap_load("tilemap.txt", the_map);
-	// Resources::sprite_sheet_load("shooter.data", the_sheet);
-	// tile_collisions_load();
-
-
 	load_shooter();
-	// load_particle_editor();
 }
 
 inline void game_update() {

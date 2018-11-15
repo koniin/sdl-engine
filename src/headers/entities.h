@@ -40,6 +40,10 @@ struct PlayerInput {
 	float fire_cooldown = 0;
 };
 
+struct LifeTime {
+    bool marked_for_deletion = false;
+};
+
 struct Position {
     Vector2 value;
     Vector2 last;
@@ -192,6 +196,7 @@ struct ChildSprite {
 };
 
 struct Player : ECS::EntityData {
+    std::vector<LifeTime> life_time;
     std::vector<PlayerConfiguration> config;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
@@ -210,6 +215,7 @@ struct Player : ECS::EntityData {
     void allocate(size_t n) {
         allocate_entities(n);
         
+        initialize(&life_time);
         initialize(&config);
         initialize(&position);
         initialize(&velocity);
@@ -270,6 +276,7 @@ struct Player : ECS::EntityData {
 };
 
 struct Projectile : ECS::EntityData {
+    std::vector<LifeTime> life_time;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
     std::vector<SpriteComponent> sprite;
@@ -285,6 +292,7 @@ struct Projectile : ECS::EntityData {
     void allocate(size_t n) {
         allocate_entities(n);
 
+        initialize(&life_time);
         initialize(&position);
         initialize(&velocity);
         initialize(&sprite);
@@ -292,6 +300,10 @@ struct Projectile : ECS::EntityData {
         initialize(&collision);
 
         projectile_queue.reserve(64);
+    }
+
+    void queue_projectile(Vector2 p, Vector2 v) {
+        projectile_queue.push_back({ p , v });
     }
 
     void create(ECS::Entity e, Vector2 p, Vector2 v) {
@@ -307,6 +319,7 @@ struct Projectile : ECS::EntityData {
 };
 
 struct Target : ECS::EntityData {
+    std::vector<LifeTime> life_time;
     std::vector<TargetConfiguration> config;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
@@ -320,6 +333,7 @@ struct Target : ECS::EntityData {
     void allocate(size_t n) {
         allocate_entities(n);
 
+        initialize(&life_time);
         initialize(&config);
         initialize(&position);
         initialize(&velocity);
@@ -377,6 +391,7 @@ struct EffectData {
 };
 
 struct Effect : ECS::EntityData {
+    std::vector<LifeTime> life_time;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
     std::vector<SpriteComponent> sprite;
@@ -384,7 +399,8 @@ struct Effect : ECS::EntityData {
 
     void allocate(size_t n) {
         allocate_entities(n);
-
+    
+        initialize(&life_time);
         initialize(&position);
         initialize(&velocity);
         initialize(&sprite);
@@ -467,6 +483,13 @@ void set_damage(T &entity_data, ECS::Entity e, const Damage d) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
     entity_data.damage[handle.i] = d;
+}
+
+template<typename T>
+void mark_for_deletion(T &entity_data, ECS::Entity e) {
+    auto handle = entity_data.get_handle(e);
+    if(entity_data.is_valid(handle))
+        entity_data.life_time[handle.i].marked_for_deletion = true;
 }
 
 // time in seconds

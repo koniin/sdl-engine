@@ -4,10 +4,6 @@
 
 #include "entities.h"
 
-inline void queue_projectile(Projectile &entity_data, Vector2 p, Vector2 v) {
-    entity_data.projectile_queue.push_back({ p , v });
-}
-
 void spawn_projectile(Projectile &entity_data, Vector2 p, Vector2 v);
 
 inline void spawn_projectiles(Projectile &entity_data) {
