@@ -12,12 +12,12 @@ struct InputMapping {
 	SDL_Scancode shield;
 };
 
-InputMapping input_maps[2] = {
+const static InputMapping input_maps[2] = {
 	{ SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT },
 	{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
 };
 
-void system_player_get_input(Player &players) {
+inline void system_player_get_input(Player &players) {
     bool yes = false;
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
@@ -125,7 +125,7 @@ void system_blink_effect(T &entity_data) {
     }
 }
 
-void system_effects(Effect &effects, Player &players, Target &targets) {
+inline void system_effects(Effect &effects, Player &players, Target &targets) {
     for(int i = 0; i < effects.length; ++i) {
         if(effects.effect[i].has_target) {
             if(players.contains(effects.effect[i].follow)) {
@@ -152,7 +152,7 @@ void system_effects(Effect &effects, Player &players, Target &targets) {
     }
 }
 
-void system_remove_completed_effects(Effect &effects) {
+inline void system_remove_completed_effects(Effect &effects) {
     for(int i = 0; i < effects.length; ++i) {
         if(effects.effect[i].timer > effects.effect[i].time_to_live) {
             mark_for_deletion(effects, effects.entity[i]);

@@ -425,7 +425,7 @@ struct Effect : ECS::EntityData {
     }
 };
 
-void sprite_effect(Effect &effects, const int &i, const std::string &modifier_data_s) {
+inline void sprite_effect(Effect &effects, const int &i, const std::string &modifier_data_s) {
     Engine::logn("sprite change");
     effects.sprite[i].sprite_name = modifier_data_s;
 }
@@ -501,7 +501,7 @@ void mark_for_deletion(T &entity_data, ECS::Entity e) {
 }
 
 // time in seconds
-void set_invulnerable(Health &health, const float &time) {
+inline void set_invulnerable(Health &health, const float &time) {
     health.invulnerability_timer = time * Time::delta_time_fixed * 60.0f;
 }
 
@@ -511,7 +511,7 @@ bool is_invulnerable(T &entity, ECS::Entity e) {
     return health.invulnerability_timer > 0.0f;
 }
 
-int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Target &target, ECS::Entity target_entity) {
+inline int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Target &target, ECS::Entity target_entity) {
     auto &damage = get_damage(projectile, projectile_entity);
     auto &health = get_health(target, target_entity);
     health.hp -= damage.value;
@@ -519,7 +519,7 @@ int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Target &t
     return damage.value;
 }
 
-int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Player &player, ECS::Entity player_entity) {
+inline int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Player &player, ECS::Entity player_entity) {
     auto &damage = get_damage(projectile, projectile_entity);
     auto &health = get_health(player, player_entity);
     health.hp -= damage.value;

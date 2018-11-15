@@ -180,7 +180,7 @@ namespace ECS {
 };
 
 namespace Intersects {
-    bool circle_contains_point(Vector2 circle, float radius, Vector2 point) {
+    inline bool circle_contains_point(Vector2 circle, float radius, Vector2 point) {
         float circle_left = circle.x - radius;
         float circle_right = circle.x + radius;
         float circle_bottom = circle.y + radius;
@@ -198,7 +198,7 @@ namespace Intersects {
     // From Phaser
     // Works well and can detect if a line is inside a circle also
     // Nearest is the point closest to the center
-    bool line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const Vector2 &circle_center, const float &radius, Vector2 &nearest) {
+    inline bool line_circle(const Vector2 &lineP1, const Vector2 &lineP2, const Vector2 &circle_center, const float &radius, Vector2 &nearest) {
         if (circle_contains_point(circle_center, radius, lineP1)) {
             nearest.x = lineP1.x;
             nearest.y = lineP1.y;
@@ -245,7 +245,7 @@ namespace Intersects {
     // 0: no collision
     // 1: collision but no entry/exit point
     // 2: collision and entry/exit point closest to segment_start
-    int line_circle_entry(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
+    inline int line_circle_entry(const Vector2 &segment_start, const Vector2 &segment_end, const Vector2 &center, const float &radius, Vector2 &intersection) {
         // if (circle_contains_point(center, radius, segment_start)) {
         //     return true;
         // }
