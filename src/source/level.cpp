@@ -147,6 +147,7 @@ void level_load() {
     collisions.allocate(128);
     render_buffer.init();
     _g = new GameArea();
+    GameEvents::init(128);
 }
 
 void level_init() {
@@ -156,6 +157,28 @@ void level_init() {
 
     renderer_set_clear_color({ 8, 0, 18, 255 });
     _g->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
+    
+    Vector2 player_position = Vector2(100, 200);
+    _g->spawn_player(player_position);
+    camera_lookat(player_position);
+
+    _g->spawn_target(Vector2(10, 10));
+    _g->spawn_target(Vector2(400, 200));
+    _g->spawn_target(Vector2(350, 200));
+}
+
+void handle_events(std::vector<GEvent*> &events) {
+    for(auto e : events) {
+        if(e->is<PlayerFireBullet>()) {
+            auto ev = e->get<PlayerFireBullet>();
+            Engine::logn("player fired bullet -> %d", ev->test);
+            
+            GameEvents::return_event(ev);
+        } else {
+            Engine::logn("got an event but not what we wanted");
+        }
+    }
+    GameEvents::clear();
 }
 
 void movement() {
@@ -213,6 +236,8 @@ void level_update() {
     system_remove_deleted(_g->effects);
     
     Particles::update(_g->particles, Time::delta_time);
+    
+    handle_events(GameEvents::get_queued_events());
     
     export_render_info(render_buffer, _g);
 

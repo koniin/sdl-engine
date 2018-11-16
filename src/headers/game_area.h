@@ -6,6 +6,7 @@
 #include "entities.h"
 #include "particles.h"
 #include "emitter_config.h"
+#include "game_events.h"
 
 struct GameArea {
     Rectangle world_bounds;
@@ -35,13 +36,19 @@ struct GameArea {
     }
 
     void load(const Rectangle &bounds);
-    void spawn_player(Vector2 position);
-    void spawn_target(Vector2 position);
-    void remove_deleted_entities();
+    
     void spawn_projectiles();
     void spawn_effects();
+
+    void spawn_player(Vector2 position);
+    void spawn_target(Vector2 position);
+    
     void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent);
     void spawn_explosion(Vector2 position, float offset_x, float offset_y);
+    void spawn_smoke(Vector2 position) {
+        smoke_emitter.position = position;
+        Particles::emit(particles, smoke_emitter);
+    }
 
 	// WorldBounds bounds;
 	// std::vector<AvoidThis> avoidThis;

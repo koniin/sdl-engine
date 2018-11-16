@@ -3,6 +3,7 @@
 
 #include "entities.h"
 #include "game_area.h"
+#include "game_events.h"
 
 extern Sound::SoundId test_sound_id;
 
@@ -111,14 +112,16 @@ inline void system_player_handle_input(Player &players, GameArea *_g) {
 
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
 
-            _g->smoke_emitter.position = muzzle_pos.value;
-            Particles::emit(_g->particles, _g->smoke_emitter);
-
+            _g->spawn_smoke(muzzle_pos.value);
+            
             // Player knockback
             players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
             players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
 
             Sound::queue(test_sound_id, 2);
+            auto *b = GameEvents::get_event<PlayerFireBullet>();
+            b->test = 666;
+            GameEvents::queue(b);
         }
     }
 }

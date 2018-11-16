@@ -1,16 +1,7 @@
 #include "game_area.h"
-#include "systems.h"
 
 void GameArea::load(const Rectangle &bounds) {
     world_bounds = bounds;
-
-    Vector2 player_position = Vector2(100, 200);
-    spawn_player(player_position);
-    camera_lookat(player_position);
-
-    spawn_target(Vector2(10, 10));
-    spawn_target(Vector2(400, 200));
-    spawn_target(Vector2(350, 200));
 }
 
 void GameArea::spawn_player(Vector2 position) {
