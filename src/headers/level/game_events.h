@@ -38,7 +38,8 @@ struct PlayerFireBullet : GEvent {
 };
 
 namespace GameEvents {
-	struct BaseContainer {};
+	struct BaseContainer {
+	};
 	template<typename T>
 	struct StackContainer : BaseContainer {
 		std::stack<T*> stack;
@@ -86,6 +87,7 @@ namespace GameEvents {
 
 	template<typename T>
 	void return_event(T *event) {
+		Engine::logn("Returning event: %d", GEvent::getType<T>());
 		auto s = static_cast<StackContainer<T>*>(array_map[GEvent::getType<T>()]);
 		s->stack.push(event);
 		
@@ -94,6 +96,10 @@ namespace GameEvents {
 	}
 
 	inline void clear() {
+		/*
+		for(auto ev : event_queue) {
+            return_event(ev);
+		}*/
 		event_queue.clear();
 	}
 };
