@@ -1,14 +1,14 @@
-#include "level.h"
+#include "level\level.h"
 
 #include <unordered_set>
 
-#include "level/framework.h"
-#include "debug.h"
-#include "rendering.h"
-#include "entities.h"
-#include "systems.h"
+#include "level\framework.h"
+#include "level\debug.h"
+#include "level\rendering.h"
+#include "level\entities.h"
+#include "level\systems.h"
+#include "level\game_area.h"
 #include "particles.h"
-#include "game_area.h"
 
 /* 
     TODO: Need to clean this file from game logic

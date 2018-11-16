@@ -1,4 +1,4 @@
-#include "game_area.h"
+#include "level\game_area.h"
 
 void GameArea::load(const Rectangle &bounds) {
     world_bounds = bounds;

@@ -1,6 +1,6 @@
 
-#ifndef COMPONENT_ARCHITECTURE_H
-#define COMPONENT_ARCHITECTURE_H
+#ifndef LEVEL_H
+#define LEVEL_H
 
 void level_load();
 void level_init();
