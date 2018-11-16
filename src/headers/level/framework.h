@@ -4,6 +4,7 @@
 #include "engine.h"
 #include <queue>
 #include <memory>
+#include <unordered_map>
 
 namespace ECS {
     const unsigned ENTITY_INDEX_BITS = 22;

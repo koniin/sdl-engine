@@ -3,6 +3,7 @@
 
 #include "engine.h"
 #include "renderer.h"
+#include "game_area.h"
 
 struct DebugRenderData {
     enum Type { Circle, Line } type;
@@ -61,7 +62,7 @@ void debug_export_render_data_lines(const T &entity_data) {
 }
 
 
-void debug(Level *level) {
+void debug(GameArea *level) {
     static float projectile_speed = 8.0f;
     
     if(Input::key_pressed(SDLK_UP)) {

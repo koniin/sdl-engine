@@ -17,10 +17,17 @@ struct SpriteData {
         return layer < rhs.layer; 
     }
 };
+
+static const size_t RENDER_BUFFER_MAX = 256;
 struct RenderBuffer {    
     int sprite_count = 0;
     SpriteData *sprite_data_buffer;
+
+    void init() {
+        sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
+    }
 };
+
 template<typename T>
 void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     // handle camera, zoom and stuff here
@@ -81,7 +88,7 @@ void draw_buffer(const SpriteData *spr, const int length) {
     }
 }
 
-void export_render_info(RenderBuffer &render_buffer, Level *_g) {
+void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
     render_buffer.sprite_count = 0;
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
     auto &sprite_count = render_buffer.sprite_count;

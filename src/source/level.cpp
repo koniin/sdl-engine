@@ -8,77 +8,19 @@
 #include "entities.h"
 #include "systems.h"
 #include "particles.h"
+#include "game_area.h"
 
 /* 
     TODO: Need to clean this file from game logic
 
 */
 
-static Level *_g;
+// TODO: ugly hack
+Sound::SoundId test_sound_id;
+
+static GameArea *_g;
+static CollisionPairs collisions;
 static RenderBuffer render_buffer;
-static Sound::SoundId test_sound_id;
-
-void system_player_handle_input(Player &players) {
-    for(int i = 0; i < players.length; i++) {
-        PlayerInput &pi = players.input[i];
-        Velocity &velocity = players.velocity[i];
-        Direction &direction = players.direction[i];
-        const PlayerConfiguration &player_config = players.config[i];
-        const auto &player_position = players.position[i];
-        
-        // Update rotation based on rotational speed
-        direction.angle += pi.move_x * player_config.rotation_speed * Time::delta_time;
-        if(direction.angle > 360.0f) {
-            direction.angle = 0;
-        } else if(direction.angle < 0.0f) {
-            direction.angle = 360.0f;
-        }
-        float rotation = direction.angle / Math::RAD_TO_DEGREE;
-        direction.value.x = cos(rotation);
-        direction.value.y = sin(rotation);
-        
-	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::delta_time;
-	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
-
-        if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            pi.fire_cooldown = players.weapon[i].fire_cooldown;
-
-            auto projectile_pos = player_position;
-
-            // auto fire_dir = Math::direction(Vector2(Input::mousex, Input::mousey), projectile_pos.value);
-            // const Vector2 projectile_direction = fire_dir;
-            const Vector2 projectile_direction = direction.value;
-
-            // set the projectile position to be gun_barrel_distance infront of the ship
-            projectile_pos.value.x += projectile_direction.x * player_config.gun_barrel_distance;
-            projectile_pos.value.y += projectile_direction.y * player_config.gun_barrel_distance;        
-            auto muzzle_pos = projectile_pos;
-
-            // Accuracy
-            const float accuracy = 8; // how far from initial position it can maximaly spawn
-            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * projectile_direction.y;
-            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * projectile_direction.x;
-
-            float projectile_speed = players.weapon[i].projectile_speed;
-            Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
-            _g->projectiles_player.queue_projectile(projectile_pos.value, projectile_velocity);
-            _g->spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
-            
-            camera_shake(0.1f);
-
-            camera_displace(projectile_direction * player_config.fire_knockback_camera);
-
-            _g->smoke_emitter.position = muzzle_pos.value;
-            Particles::emit(_g->particles, _g->smoke_emitter);
-
-            // Player knockback
-            players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
-            players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
-
-            Sound::queue(test_sound_id, 2);
-        }
-    }
-}
 
 void on_hit(Projectile &projectile, Player &p, const CollisionPair &entities) {
 
@@ -201,9 +143,10 @@ void level_load() {
     // Set up a white copy of the sprite sheet
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
     test_sound_id = Sound::load("test.wav");
-
-    render_buffer.sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
-    _g = new Level();
+    
+    collisions.allocate(128);
+    render_buffer.init();
+    _g = new GameArea();
 }
 
 void level_init() {
@@ -230,21 +173,21 @@ void movement() {
 
 void level_update() {
     system_player_get_input(_g->players);
-    system_player_handle_input(_g->players);
+    system_player_handle_input(_g->players, _g);
     system_ai_input(_g->targets, _g->players, _g->projectiles_target);
 
     movement();
     
     system_player_ship_animate(_g->players);
 
-    _g->collisions.clear();
-    system_collisions(_g->collisions, _g->projectiles_player, _g->targets);
-    system_collision_resolution(_g->collisions, _g->projectiles_player, _g->targets);
+    collisions.clear();
+    system_collisions(collisions, _g->projectiles_player, _g->targets);
+    system_collision_resolution(collisions, _g->projectiles_player, _g->targets);
 
     // Collision between player and target projectiles
-    _g->collisions.clear();
-    system_collisions(_g->collisions, _g->projectiles_target, _g->players);
-    system_collision_resolution(_g->collisions, _g->projectiles_target, _g->players);
+    collisions.clear();
+    system_collisions(collisions, _g->projectiles_target, _g->players);
+    system_collision_resolution(collisions, _g->projectiles_target, _g->players);
 
     system_effects(_g->effects, _g->players, _g->targets);
     system_blink_effect(_g->targets);
@@ -263,7 +206,11 @@ void level_update() {
     _g->spawn_projectiles();
     _g->spawn_effects();
     
-    _g->remove_deleted_entities();
+    system_remove_deleted(_g->players);
+    system_remove_deleted(_g->projectiles_player);
+    system_remove_deleted(_g->projectiles_target);
+    system_remove_deleted(_g->targets);
+    system_remove_deleted(_g->effects);
     
     Particles::update(_g->particles, Time::delta_time);
     
