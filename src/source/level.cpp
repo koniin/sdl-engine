@@ -9,22 +9,16 @@
 #include "systems.h"
 #include "particles.h"
 
+/* 
+    TODO: Need to clean this file from game logic
+
+*/
+
 static Level *_g;
 static RenderBuffer render_buffer;
 static Sound::SoundId test_sound_id;
 
-void spawn_player(Vector2 position) {
-    auto e = _g->entity_manager.create();
-    _g->players.create(e, position);
-}
-
-void spawn_target(Vector2 position) {
-    auto e = _g->entity_manager.create();
-    _g->targets.create(e, position);
-}
-
-void system_player_handle_input() {
-    Player &players = _g->players;
+void system_player_handle_input(Player &players) {
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
         Velocity &velocity = players.velocity[i];
@@ -201,93 +195,6 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
     }
 }
 
-void export_render_info() {
-    render_buffer.sprite_count = 0;
-    auto sprite_data_buffer = render_buffer.sprite_data_buffer;
-    auto &sprite_count = render_buffer.sprite_count;
-
-    for(int i = 0; i < _g->players.length; i++) {
-        Direction &d = _g->players.direction[i];
-        _g->players.sprite[i].rotation = d.angle + 90; // sprite is facing upwards so we need to adjust
-        export_sprite_data(_g->players, i, sprite_data_buffer[sprite_count++]);
-    }
-
-    for(size_t i = 0; i < _g->players.child_sprites.length; ++i) {
-        export_sprite_data(_g->players.child_sprites, i, sprite_data_buffer[sprite_count++]);
-        // export_sprite_data_values(players.child_sprites.position[i], players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
-    }
-
-    for(int i = 0; i < _g->projectiles_player.length; ++i) {
-        export_sprite_data(_g->projectiles_player, i, sprite_data_buffer[sprite_count++]);
-	}
-
-    for(int i = 0; i < _g->projectiles_target.length; ++i) {
-        export_sprite_data(_g->projectiles_target, i, sprite_data_buffer[sprite_count++]);
-	}
-
-    for(int i = 0; i < _g->targets.length; ++i) {
-        export_sprite_data(_g->targets, i, sprite_data_buffer[sprite_count++]);
-	}
-
-    for(int i = 0; i < _g->effects.length; ++i) {
-        export_sprite_data(_g->effects, i, sprite_data_buffer[sprite_count++]);
-	}
-
-    // Sort the render buffer by layer
-    std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
-}
-
-void debug() {
-    static float projectile_speed = 8.0f;
-    
-    if(Input::key_pressed(SDLK_UP)) {
-        projectile_speed++;
-        _g->players.weapon[0].projectile_speed = projectile_speed / 0.016667f;
-    }
-
-    if(Input::key_pressed(SDLK_l)) {
-        _g->players.health[0].hp -= 1;
-    }
-
-    if(Input::key_pressed(SDLK_n)) {
-        Particles::emit(_g->particles, _g->explosion_emitter);
-    }
-
-    if(Input::key_pressed(SDLK_m)) {
-        // char *test;
-        // test = new char[1048576]; // allocate 1 megabyte
-        // // this memory dangles like crazy
-    }
-
-    if(Input::key_pressed(SDLK_F8)) {
-        debug_config.enable_render = !debug_config.enable_render;
-    }
-
-    FrameLog::log("Press F8 to toggle debug render");
-    FrameLog::log("Players: " + std::to_string(_g->players.length));
-    FrameLog::log("Projectiles player: " + std::to_string(_g->projectiles_player.length));
-    FrameLog::log("Projectiles target: " + std::to_string(_g->projectiles_target.length));
-    FrameLog::log("Targets: " + std::to_string(_g->targets.length));
-    FrameLog::log("Particles: " + std::to_string(_g->particles.length));
-    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
-    FrameLog::log("projectile speed: " + std::to_string(_g->players.weapon[0].projectile_speed));
-    FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
-    // FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
-    
-    if(!debug_config.enable_render) {
-        return;
-    }
-
-    debug_config.render_data.clear();
-
-    debug_export_render_data_circles(_g->players);
-    debug_export_render_data_circles(_g->projectiles_player);
-    debug_export_render_data_lines(_g->projectiles_player);
-    debug_export_render_data_circles(_g->projectiles_target);
-    debug_export_render_data_lines(_g->projectiles_target);
-    debug_export_render_data_circles(_g->targets);
-}
-
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
@@ -300,16 +207,12 @@ void level_load() {
 }
 
 void level_init() {
-    renderer_set_clear_color({ 8, 0, 18, 255 });
-    _g->world_bounds = { 0, 0, (int)gw * 2, (int)gh * 2 };
 
-    Vector2 player_position = Vector2(100, 200);
-    spawn_player(player_position);
-    camera_lookat(player_position);
-    
-    spawn_target(Vector2(10, 10));
-    spawn_target(Vector2(400, 200));
-    spawn_target(Vector2(350, 200));
+    // TODO: set loading screen and load something if needed
+    // Then goto game run
+
+    renderer_set_clear_color({ 8, 0, 18, 255 });
+    _g->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
 }
 
 void movement() {
@@ -327,7 +230,7 @@ void movement() {
 
 void level_update() {
     system_player_get_input(_g->players);
-    system_player_handle_input();
+    system_player_handle_input(_g->players);
     system_ai_input(_g->targets, _g->players, _g->projectiles_target);
 
     movement();
@@ -364,9 +267,9 @@ void level_update() {
     
     Particles::update(_g->particles, Time::delta_time);
     
-    export_render_info();
+    export_render_info(render_buffer, _g);
 
-    debug();
+    debug(_g);
 }
 
 void level_render() {

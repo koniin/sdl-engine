@@ -81,4 +81,39 @@ void draw_buffer(const SpriteData *spr, const int length) {
     }
 }
 
+void export_render_info(RenderBuffer &render_buffer, Level *_g) {
+    render_buffer.sprite_count = 0;
+    auto sprite_data_buffer = render_buffer.sprite_data_buffer;
+    auto &sprite_count = render_buffer.sprite_count;
+
+    for(int i = 0; i < _g->players.length; i++) {
+        Direction &d = _g->players.direction[i];
+        _g->players.sprite[i].rotation = d.angle + 90; // sprite is facing upwards so we need to adjust
+        export_sprite_data(_g->players, i, sprite_data_buffer[sprite_count++]);
+    }
+
+    for(size_t i = 0; i < _g->players.child_sprites.length; ++i) {
+        export_sprite_data(_g->players.child_sprites, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data_values(players.child_sprites.position[i], players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
+    }
+
+    for(int i = 0; i < _g->projectiles_player.length; ++i) {
+        export_sprite_data(_g->projectiles_player, i, sprite_data_buffer[sprite_count++]);
+	}
+
+    for(int i = 0; i < _g->projectiles_target.length; ++i) {
+        export_sprite_data(_g->projectiles_target, i, sprite_data_buffer[sprite_count++]);
+	}
+
+    for(int i = 0; i < _g->targets.length; ++i) {
+        export_sprite_data(_g->targets, i, sprite_data_buffer[sprite_count++]);
+	}
+
+    for(int i = 0; i < _g->effects.length; ++i) {
+        export_sprite_data(_g->effects, i, sprite_data_buffer[sprite_count++]);
+	}
+
+    // Sort the render buffer by layer
+    std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
+}
 #endif

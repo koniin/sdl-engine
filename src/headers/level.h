@@ -45,6 +45,28 @@ struct Level {
         emitters_configure(this);
     }
 
+    void load(const Rectangle &bounds) {
+        world_bounds = bounds;
+
+        Vector2 player_position = Vector2(100, 200);
+        spawn_player(player_position);
+        camera_lookat(player_position);
+    
+        spawn_target(Vector2(10, 10));
+        spawn_target(Vector2(400, 200));
+        spawn_target(Vector2(350, 200));
+    }
+
+    void spawn_player(Vector2 position) {
+        auto e = entity_manager.create();
+        players.create(e, position);
+    }
+
+    void spawn_target(Vector2 position) {
+        auto e = entity_manager.create();
+        targets.create(e, position);
+    }
+
     void remove_deleted_entities() {
         system_remove_deleted(players);
         system_remove_deleted(projectiles_player);

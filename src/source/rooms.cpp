@@ -29,8 +29,12 @@ void room_go_back() {
 void init_room(const Rooms room) {
     switch(room) {
         case MainMenu:    
+            break;
         case NewGame:
+            break;
         case Game:
+            level_init();
+            break;
         case AfterGame:
             break;
     }
@@ -40,9 +44,12 @@ void clean_room(const Rooms room) {
     // Camera reset etc
 
     switch(room) {
-        case MainMenu:
+        case MainMenu:    
+            break;
         case NewGame:
+            break;
         case Game:
+            break;
         case AfterGame:
             break;
     }
