@@ -24,6 +24,8 @@ static GameAreaController *game_area_controller;
 static CollisionPairs collisions;
 static RenderBuffer render_buffer;
 
+enum State { Loading, Play, Death } game_state;
+
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
@@ -39,9 +41,7 @@ void level_load() {
 }
 
 void level_init() {
-
-    // TODO: set loading screen and load something if needed
-    // Then goto game run
+    game_state = Loading;
 
     renderer_set_clear_color({ 8, 0, 18, 255 });
     game_area->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
@@ -72,7 +72,13 @@ void handle_events(std::vector<GEvent*> &events) {
     }
 }
 
-void movement() {
+void game_area_update() {
+    // Input
+    system_player_get_input(game_area->players);
+    system_player_handle_input(game_area->players, game_area_controller);
+    system_ai_input(game_area->targets, game_area->players, game_area->projectiles_target);
+
+    // Movement
     move_forward(game_area->players);
     keep_in_bounds(game_area->players, game_area->world_bounds);
     move_forward(game_area->targets);
@@ -81,28 +87,20 @@ void movement() {
     move_forward(game_area->projectiles_player);
     set_last_position(game_area->projectiles_target);
     move_forward(game_area->projectiles_target);
-
     system_drag(game_area->players);
-}
+    // ----
 
-void level_update() {
-    system_player_get_input(game_area->players);
-    system_player_handle_input(game_area->players, game_area_controller);
-    system_ai_input(game_area->targets, game_area->players, game_area->projectiles_target);
-
-    movement();
-    
-    system_player_ship_animate(game_area->players);
-
+    // Collisions
     collisions.clear();
     system_collisions(collisions, game_area->projectiles_player, game_area->targets);
     system_collision_resolution(collisions, game_area->projectiles_player, game_area->targets, game_area_controller);
 
-    // Collision between player and target projectiles
     collisions.clear();
     system_collisions(collisions, game_area->projectiles_target, game_area->players);
     system_collision_resolution(collisions, game_area->projectiles_target, game_area->players, game_area_controller);
+    // ---
 
+    system_player_ship_animate(game_area->players);
     system_effects(game_area->effects, game_area->players, game_area->targets);
     system_blink_effect(game_area->targets);
     system_blink_effect(game_area->players);
@@ -137,8 +135,34 @@ void level_update() {
     debug(game_area);
 }
 
+void level_update() {
+    switch(game_state) {
+        case Loading:
+            if(Input::key_pressed(SDLK_b)) {
+                game_state = Play;
+            }
+            break;
+        case Play:
+            game_area_update();
+            break;
+        case Death:
+            break;
+    }
+}
+
 void level_render() {
-    draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+    switch(game_state) {
+        case Loading:
+            draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "LOADING!");
+            break;
+        case Play:
+            draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+            break;
+        case Death:
+            draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+            draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "DEAD!");
+            break;
+    }
     Particles::render_circles_filled(game_area->particles);
     debug_render();
 }
@@ -154,10 +178,18 @@ void render_health_bar(int x, int y, int width, int height, float value, float m
 }
 
 void level_render_ui() {
-    if(game_area->players.length > 0) {
-        render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
+    switch(game_state) {
+        case Loading:
+            break;
+        case Play:
+            if(game_area->players.length > 0) {
+                render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
+            }
+            draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
+            break;
+        case Death:
+            break;
     }
-    draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
 }
 
 void level_unload() {
