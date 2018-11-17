@@ -49,6 +49,7 @@ void clean_room(const Rooms room) {
         case NewGame:
             break;
         case Game:
+            level_clean();
             break;
         case AfterGame:
             break;

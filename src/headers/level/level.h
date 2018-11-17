@@ -4,6 +4,7 @@
 
 void level_load();
 void level_init();
+void level_clean();
 void level_unload();
 void level_update();
 void level_render();

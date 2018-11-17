@@ -55,6 +55,12 @@ void level_init() {
     game_area_controller->spawn_target(Vector2(350, 200));
 }
 
+void level_clean() {
+    game_area->clear();
+    render_buffer.clear();
+    GameEvents::clear();
+}
+
 void handle_events(std::vector<GEvent*> &events) {
     for(auto e : events) {
         if(e->is<PlayerFireBullet>()) {

@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "renderer.h"
 #include "game_area.h"
+#include "rooms.h"
 
 struct DebugRenderData {
     enum Type { Circle, Line } type;
@@ -79,6 +80,7 @@ void debug(GameArea *level) {
     }
 
     if(Input::key_pressed(SDLK_m)) {
+        room_goto(Rooms::MainMenu);
         // char *test;
         // test = new char[1048576]; // allocate 1 megabyte
         // // this memory dangles like crazy

@@ -26,6 +26,10 @@ struct RenderBuffer {
     void init() {
         sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
     }
+
+    void clear() {
+        sprite_count = 0;
+    }
 };
 
 template<typename T>

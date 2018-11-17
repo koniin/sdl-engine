@@ -39,6 +39,14 @@ struct GameArea {
         world_bounds = bounds;
     }
     
+    void clear() {
+        players.clear();
+        projectiles_player.clear();
+        projectiles_target.clear();
+        targets.clear();
+        effects.clear();
+        particles.length = 0;
+    }
 	// WorldBounds bounds;
 	// std::vector<AvoidThis> avoidThis;
 	// std::vector<RegularObject> regularObject;

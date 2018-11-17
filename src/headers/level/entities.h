@@ -230,9 +230,20 @@ struct Player : ECS::EntityData {
         child_sprites.allocate(16);
     }
 
+    void clear() {
+        child_sprites.length = 0;
+        child_map.clear();
+
+        for(int i = 0; i < length; i++) {
+            remove(entity[i]);
+        }
+    }
+
     void create(const ECS::Entity &e, const Vector2 &p) {
         add_entity(e);
         auto handle = get_handle(e);
+        life_time[handle.i].marked_for_deletion = false;
+
         PlayerConfiguration pcfg;
         config[handle.i] = pcfg;
         position[handle.i] = { p };
@@ -302,6 +313,14 @@ struct Projectile : ECS::EntityData {
         projectile_queue.reserve(64);
     }
 
+    void clear() {
+        projectile_queue.clear();
+
+        for(int i = 0; i < length; i++) {
+            remove(entity[i]);
+        }
+    }
+
     void queue_projectile(Vector2 p, Vector2 v) {
         projectile_queue.push_back({ p , v });
     }
@@ -309,6 +328,8 @@ struct Projectile : ECS::EntityData {
     void create(ECS::Entity e, Vector2 p, Vector2 v) {
         add_entity(e);
         auto handle = get_handle(e);
+        life_time[handle.i].marked_for_deletion = false;
+
         position[handle.i] = { p, p };
         velocity[handle.i] = Velocity(v.x, v.y);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
@@ -345,9 +366,17 @@ struct Target : ECS::EntityData {
         initialize(&weapon);
     }
 
+    void clear() {
+        for(int i = 0; i < length; i++) {
+            remove(entity[i]);
+        }
+    }
+
     void create(const ECS::Entity &e, const Vector2 &p) {
         add_entity(e);
         auto handle = get_handle(e);
+        life_time[handle.i].marked_for_deletion = false;
+
         config[handle.i] = TargetConfiguration();
         position[handle.i] = { p };
         velocity[handle.i] = Velocity(0, 0);
@@ -415,9 +444,19 @@ struct Effect : ECS::EntityData {
         initialize(&effect);
     }
 
+    void clear() {
+        effect_queue.clear();
+
+        for(int i = 0; i < length; i++) {
+            remove(entity[i]);
+        }
+    }
+
     void create(ECS::Entity &e, const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
         add_entity(e);
         auto handle = get_handle(e);
+        life_time[handle.i].marked_for_deletion = false;
+        
         position[handle.i] = p;
         velocity[handle.i] = v;
         sprite[handle.i] = s;

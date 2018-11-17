@@ -4,9 +4,9 @@
 #include "game_area.h"
 
 struct GameAreaController {
-    GameArea *_g;
+    GameArea *game_area;
 
-    GameAreaController(GameArea *g) : _g(g) {}
+    GameAreaController(GameArea *g) : game_area(g) {}
     
     void spawn_projectiles();
     void spawn_effects();
@@ -18,8 +18,8 @@ struct GameAreaController {
     void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent);
     void spawn_explosion(Vector2 position, float offset_x, float offset_y);
     void spawn_smoke(Vector2 position) {
-        _g->smoke_emitter.position = position;
-        Particles::emit(_g->particles, _g->smoke_emitter);
+        game_area->smoke_emitter.position = position;
+        Particles::emit(game_area->particles, game_area->smoke_emitter);
     }
     void spawn_hit_effect(Vector2 position, float angle);
 };
