@@ -8,6 +8,7 @@
 #include "level\entities.h"
 #include "level\systems.h"
 #include "level\game_area.h"
+#include "level\game_area_controller.h"
 #include "particles.h"
 
 /* 
@@ -18,124 +19,10 @@
 // TODO: ugly hack
 Sound::SoundId test_sound_id;
 
-static GameArea *_g;
+static GameArea *game_area;
+static GameAreaController *game_area_controller;
 static CollisionPairs collisions;
 static RenderBuffer render_buffer;
-
-void on_hit(Projectile &projectile, Player &p, const CollisionPair &entities) {
-
-    // Player is hit
-
-}
-
-void on_hit(Projectile &projectile, Target &t, const CollisionPair &entities) {
-    // Knockback
-    auto &damage = get_damage(projectile, entities.first);
-    auto &velocity = get_velocity(projectile, entities.first);
-    auto &second_pos = get_position(t, entities.second);
-    Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-    second_pos.value.x += dir.x * damage.force;
-    second_pos.value.y += dir.y * damage.force;
-}
-
-// Player is dealt damage
-void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities) {
-    int amount_dealt = deal_damage(projectile, entities.first, p, entities.second);
-
-    auto &health = get_health(p, entities.second);
-    if(health.hp <= 0) {
-        // Spawn explosion particles:
-        auto &second_pos = get_position(p, entities.second);
-        _g->explosion_emitter.position = second_pos.value;
-        Particles::emit(_g->particles, _g->explosion_emitter);
-
-        // spawn explision sprite
-        _g->spawn_explosion(second_pos.value, 10, 10);
-
-        // Trigger some kind of death thing so we know game is over
-    } else if(amount_dealt > 0) {
-        // play hit sound
-        // Sound::queue(test_sound_id, 2);
-
-        camera_shake(0.1f);
-
-        // 29 frames because that is so cool
-        float invulnerability_time = 29 * Time::delta_time_fixed;
-        set_invulnerable(health, invulnerability_time);
-        blink_sprite(p, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
-    } else {
-        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt on player");
-        // Do we need to handle this case?
-    }
-}
-
-// Target is dealt damage
-void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities) {
-    int amount_dealt = deal_damage(projectile, entities.first, t, entities.second);
-    
-    Engine::pause(0.03f);
-
-    // Emit hit particles
-    const auto &pos = get_position(projectile, entities.first);
-    float angle = Math::degrees_between_v(pos.last, entities.collision_point);
-    _g->hit_emitter.position = entities.collision_point;
-    _g->hit_emitter.angle_min = angle - 10.0f;
-    _g->hit_emitter.angle_max = angle + 10.0f;
-    Particles::emit(_g->particles, _g->hit_emitter);
-    
-    auto &health = get_health(t, entities.second);
-    if(health.hp <= 0) {
-        // play explosion sound / death sound
-        // OR DO THIS IN SPAWN EXPLOSION METHOD
-        // Sound::queue(test_sound_id, 2);
-
-        camera_shake(0.1f);
-        
-        // Spawn explosion particles:
-        auto &second_pos = get_position(t, entities.second);
-        _g->explosion_emitter.position = second_pos.value;
-        Particles::emit(_g->particles, _g->explosion_emitter);
-
-        // spawn explosion sprite
-        _g->spawn_explosion(second_pos.value, 10, 10);
-    } else if(amount_dealt > 0) {
-        // play hit sound
-        // Sound::queue(test_sound_id, 2);
-        
-        // 29 frames because that is so cool
-        float invulnerability_time = 29 * Time::delta_time_fixed;
-        set_invulnerable(health, invulnerability_time);
-        blink_sprite(t, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
-    } else {
-        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt");
-        // Do we need to handle this case?
-    }
-}
-
-template<typename First, typename Second>
-void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second) {
-    collision_pairs.sort_by_distance();
-
-    // This set will contain all collisions that we have handled
-    // Since first in this instance is projectile and the list is sorted by distance
-    // we only care about the collision with the shortest distance in this implementation
-    std::unordered_set<ECS::EntityId> handled_collisions;
-    for(int i = 0; i < collision_pairs.count; ++i) {
-        if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
-            continue;
-        }
-        handled_collisions.insert(collision_pairs[i].first.id);
-        debug_config.last_collision_point = collision_pairs[i].collision_point;
-
-        mark_for_deletion(entity_first, collision_pairs[i].first);
-        
-        on_hit(entity_first, entity_second, collision_pairs[i]);
-        if(is_invulnerable(entity_second, collision_pairs[i].second)) {
-            continue;
-        }
-        on_deal_damage(entity_first, entity_second, collision_pairs[i]);
-    }
-}
 
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
@@ -146,7 +33,8 @@ void level_load() {
     
     collisions.allocate(128);
     render_buffer.init();
-    _g = new GameArea();
+    game_area = new GameArea();
+    game_area_controller = new GameAreaController(game_area);
     GameEvents::init(128);
 }
 
@@ -156,15 +44,15 @@ void level_init() {
     // Then goto game run
 
     renderer_set_clear_color({ 8, 0, 18, 255 });
-    _g->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
+    game_area->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
     
     Vector2 player_position = Vector2(100, 200);
-    _g->spawn_player(player_position);
+    game_area_controller->spawn_player(player_position);
     camera_lookat(player_position);
 
-    _g->spawn_target(Vector2(10, 10));
-    _g->spawn_target(Vector2(400, 200));
-    _g->spawn_target(Vector2(350, 200));
+    game_area_controller->spawn_target(Vector2(10, 10));
+    game_area_controller->spawn_target(Vector2(400, 200));
+    game_area_controller->spawn_target(Vector2(350, 200));
 }
 
 void handle_events(std::vector<GEvent*> &events) {
@@ -172,81 +60,80 @@ void handle_events(std::vector<GEvent*> &events) {
         if(e->is<PlayerFireBullet>()) {
             auto ev = e->get<PlayerFireBullet>();
             Engine::logn("player fired bullet -> %d", ev->test);
-            
-            GameEvents::return_event(ev);
         } else {
             Engine::logn("got an event but not what we wanted");
         }
     }
-    GameEvents::clear();
 }
 
 void movement() {
-    move_forward(_g->players);
-    keep_in_bounds(_g->players, _g->world_bounds);
-    move_forward(_g->targets);
-    keep_in_bounds(_g->targets, _g->world_bounds);
-    set_last_position(_g->projectiles_player);
-    move_forward(_g->projectiles_player);
-    set_last_position(_g->projectiles_target);
-    move_forward(_g->projectiles_target);
+    move_forward(game_area->players);
+    keep_in_bounds(game_area->players, game_area->world_bounds);
+    move_forward(game_area->targets);
+    keep_in_bounds(game_area->targets, game_area->world_bounds);
+    set_last_position(game_area->projectiles_player);
+    move_forward(game_area->projectiles_player);
+    set_last_position(game_area->projectiles_target);
+    move_forward(game_area->projectiles_target);
 
-    system_drag(_g->players);
+    system_drag(game_area->players);
 }
 
 void level_update() {
-    system_player_get_input(_g->players);
-    system_player_handle_input(_g->players, _g);
-    system_ai_input(_g->targets, _g->players, _g->projectiles_target);
+    system_player_get_input(game_area->players);
+    system_player_handle_input(game_area->players, game_area_controller);
+    system_ai_input(game_area->targets, game_area->players, game_area->projectiles_target);
 
     movement();
     
-    system_player_ship_animate(_g->players);
+    system_player_ship_animate(game_area->players);
 
     collisions.clear();
-    system_collisions(collisions, _g->projectiles_player, _g->targets);
-    system_collision_resolution(collisions, _g->projectiles_player, _g->targets);
+    system_collisions(collisions, game_area->projectiles_player, game_area->targets);
+    system_collision_resolution(collisions, game_area->projectiles_player, game_area->targets, game_area_controller);
 
     // Collision between player and target projectiles
     collisions.clear();
-    system_collisions(collisions, _g->projectiles_target, _g->players);
-    system_collision_resolution(collisions, _g->projectiles_target, _g->players);
+    system_collisions(collisions, game_area->projectiles_target, game_area->players);
+    system_collision_resolution(collisions, game_area->projectiles_target, game_area->players, game_area_controller);
 
-    system_effects(_g->effects, _g->players, _g->targets);
-    system_blink_effect(_g->targets);
-    system_blink_effect(_g->players);
+    system_effects(game_area->effects, game_area->players, game_area->targets);
+    system_blink_effect(game_area->targets);
+    system_blink_effect(game_area->players);
     
-    system_camera_follow(_g->players, 0, 100.0f);
-    system_invulnerability(_g->targets, Time::delta_time);
-    system_invulnerability(_g->players, Time::delta_time);
+    system_camera_follow(game_area->players, 0, 100.0f);
+    system_invulnerability(game_area->targets, Time::delta_time);
+    system_invulnerability(game_area->players, Time::delta_time);
 
-    system_remove_no_health_left(_g->targets);
-    system_remove_no_health_left(_g->players);
-    remove_out_of_bounds(_g->projectiles_player, _g->world_bounds);
-    remove_out_of_bounds(_g->projectiles_target, _g->world_bounds);
-    system_remove_completed_effects(_g->effects);
+    system_remove_no_health_left(game_area->targets);
+    system_remove_no_health_left(game_area->players);
+    remove_out_of_bounds(game_area->projectiles_player, game_area->world_bounds);
+    remove_out_of_bounds(game_area->projectiles_target, game_area->world_bounds);
+    system_remove_completed_effects(game_area->effects);
 
-    _g->spawn_projectiles();
-    _g->spawn_effects();
+    game_area_controller->spawn_projectiles();
+    game_area_controller->spawn_effects();
     
-    system_remove_deleted(_g->players);
-    system_remove_deleted(_g->projectiles_player);
-    system_remove_deleted(_g->projectiles_target);
-    system_remove_deleted(_g->targets);
-    system_remove_deleted(_g->effects);
+    system_remove_deleted(game_area->players);
+    system_remove_deleted(game_area->projectiles_player);
+    system_remove_deleted(game_area->projectiles_target);
+    system_remove_deleted(game_area->targets);
+    system_remove_deleted(game_area->effects);
     
-    Particles::update(_g->particles, Time::delta_time);
+    Particles::update(game_area->particles, Time::delta_time);
     
     handle_events(GameEvents::get_queued_events());
     
-    export_render_info(render_buffer, _g);
+    GameEvents::clear();
 
-    debug(_g);
+    export_render_info(render_buffer, game_area);
+
+    debug(game_area);
 }
 
 void level_render() {
     draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-    Particles::render_circles_filled(_g->particles);
+    Particles::render_circles_filled(game_area->particles);
     debug_render();
 }
 
@@ -261,14 +148,15 @@ void render_health_bar(int x, int y, int width, int height, float value, float m
 }
 
 void level_render_ui() {
-    if(_g->players.length > 0) {
-        render_health_bar(10, 10, 100, 15, (float)_g->players.health[0].hp, (float)_g->players.health[0].hp_max);
+    if(game_area->players.length > 0) {
+        render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
     }
     draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
 }
 
 void level_unload() {
-    delete [] _g->particles.particles;
+    delete game_area_controller;
+    delete [] game_area->particles.particles;
     delete [] render_buffer.sprite_data_buffer;
-    delete _g;
+    delete game_area;
 }

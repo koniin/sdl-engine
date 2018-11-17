@@ -96,10 +96,15 @@ namespace GameEvents {
 	}
 
 	inline void clear() {
-		/*
-		for(auto ev : event_queue) {
-            return_event(ev);
-		}*/
+		for(auto e : event_queue) {
+			if(e->is<PlayerFireBullet>()) {
+				GameEvents::return_event(e->get<PlayerFireBullet>());
+			} else {
+				Engine::logn("Event not returned!");
+				ASSERT_WITH_MSG(false, "Forgot to return the event");
+			}
+		}
+    
 		event_queue.clear();
 	}
 };

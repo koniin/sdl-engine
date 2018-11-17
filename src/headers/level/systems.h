@@ -2,7 +2,7 @@
 #define SYSTEMS_H
 
 #include "entities.h"
-#include "game_area.h"
+#include "game_area_controller.h"
 #include "game_events.h"
 
 extern Sound::SoundId test_sound_id;
@@ -62,7 +62,7 @@ inline void system_player_get_input(Player &players) {
     }
 }
 
-inline void system_player_handle_input(Player &players, GameArea *_g) {
+inline void system_player_handle_input(Player &players, GameAreaController *game_ctrl) {
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
         Velocity &velocity = players.velocity[i];
@@ -105,23 +105,23 @@ inline void system_player_handle_input(Player &players, GameArea *_g) {
 
             float projectile_speed = players.weapon[i].projectile_speed;
             Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
-            _g->projectiles_player.queue_projectile(projectile_pos.value, projectile_velocity);
-            _g->spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
+            game_ctrl->spawn_player_projectile(projectile_pos.value, projectile_velocity);
+            game_ctrl->spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
 
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
 
-            _g->spawn_smoke(muzzle_pos.value);
+            game_ctrl->spawn_smoke(muzzle_pos.value);
             
             // Player knockback
             players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
             players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
 
             Sound::queue(test_sound_id, 2);
-            auto *b = GameEvents::get_event<PlayerFireBullet>();
-            b->test = 666;
-            GameEvents::queue(b);
+            // auto b = GameEvents::get_event<PlayerFireBullet>();
+            // b->test = 666;
+            // GameEvents::queue(b);
         }
     }
 }
@@ -443,6 +443,108 @@ void system_remove_deleted(T &entity_data) {
             entity_data.life_time[i].marked_for_deletion = false;
             entity_data.remove(entity_data.entity[i]);
         }
+    }
+}
+
+inline void on_hit(Projectile &projectile, Player &p, const CollisionPair &entities) {
+
+    // Player is hit
+
+}
+
+inline void on_hit(Projectile &projectile, Target &t, const CollisionPair &entities) {
+    // Knockback
+    auto &damage = get_damage(projectile, entities.first);
+    auto &velocity = get_velocity(projectile, entities.first);
+    auto &second_pos = get_position(t, entities.second);
+    Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
+    second_pos.value.x += dir.x * damage.force;
+    second_pos.value.y += dir.y * damage.force;
+}
+
+// Player is dealt damage
+inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities, GameAreaController *game_ctrl) {
+    int amount_dealt = deal_damage(projectile, entities.first, p, entities.second);
+
+    auto &health = get_health(p, entities.second);
+    if(health.hp <= 0) {
+        auto &second_pos = get_position(p, entities.second);
+        game_ctrl->spawn_explosion(second_pos.value, 10, 10);
+
+        // TODO: Trigger some kind of death thing so we know game is over
+    } else if(amount_dealt > 0) {
+        // play hit sound
+        // Sound::queue(test_sound_id, 2);
+
+        camera_shake(0.1f);
+
+        // 29 frames because that is so cool
+        float invulnerability_time = 29 * Time::delta_time_fixed;
+        set_invulnerable(health, invulnerability_time);
+        blink_sprite(p, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
+    } else {
+        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt on player");
+        // Do we need to handle this case?
+    }
+}
+
+// Target is dealt damage
+inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities, GameAreaController *game_ctrl) {
+    int amount_dealt = deal_damage(projectile, entities.first, t, entities.second);
+    
+    Engine::pause(0.03f);
+
+    // Emit hit particles
+    const auto &pos = get_position(projectile, entities.first);
+    float angle = Math::degrees_between_v(pos.last, entities.collision_point);
+    game_ctrl->spawn_hit_effect(entities.collision_point, angle);
+    
+    auto &health = get_health(t, entities.second);
+    if(health.hp <= 0) {
+        // play explosion sound / death sound
+        // OR DO THIS IN SPAWN EXPLOSION METHOD
+        // Sound::queue(test_sound_id, 2);
+
+        camera_shake(0.1f);
+        
+        auto &second_pos = get_position(t, entities.second);
+        game_ctrl->spawn_explosion(second_pos.value, 10, 10);
+    } else if(amount_dealt > 0) {
+        // play hit sound
+        // Sound::queue(test_sound_id, 2);
+        
+        // 29 frames because that is so cool
+        float invulnerability_time = 29 * Time::delta_time_fixed;
+        set_invulnerable(health, invulnerability_time);
+        blink_sprite(t, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
+    } else {
+        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt");
+        // Do we need to handle this case?
+    }
+}
+
+template<typename First, typename Second>
+void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second, GameAreaController *game_ctrl) {
+    collision_pairs.sort_by_distance();
+
+    // This set will contain all collisions that we have handled
+    // Since first in this instance is projectile and the list is sorted by distance
+    // we only care about the collision with the shortest distance in this implementation
+    std::unordered_set<ECS::EntityId> handled_collisions;
+    for(int i = 0; i < collision_pairs.count; ++i) {
+        if(handled_collisions.find(collision_pairs[i].first.id) != handled_collisions.end()) {
+            continue;
+        }
+        handled_collisions.insert(collision_pairs[i].first.id);
+        debug_config.last_collision_point = collision_pairs[i].collision_point;
+
+        mark_for_deletion(entity_first, collision_pairs[i].first);
+        
+        on_hit(entity_first, entity_second, collision_pairs[i]);
+        if(is_invulnerable(entity_second, collision_pairs[i].second)) {
+            continue;
+        }
+        on_deal_damage(entity_first, entity_second, collision_pairs[i], game_ctrl);
     }
 }
 

@@ -34,22 +34,11 @@ struct GameArea {
 
         emitters_configure(this);
     }
-
-    void load(const Rectangle &bounds);
     
-    void spawn_projectiles();
-    void spawn_effects();
-
-    void spawn_player(Vector2 position);
-    void spawn_target(Vector2 position);
-    
-    void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent);
-    void spawn_explosion(Vector2 position, float offset_x, float offset_y);
-    void spawn_smoke(Vector2 position) {
-        smoke_emitter.position = position;
-        Particles::emit(particles, smoke_emitter);
+    void load(const Rectangle &bounds) {
+        world_bounds = bounds;
     }
-
+    
 	// WorldBounds bounds;
 	// std::vector<AvoidThis> avoidThis;
 	// std::vector<RegularObject> regularObject;
