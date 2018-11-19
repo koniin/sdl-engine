@@ -16,9 +16,6 @@
 
 */
 
-// TODO: ugly hack
-Sound::SoundId test_sound_id;
-
 static GameArea *game_area;
 static GameAreaController *game_area_controller;
 static CollisionPairs collisions;
@@ -31,13 +28,14 @@ void level_load() {
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     // Set up a white copy of the sprite sheet
     Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
-    test_sound_id = Sound::load("test.wav");
     
     collisions.allocate(128);
     render_buffer.init();
     game_area = new GameArea();
     game_area_controller = new GameAreaController(game_area);
     GameEvents::init(128);
+
+    game_area_controller->sound_map["player_fire"] = Sound::load("test.wav");
 }
 
 void level_init() {

@@ -5,8 +5,6 @@
 #include "game_area_controller.h"
 #include "game_events.h"
 
-extern Sound::SoundId test_sound_id;
-
 struct InputMapping {
 	SDL_Scancode up;
 	SDL_Scancode down;
@@ -118,7 +116,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
             players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
 
-            Sound::queue(test_sound_id, 2);
+            Sound::queue(game_ctrl->sound_map["player_fire"], 2);
             // auto b = GameEvents::get_event<PlayerFireBullet>();
             // b->test = 666;
             // GameEvents::queue(b);

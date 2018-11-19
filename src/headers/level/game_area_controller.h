@@ -5,9 +5,10 @@
 
 struct GameAreaController {
     GameArea *game_area;
+    std::unordered_map<std::string, Sound::SoundId> sound_map;
 
     GameAreaController(GameArea *g) : game_area(g) {}
-    
+
     void spawn_projectiles();
     void spawn_effects();
 
