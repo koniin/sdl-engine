@@ -23,6 +23,14 @@ struct GameAreaController {
         Particles::emit(game_area->particles, game_area->smoke_emitter);
     }
     void spawn_hit_effect(Vector2 position, float angle);
+
+    const bool game_over() {
+        return game_area->players.length == 0;
+    }
+
+    const bool game_win() {
+        return game_area->targets.length == 0;
+    }
 };
 
 #endif

@@ -21,7 +21,7 @@ static GameAreaController *game_area_controller;
 static CollisionPairs collisions;
 static RenderBuffer render_buffer;
 
-enum State { Loading, Play, Death } game_state;
+enum State { Loading, Play, End } game_state;
 
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
@@ -34,8 +34,13 @@ void level_load() {
     game_area = new GameArea();
     game_area_controller = new GameAreaController(game_area);
     GameEvents::init(128);
+    Timing::init(8);
 
     game_area_controller->sound_map["player_fire"] = Sound::load("test.wav");
+}
+
+void start_test() {
+    game_state = Play;
 }
 
 void level_init() {
@@ -51,6 +56,8 @@ void level_init() {
     game_area_controller->spawn_target(Vector2(10, 10));
     game_area_controller->spawn_target(Vector2(400, 200));
     game_area_controller->spawn_target(Vector2(350, 200));
+
+    Timing::add_timer(2.0f, start_test);
 }
 
 void level_clean() {
@@ -70,12 +77,14 @@ void handle_events(std::vector<GEvent*> &events) {
     }
 }
 
-void game_area_update() {
-    // Input
+void game_area_input() {
+        // Input
     system_player_get_input(game_area->players);
     system_player_handle_input(game_area->players, game_area_controller);
     system_ai_input(game_area->targets, game_area->players, game_area->projectiles_target);
+}
 
+void game_area_update() {
     // Movement
     move_forward(game_area->players);
     keep_in_bounds(game_area->players, game_area->world_bounds);
@@ -125,8 +134,11 @@ void game_area_update() {
     Particles::update(game_area->particles, Time::delta_time);
     
     handle_events(GameEvents::get_queued_events());
-    
     GameEvents::clear();
+
+    if(game_area_controller->game_over() || game_area_controller->game_win()) {
+        game_state = End;
+    } 
 
     export_render_info(render_buffer, game_area);
 
@@ -134,6 +146,7 @@ void game_area_update() {
 }
 
 void level_update() {
+    Timing::update_timers();
     switch(game_state) {
         case Loading:
             if(Input::key_pressed(SDLK_b)) {
@@ -141,10 +154,12 @@ void level_update() {
             }
             break;
         case Play:
+            game_area_input();
             game_area_update();
             break;
-        case Death:
-            break;
+        case End:
+            game_area_update();
+            break;   
     }
 }
 
@@ -156,9 +171,14 @@ void level_render() {
         case Play:
             draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
             break;
-        case Death:
-            draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-            draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "DEAD!");
+        case End:
+            if(game_area->players.length > 0) {
+                draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "WIN!"); 
+            } else {
+                draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "DEAD!");
+            }
             break;
     }
     Particles::render_circles_filled(game_area->particles);
@@ -185,7 +205,7 @@ void level_render_ui() {
             }
             draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
             break;
-        case Death:
+        case End:
             break;
     }
 }

@@ -5,6 +5,43 @@
 #include <queue>
 #include <memory>
 #include <unordered_map>
+#include <stack>
+
+namespace Timing {
+    typedef void (*timer_complete_func)();
+    
+    struct Timer {
+        float elapsed = 0.0f;
+        float time = 0.0f;
+        timer_complete_func on_elapsed = nullptr; 
+    };
+
+    static std::vector<Timer> _timers;
+
+    inline void init(int sz) {
+        _timers.reserve(sz);
+    }
+    
+    inline void add_timer(float time, timer_complete_func on_elapsed) {
+        _timers.push_back({ 0.0f, time, on_elapsed });
+    }
+    
+    inline void update_timers() {
+        for(size_t i = 0; i < _timers.size(); i++) {
+            _timers[i].elapsed += Time::delta_time;
+            if(_timers[i].elapsed > _timers[i].time) {
+                _timers[i].on_elapsed();
+            }
+        }
+        
+        for(size_t i = 0; i < _timers.size(); i++) {
+            if(_timers[i].elapsed > _timers[i].time) {
+                _timers[i] = _timers[_timers.size() - 1];
+                _timers.erase(_timers.end() - 1);
+            }
+        }
+    }
+};
 
 namespace ECS {
     const unsigned ENTITY_INDEX_BITS = 22;
