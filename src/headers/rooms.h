@@ -19,8 +19,7 @@
  Rooms:
  MainMenu - as above
  NewGame - has three states -> used to create the game state initial options
-    - select difficulty
-    - select mode 
+    - select difficulty / mode
     - select character
  Game - has three states -> used to alter the game state
     - load/generate level - uses game state as input
