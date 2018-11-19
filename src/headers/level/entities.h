@@ -231,7 +231,9 @@ struct Player : ECS::EntityData {
     }
 
     void clear() {
-        child_sprites.length = 0;
+        for(auto cs : child_map) {
+            child_sprites.remove(cs.second);
+        }
         child_map.clear();
 
         for(int i = 0; i < length; i++) {
@@ -277,7 +279,7 @@ struct Player : ECS::EntityData {
             local_pos,
             s,
             a);
-
+            
         child_map[id] = new_sprite_id;
     }
 

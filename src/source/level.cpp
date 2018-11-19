@@ -159,6 +159,10 @@ void level_update() {
             break;
         case End:
             game_area_update();
+            if(Input::key_pressed(SDLK_b)) {
+                level_clean();
+                level_init();
+            }
             break;   
     }
 }
