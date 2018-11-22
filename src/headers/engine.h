@@ -285,6 +285,10 @@ struct Rectangle {
                  || r2.bottom() < top()
                 );
     }
+
+	Vector2 center() {
+		return Vector2((float)x + w/2, (float)y + h/2);
+	}
 };
 
 namespace Time {
@@ -345,7 +349,7 @@ namespace Math {
 		return std::fmax(a, b);
 	}
 
-	inline int min(int a, int b) {
+	inline int min_i(int a, int b) {
 		return std::min(a, b);
 	}
 

@@ -34,11 +34,7 @@ struct GameArea {
 
         emitters_configure(this);
     }
-    
-    void load(const Rectangle &bounds) {
-        world_bounds = bounds;
-    }
-    
+        
     void clear() {
         players.clear();
         projectiles_player.clear();

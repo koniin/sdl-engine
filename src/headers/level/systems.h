@@ -444,22 +444,6 @@ void system_remove_deleted(T &entity_data) {
     }
 }
 
-inline void on_hit(Projectile &projectile, Player &p, const CollisionPair &entities) {
-
-    // Player is hit
-
-}
-
-inline void on_hit(Projectile &projectile, Target &t, const CollisionPair &entities) {
-    // Knockback
-    auto &damage = get_damage(projectile, entities.first);
-    auto &velocity = get_velocity(projectile, entities.first);
-    auto &second_pos = get_position(t, entities.second);
-    Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-    second_pos.value.x += dir.x * damage.force;
-    second_pos.value.y += dir.y * damage.force;
-}
-
 // Player is dealt damage
 inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities, GameAreaController *game_ctrl) {
     int amount_dealt = deal_damage(projectile, entities.first, p, entities.second);
@@ -488,6 +472,14 @@ inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPai
 
 // Target is dealt damage
 inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities, GameAreaController *game_ctrl) {
+    // Knockback
+    auto &damage = get_damage(projectile, entities.first);
+    auto &velocity = get_velocity(projectile, entities.first);
+    auto &second_pos = get_position(t, entities.second);
+    Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
+    second_pos.value.x += dir.x * damage.force;
+    second_pos.value.y += dir.y * damage.force;
+
     int amount_dealt = deal_damage(projectile, entities.first, t, entities.second);
     
     Engine::pause(0.03f);
@@ -536,13 +528,17 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
         handled_collisions.insert(collision_pairs[i].first.id);
         debug_config.last_collision_point = collision_pairs[i].collision_point;
 
+        // All of this could be an event
+        // or it could be many events but the less the simpler right
+        // but for now it's just easier to call functions directly since we don't have
+        // anything else listening to things
         mark_for_deletion(entity_first, collision_pairs[i].first);
-        
-        on_hit(entity_first, entity_second, collision_pairs[i]);
+        // on_hit(entity_first, entity_second, collision_pairs[i]);
         if(is_invulnerable(entity_second, collision_pairs[i].second)) {
             continue;
         }
         on_deal_damage(entity_first, entity_second, collision_pairs[i], game_ctrl);
+        // ----
     }
 }
 

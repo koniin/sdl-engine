@@ -9,6 +9,10 @@ struct GameAreaController {
 
     GameAreaController(GameArea *g) : game_area(g) {}
 
+    void set_world_bounds(const Rectangle &bounds) {
+        game_area->world_bounds = bounds;
+    }
+
     void spawn_projectiles();
     void spawn_effects();
 

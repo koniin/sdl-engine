@@ -46,6 +46,13 @@ void start_test() {
 void level_init() {
     game_state = Loading;
 
+
+    MapSettings settings;
+    settings.map_size = MAPSIZE_SMALL;
+    settings.style = 1;
+    generate(1337, 0, 1, settings, game_area_controller);
+    
+    /*
     renderer_set_clear_color({ 8, 0, 18, 255 });
     game_area->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
     
@@ -56,7 +63,7 @@ void level_init() {
     game_area_controller->spawn_target(Vector2(10, 10));
     game_area_controller->spawn_target(Vector2(400, 200));
     game_area_controller->spawn_target(Vector2(350, 200));
-
+*/
     Timing::add_timer(2.0f, start_test);
 }
 
@@ -167,12 +174,24 @@ void level_update() {
     }
 }
 
+void draw_background() {
+    auto camera = get_camera();
+    int x = Math::max_i(0, 0 - camera.x);
+    int y = Math::max_i(0, 0 - camera.y);
+    int w = Math::min_i(game_area->world_bounds.right() - camera.x, x + gw);
+    int h = Math::min_i(game_area->world_bounds.bottom() - camera.y, y + gh);
+    Engine::logn("min 1: %d, 2: %d", game_area->world_bounds.right(), x + gw);
+    Engine::logn("w: %d, h: %d", w, h);
+    draw_g_rectangle_filled_RGBA(x, y, w, h, 8, 24, 14, 255);
+}
+
 void level_render() {
     switch(game_state) {
         case Loading:
             draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "LOADING!");
             break;
         case Play:
+            draw_background();
             draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
             break;
         case End:

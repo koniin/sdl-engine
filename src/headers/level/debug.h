@@ -5,6 +5,7 @@
 #include "renderer.h"
 #include "game_area.h"
 #include "rooms.h"
+#include "generator.h"
 
 struct DebugRenderData {
     enum Type { Circle, Line } type;
@@ -84,6 +85,40 @@ void debug(GameArea *level) {
         // char *test;
         // test = new char[1048576]; // allocate 1 megabyte
         // // this memory dangles like crazy
+    }
+
+    if(Input::key_pressed(SDLK_g)) {
+        RDSTable table;
+        table.rdsContents = {
+            { 
+                1.0f, // The chance for this item to drop
+                false, // Only drops once per query
+                false, // Drops always
+                1
+            },
+            { 
+                2.0f, // The chance for this item to drop
+                false, // Only drops once per query
+                false, // Drops always
+                2
+            },
+            { 
+                3.0f, // The chance for this item to drop
+                false, // Only drops once per query
+                false, // Drops always
+                3
+            },
+            { 
+                5.0f, // The chance for this item to drop
+                true, // Only drops once per query
+                false, // Drops always
+                5
+            }
+        };
+        auto r = rds(2, table);
+        for(auto &o : r) {
+            Engine::logn("in: %d", o.id);
+        }
     }
 
     if(Input::key_pressed(SDLK_F8)) {
