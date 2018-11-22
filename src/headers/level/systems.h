@@ -497,8 +497,8 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
 
         camera_shake(0.1f);
         
-        auto &second_pos = get_position(t, entities.second);
-        game_ctrl->spawn_explosion(second_pos.value, 10, 10);
+        auto &p = get_position(t, entities.second);
+        game_ctrl->spawn_explosion(p.value, 10, 10);
     } else if(amount_dealt > 0) {
         // play hit sound
         // Sound::queue(test_sound_id, 2);

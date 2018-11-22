@@ -12,15 +12,49 @@ struct MapSettings {
     int style = 0;
 };
 
-static std::mt19937 RNG_generator;
+namespace GENRNG {
+	static std::mt19937 RNG_generator;
+
+    static void init(int seed) {
+        RNG_generator = std::mt19937(seed);
+    }
+
+    inline int next_i(int max) {
+        std::uniform_int_distribution<int> range(0, max);
+        return range(RNG_generator);
+    }
+
+    inline int range_i(int min, int max) {
+        std::uniform_int_distribution<int> range(min, max);
+        return range(RNG_generator);
+    }
+
+    inline float range_f(float min, float max) {
+        std::uniform_real_distribution<float> range(min, max);
+        return range(RNG_generator);
+    }
+
+	inline void random_point_i(int xMax, int yMax, int &xOut, int &yOut) {
+		std::uniform_int_distribution<int> xgen(0, xMax);
+		std::uniform_int_distribution<int> ygen(0, yMax);
+		xOut = xgen(RNG_generator);
+		yOut = ygen(RNG_generator);
+	}
+
+	inline Vector2 vector2(const float &x_min, const float &x_max, const float &y_min, const float &y_max) {
+		std::uniform_real_distribution<float> xgen(x_min, x_max);
+		std::uniform_real_distribution<float> ygen(y_min, y_max);
+		return Vector2(xgen(RNG_generator), ygen(RNG_generator));
+	}
+}
+
+#define MAPSTYLE_DESERT 0
 
 static SDL_Color level_colors[4] = {
-    { 0, 0, 0, 255},
+    { 166, 130, 86, 255 }, // Sand
     { 255, 0, 0, 255},
     { 0, 255, 0, 255},
     { 0, 0, 255, 255}
-
-    // { 8, 0, 18, 255 } <- older color
 };
 
 inline Rectangle get_bounds(MapSettings &settings) {
@@ -39,14 +73,14 @@ struct EnemySpawn {
 static std::vector<EnemySpawn> generated_enemies(64);
 
 void generate_enemies(int difficulty, int level, MapSettings &settings, Rectangle &world_bounds) {
-
-    //if(level == 1) {
-        generated_enemies.push_back({ Vector2(100, 100), 0 });
-        generated_enemies.push_back({ Vector2(300, 100), 0 });
-        generated_enemies.push_back({ Vector2(800, 100), 0 });
-        generated_enemies.push_back({ Vector2(100, 200), 0 });
-        generated_enemies.push_back({ Vector2(world_bounds.right() - 100, world_bounds.bottom() - 100), 0 });
-    //}
+    for(int i = 0; i < 5; i++) {
+        generated_enemies.push_back(
+            { 
+                GENRNG::vector2(10.0f, (float)world_bounds.right() - 10.0f, 10.0f, (float)world_bounds.bottom() - 10.0f)
+                , 0 
+            }
+        );
+    }
 }
 
 // MAX level = 15
@@ -56,14 +90,14 @@ inline void generate(int seed,
     MapSettings &settings, 
     GameAreaController *game_area_controller) {
 
-    RNG_generator = std::mt19937(seed);
-
+    GENRNG::init(seed);
+    
     Rectangle world_bounds = get_bounds(settings);
     game_area_controller->set_world_bounds(world_bounds);
 
     // Style - from settings
     SDL_Color c = level_colors[settings.style];
-    renderer_set_clear_color(c);
+    game_area_controller->set_background_color(c);
 
     // Enemies (depends on settings? - no and yes? depends on difficulty and level also?)
     // same kind of enemy but different look depending on setting?

@@ -45,12 +45,13 @@ void start_test() {
 
 void level_init() {
     game_state = Loading;
-
+    
+    renderer_set_clear_color({ 8, 0, 18, 255 });
 
     MapSettings settings;
     settings.map_size = MAPSIZE_SMALL;
-    settings.style = 1;
-    generate(1337, 0, 1, settings, game_area_controller);
+    settings.style = MAPSTYLE_DESERT;
+    generate(1338, 1, 1, settings, game_area_controller);
     
     /*
     renderer_set_clear_color({ 8, 0, 18, 255 });
@@ -180,9 +181,7 @@ void draw_background() {
     int y = Math::max_i(0, 0 - camera.y);
     int w = Math::min_i(game_area->world_bounds.right() - camera.x, x + gw);
     int h = Math::min_i(game_area->world_bounds.bottom() - camera.y, y + gh);
-    Engine::logn("min 1: %d, 2: %d", game_area->world_bounds.right(), x + gw);
-    Engine::logn("w: %d, h: %d", w, h);
-    draw_g_rectangle_filled_RGBA(x, y, w, h, 8, 24, 14, 255);
+    draw_g_rectangle_filled(x, y, w, h, game_area->background_color);
 }
 
 void level_render() {

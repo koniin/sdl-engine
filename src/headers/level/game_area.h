@@ -10,6 +10,7 @@
 
 struct GameArea {
     Rectangle world_bounds;
+    SDL_Color background_color;
 
     ECS::EntityManager entity_manager;
     Player players;

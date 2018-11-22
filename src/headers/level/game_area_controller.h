@@ -13,6 +13,10 @@ struct GameAreaController {
         game_area->world_bounds = bounds;
     }
 
+    void set_background_color(const SDL_Color &color) {
+        game_area->background_color = color;
+    }
+
     void spawn_projectiles();
     void spawn_effects();
 
