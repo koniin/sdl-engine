@@ -29,6 +29,7 @@ struct PlayerConfiguration {
     float fire_knockback = 2.0f; // pixels
     float fire_knockback_camera = -6.0f;
     int exhaust_id = 1;
+    int shadow_id = 2;
 };
 
 struct PlayerInput {
@@ -128,8 +129,8 @@ struct BlinkEffect {
     float timer = 0;
     float interval = 0;
     float interval_timer = 0;
-    size_t original_sheet;
-    size_t white_sheet;
+    std::string original_sprite;
+    std::string white_sprite;
 };
 
 struct AI {
@@ -145,6 +146,7 @@ struct Animation {
     float start = 0;
     float end = 0;
     easing_t ease;
+    bool enabled = true;
 
     Animation(){};
     Animation(float duration, float start, float end, easing_t ease): duration(duration), start(start), end(end), ease(ease) {}
@@ -158,6 +160,7 @@ struct ChildSprite {
     std::vector<Vector2> local_position;
     std::vector<SpriteComponent> sprite;
     std::vector<Animation> animation;
+    std::vector<Direction> direction;
 
     void allocate(size_t n) {
         parent.reserve(n);
@@ -165,14 +168,16 @@ struct ChildSprite {
         local_position.reserve(n);
         sprite.reserve(n);
         animation.reserve(n);
+        direction.reserve(n);
     }
 
-    size_t add(const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
+    size_t add(const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a, const Direction &d) {
         parent.push_back(e);
         position.push_back({ pos });
         local_position.push_back(local_pos);
         sprite.push_back(s);
         animation.push_back(a);
+        direction.push_back(d);
 
         return length++;
     }
@@ -183,6 +188,7 @@ struct ChildSprite {
         remove_from(local_position, i);
         remove_from(sprite, i);
         remove_from(animation, i);
+        remove_from(direction, i);
 
         --length;
     }
@@ -253,32 +259,47 @@ struct Player : ECS::EntityData {
         direction[handle.i] = Direction();
         input[handle.i] = PlayerInput();
         
-        SpriteComponent s = SpriteComponent("shooter", "player_1.png");
-        s.layer = 1;
+        SpriteComponent s = SpriteComponent("shooter", "player_1");
+        s.layer = 10;
         sprite[handle.i] = s;
         health[handle.i] = { 10, 10 };
         collision[handle.i] = { 8 };
         weapon[handle.i] = WeaponConfgiruation();
         blink[handle.i] = BlinkEffect();
 
-        SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2.png");
+        SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2");
         child_sprite.h = child_sprite.h + (child_sprite.h / 2);
-        child_sprite.layer = 0;
+        child_sprite.layer = s.layer - 1;
         auto animation = Animation(0.2f, (float)child_sprite.h, (float)child_sprite.h + 4.0f, easing_sine_in_out);
+        Direction d;
+        d.value = Vector2::One;
         create_child_sprite(pcfg.exhaust_id, e, 
             p, 
             Vector2(-pcfg.gun_barrel_distance, -pcfg.gun_barrel_distance),
             child_sprite,
-            animation);
-    
+            animation,
+            d);
+
+        SpriteComponent shadow = SpriteComponent("shooter", "player_1_b");
+        shadow.layer = 8;
+        auto no_animation = Animation();
+        no_animation.enabled = false;
+        d.value = Vector2::Zero;
+        create_child_sprite(pcfg.shadow_id, e, 
+            p, 
+            Vector2(32, 32),
+            shadow,
+            no_animation,
+            d);
     }
 
-    void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a) {
+    void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a, const Direction &d) {
         size_t new_sprite_id = child_sprites.add(e, 
             pos, 
             local_pos,
             s,
-            a);
+            a,
+            d);
             
         child_map[id] = new_sprite_id;
     }
@@ -334,7 +355,7 @@ struct Projectile : ECS::EntityData {
 
         position[handle.i] = { p, p };
         velocity[handle.i] = Velocity(v.x, v.y);
-        SpriteComponent s = SpriteComponent("shooter", "bullet_2.png");
+        SpriteComponent s = SpriteComponent("shooter", "bullet_2");
         sprite[handle.i] = s;
         damage[handle.i] = { 1, 2.0f };
         collision[handle.i] = { 8 };
@@ -382,7 +403,7 @@ struct Target : ECS::EntityData {
         config[handle.i] = TargetConfiguration();
         position[handle.i] = { p };
         velocity[handle.i] = Velocity(0, 0);
-        SpriteComponent s = SpriteComponent("shooter", "enemy_1.png");
+        SpriteComponent s = SpriteComponent("shooter", "enemy_1");
         s.layer = 1;
         sprite[handle.i] = s;
         blink[handle.i] = BlinkEffect();
@@ -579,10 +600,12 @@ void blink_sprite(T &entity_data, ECS::Entity e, float ttl, float interval) {
     BlinkEffect b;
     b.time_to_live = ttl;
     b.interval = interval;
-    b.original_sheet = entity_data.sprite[handle.i].sprite_sheet_index;
+    b.original_sprite = entity_data.sprite[handle.i].sprite_name;
+    b.white_sprite = entity_data.sprite[handle.i].sprite_name + "_w";
+    //b.original_sheet = entity_data.sprite[handle.i].sprite_sheet_index;
     // We assume the next sheet is the white version
-    b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
-    entity_data.sprite[handle.i].sprite_sheet_index = b.white_sheet;
+    //b.white_sheet = entity_data.sprite[handle.i].sprite_sheet_index + 1;
+    entity_data.sprite[handle.i].sprite_name = b.white_sprite;
     entity_data.blink[handle.i] = b;
 }
 #endif

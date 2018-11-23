@@ -176,16 +176,16 @@ void system_blink_effect(T &entity_data) {
         if(entity_data.blink[i].timer >= entity_data.blink[i].time_to_live) {
             entity_data.blink[i].timer = 0.0f;
             if(entity_data.blink[i].time_to_live > 0) {
-                entity_data.sprite[i].sprite_sheet_index = entity_data.blink[i].original_sheet;
+                entity_data.sprite[i].sprite_name = entity_data.blink[i].original_sprite;
             }
             entity_data.blink[i].time_to_live = 0;
             continue;
         }
         
         if(entity_data.blink[i].interval_timer > entity_data.blink[i].interval) {
-            entity_data.sprite[i].sprite_sheet_index = 
-                entity_data.sprite[i].sprite_sheet_index == entity_data.blink[i].original_sheet 
-                    ? entity_data.blink[i].white_sheet : entity_data.blink[i].original_sheet;
+            entity_data.sprite[i].sprite_name = 
+                entity_data.sprite[i].sprite_name == entity_data.blink[i].original_sprite 
+                    ? entity_data.blink[i].white_sprite : entity_data.blink[i].original_sprite;
             entity_data.blink[i].interval_timer = 0;
         }
     }
@@ -324,9 +324,13 @@ template<typename T>
 void system_child_sprite_position(ChildSprite &child_sprites, const T &entity_data) {
     for(size_t i = 0; i < child_sprites.length; ++i) {
         if(entity_data.contains(child_sprites.parent[i])) {
-           const auto handle = entity_data.get_handle(child_sprites.parent[i]);
-           child_sprites.position[i].value = entity_data.position[handle.i].value + child_sprites.local_position[i] * entity_data.direction[handle.i].value;
-           child_sprites.sprite[i].rotation = entity_data.sprite[handle.i].rotation;
+            const auto handle = entity_data.get_handle(child_sprites.parent[i]);
+            const auto direction = child_sprites.direction[i].value.length() > 0 
+                ? (entity_data.direction[handle.i].value * child_sprites.direction[i].value)
+                : Vector2::One;
+            child_sprites.position[i].value = entity_data.position[handle.i].value + child_sprites.local_position[i] 
+                * direction;
+            child_sprites.sprite[i].rotation = entity_data.sprite[handle.i].rotation;
         } else {
             // Remove it
             child_sprites.remove(i);
@@ -338,6 +342,10 @@ template<typename T>
 void system_animation_ping_pong(T &entity_data) {
     for(size_t i = 0; i < entity_data.length; ++i) {
         auto &animation = entity_data.animation[i];
+        if(!animation.enabled) {
+            continue;
+        }
+
         animation.timer += Time::delta_time;
 		if(animation.timer > animation.duration * 2) {
 			animation.timer = 0;
@@ -380,11 +388,11 @@ inline void system_player_ship_animate(Player &players) {
 
     for(int i = 0; i < players.length; i++) {
         if(players.input[i].move_x > 0) {
-            players.sprite[i].sprite_name = "player_turn_right.png";
+            players.sprite[i].sprite_name = "player_turn_right";
         } else if(players.input[i].move_x < 0) {
-            players.sprite[i].sprite_name = "player_turn_left.png";
+            players.sprite[i].sprite_name = "player_turn_left";
         } else {
-            players.sprite[i].sprite_name = "player_1.png";
+            players.sprite[i].sprite_name = "player_1";
         }
     }
 }

@@ -48,10 +48,14 @@ void level_init() {
     
     renderer_set_clear_color({ 8, 0, 18, 255 });
 
+    int seed = 1338;
+    int difficulty = 1;
+    int level = 1;
+
+    // Do this three times and display the options to the player
     MapSettings settings;
-    settings.map_size = MAPSIZE_SMALL;
-    settings.style = MAPSTYLE_DESERT;
-    generate(1338, 1, 1, settings, game_area_controller);
+    generate_settings(seed, difficulty, level, settings);
+    generate_level(seed, difficulty, level, settings, game_area_controller);
     
     /*
     renderer_set_clear_color({ 8, 0, 18, 255 });

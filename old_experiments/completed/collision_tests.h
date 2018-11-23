@@ -97,7 +97,7 @@ void collision_test_load() {
     Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);
 	set_default_font(font);
     FrameLog::enable_at(5, 5);
-	Resources::sprite_load("shooter", "shooter_spritesheet.png");
+	Resources::sprite_load("shooter", "shooter_spritesheet");
 
     circles = new Circle[max_circles];
     circles[0].position = Vector2((float)gw / 2, (float)gh / 2);

@@ -1,11 +1,29 @@
 shooter_sprites.png
-9
-0 bullet_1.png 0 24 16 16 
-1 bullet_2.png 16 40 12 12 
-2 enemy_1.png 16 24 16 16 
-3 explosion_1.png 0 0 24 24 
-4 explosion_2.png 24 0 24 24 
-5 player_1.png 32 24 16 16 
-6 player_turn_2.png 48 0 16 16 
-7 player_turn_left.png 48 16 16 16 
-8 player_turn_right.png 0 40 16 16 
+27
+0 bullet_1 0 48 16 16 
+1 bullet_1_b 16 48 16 16 
+2 bullet_1_w 32 48 16 16 
+3 bullet_2 0 80 12 12 
+4 bullet_2_b 12 80 12 12 
+5 bullet_2_w 24 80 12 12 
+6 enemy_1 48 48 16 16 
+7 enemy_1_b 72 0 16 16 
+8 enemy_1_w 72 16 16 16 
+9 explosion_1 0 0 24 24 
+10 explosion_1_b 24 0 24 24 
+11 explosion_1_w 0 24 24 24 
+12 explosion_2 24 24 24 24 
+13 explosion_2_b 48 0 24 24 
+14 explosion_2_w 48 24 24 24 
+15 player_1 72 32 16 16 
+16 player_1_b 72 48 16 16 
+17 player_1_w 0 64 16 16 
+18 player_turn_2 16 64 16 16 
+19 player_turn_2_b 32 64 16 16 
+20 player_turn_2_w 48 64 16 16 
+21 player_turn_left 64 64 16 16 
+22 player_turn_left_b 88 0 16 16 
+23 player_turn_left_w 88 16 16 16 
+24 player_turn_right 88 32 16 16 
+25 player_turn_right_b 88 48 16 16 
+26 player_turn_right_w 88 64 16 16 

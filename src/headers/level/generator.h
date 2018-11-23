@@ -7,9 +7,16 @@
 
 #define MAPSIZE_SMALL 1
 
+#define MAPSTYLE_DESERT 0
+
+struct MapModifier {
+
+};
+
 struct MapSettings {
     int map_size = 0;
     int style = 0;
+    std::vector<MapModifier> modifiers;
 };
 
 namespace GENRNG {
@@ -48,7 +55,14 @@ namespace GENRNG {
 	}
 }
 
-#define MAPSTYLE_DESERT 0
+// To generate different options for the player
+void generate_settings(int seed, int difficulty, int level, MapSettings &settings) {
+    // https://pathofexile.gamepedia.com/List_of_map_mods
+    settings.map_size = MAPSIZE_SMALL;
+    settings.style = MAPSTYLE_DESERT;
+
+    // settings.modifiers = { MapModifier() };
+}
 
 static SDL_Color level_colors[4] = {
     { 166, 130, 86, 255 }, // Sand
@@ -57,22 +71,13 @@ static SDL_Color level_colors[4] = {
     { 0, 0, 255, 255}
 };
 
-inline Rectangle get_bounds(MapSettings &settings) {
-    return { 0, 0, (int)gw * 2, (int)gh * 2 };
-    /*
-    // World bounds (depends on settings)
-    if(settings.map_size == MAPSIZE_SMALL) {
-
-    }*/
-}
-
 struct EnemySpawn {
     Vector2 position;
     int id;
 };
 static std::vector<EnemySpawn> generated_enemies(64);
 
-void generate_enemies(int difficulty, int level, MapSettings &settings, Rectangle &world_bounds) {
+void generate_enemies(int difficulty, int level, const MapSettings &settings, Rectangle &world_bounds) {
     for(int i = 0; i < 5; i++) {
         generated_enemies.push_back(
             { 
@@ -83,11 +88,20 @@ void generate_enemies(int difficulty, int level, MapSettings &settings, Rectangl
     }
 }
 
+inline Rectangle get_bounds(const MapSettings &settings) {
+    return { 0, 0, (int)gw * 2, (int)gh * 2 };
+    /*
+    // World bounds (depends on settings)
+    if(settings.map_size == MAPSIZE_SMALL) {
+
+    }*/
+}
+
 // MAX level = 15
-inline void generate(int seed, 
+inline void generate_level(int seed, 
     int difficulty, 
     int level,
-    MapSettings &settings, 
+    const MapSettings &settings, 
     GameAreaController *game_area_controller) {
 
     GENRNG::init(seed);
@@ -105,20 +119,19 @@ inline void generate(int seed,
     generate_enemies(difficulty, level, settings, world_bounds);
     for(auto &e : generated_enemies) {
         // This is where we alter enemies with things from map?
+        // settings.modifiers
         game_area_controller->spawn_target(e.position);
     }
 
     // Player start
     Vector2 player_position = world_bounds.center();
-    Engine::logn("x: %d, y: %d, w: %d, h: %d", world_bounds.x, world_bounds.y, world_bounds.w, world_bounds.h);
-    Engine::logn("x: %.2f, y: %.2f", player_position.x, player_position.y);
     camera_lookat(player_position);
     game_area_controller->spawn_player(player_position);
 
     // Boss - only activate on all other dead
         // conditional something or just a special type of variable somewhere?
+    
     // (drops?)
-
 }
 
 struct IRDSObject {
