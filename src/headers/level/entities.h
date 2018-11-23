@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "framework.h"
 
+const Vector2 SHADOW_POSITION = Vector2(22, 22);
 
 // Pixels per frame
 constexpr float player_move_acceleration() {
@@ -215,7 +216,6 @@ struct Player : ECS::EntityData {
     std::vector<BlinkEffect> blink;
 
     ChildSprite child_sprites;
-
     std::unordered_map<int, size_t> child_map;
     
     void allocate(size_t n) {
@@ -233,7 +233,7 @@ struct Player : ECS::EntityData {
         initialize(&weapon);
         initialize(&blink);
 
-        child_sprites.allocate(16);
+        child_sprites.allocate(n * 4);
     }
 
     void clear() {
@@ -287,7 +287,7 @@ struct Player : ECS::EntityData {
         d.value = Vector2::Zero;
         create_child_sprite(pcfg.shadow_id, e, 
             p, 
-            Vector2(32, 32),
+            SHADOW_POSITION,
             shadow,
             no_animation,
             d);
@@ -367,6 +367,7 @@ struct Target : ECS::EntityData {
     std::vector<TargetConfiguration> config;
     std::vector<Position> position;
     std::vector<Velocity> velocity;
+    std::vector<Direction> direction;
     std::vector<SpriteComponent> sprite;
     std::vector<BlinkEffect> blink;
     std::vector<Health> health;
@@ -374,6 +375,9 @@ struct Target : ECS::EntityData {
     std::vector<AI> ai;
     std::vector<WeaponConfgiruation> weapon;
 
+    ChildSprite child_sprites;
+    std::unordered_map<int, size_t> child_map;
+    
     void allocate(size_t n) {
         allocate_entities(n);
 
@@ -381,15 +385,23 @@ struct Target : ECS::EntityData {
         initialize(&config);
         initialize(&position);
         initialize(&velocity);
+        initialize(&direction);
         initialize(&sprite);
         initialize(&blink);
         initialize(&health);
         initialize(&collision);
         initialize(&ai);
         initialize(&weapon);
+        
+        child_sprites.allocate(n * 2);
     }
 
     void clear() {
+        for(auto cs : child_map) {
+            child_sprites.remove(cs.second);
+        }
+        child_map.clear();
+
         for(int i = 0; i < length; i++) {
             remove(entity[i]);
         }
@@ -403,14 +415,43 @@ struct Target : ECS::EntityData {
         config[handle.i] = TargetConfiguration();
         position[handle.i] = { p };
         velocity[handle.i] = Velocity(0, 0);
+        direction[handle.i] = Direction();
         SpriteComponent s = SpriteComponent("shooter", "enemy_1");
-        s.layer = 1;
+        s.layer = 10;
         sprite[handle.i] = s;
         blink[handle.i] = BlinkEffect();
         health[handle.i] = { 2, 2 };
         collision[handle.i] = { 8 };
         ai[handle.i] = { 100.0f };
         weapon[handle.i] = WeaponConfgiruation();
+
+        SpriteComponent shadow = SpriteComponent("shooter", "enemy_1_b");
+        shadow.layer = 8;
+        auto no_animation = Animation();
+        no_animation.enabled = false;
+        Direction d;
+        d.value = Vector2::Zero;
+        create_child_sprite(e.id, e,
+            p, 
+            SHADOW_POSITION,
+            shadow,
+            no_animation,
+            d);
+    }
+    
+    void create_child_sprite(int id, const ECS::Entity &e, const Vector2 &pos, const Vector2 &local_pos, const SpriteComponent &s, const Animation &a, const Direction &d) {
+        size_t new_sprite_id = child_sprites.add(e, 
+            pos, 
+            local_pos,
+            s,
+            a,
+            d);
+            
+        child_map[id] = new_sprite_id;
+    }
+
+    size_t get_child_sprite_index(int id) {
+        return child_map[id];
     }
 };
 

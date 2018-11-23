@@ -119,6 +119,11 @@ void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
     for(int i = 0; i < _g->targets.length; ++i) {
         export_sprite_data(_g->targets, i, sprite_data_buffer[sprite_count++]);
 	}
+    
+    for(size_t i = 0; i < _g->targets.child_sprites.length; ++i) {
+        export_sprite_data(_g->targets.child_sprites, i, sprite_data_buffer[sprite_count++]);
+        // export_sprite_data_values(players.child_sprites.position[i], players.child_sprites[i].sprite, i, sprite_data_buffer[sprite_count++]);
+    }
 
     for(int i = 0; i < _g->effects.length; ++i) {
         export_sprite_data(_g->effects, i, sprite_data_buffer[sprite_count++]);

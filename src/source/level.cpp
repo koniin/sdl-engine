@@ -120,6 +120,7 @@ void game_area_update() {
     // ---
 
     system_player_ship_animate(game_area->players);
+    system_target_ship_animate(game_area->targets);
     system_effects(game_area->effects, game_area->players, game_area->targets);
     system_blink_effect(game_area->targets);
     system_blink_effect(game_area->players);

@@ -397,6 +397,10 @@ inline void system_player_ship_animate(Player &players) {
     }
 }
 
+inline void system_target_ship_animate(Target &targets) {
+    system_child_sprite_position(targets.child_sprites, targets);
+}
+
 template<typename T>
 void system_invulnerability(T &entity_data, const float dt) {
     for(int i = 0; i < entity_data.length; i++) {
