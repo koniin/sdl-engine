@@ -18,13 +18,12 @@ struct SpriteData {
     }
 };
 
-static const size_t RENDER_BUFFER_MAX = 256;
 struct RenderBuffer {    
     int sprite_count = 0;
     SpriteData *sprite_data_buffer;
 
-    void init() {
-        sprite_data_buffer = new SpriteData[RENDER_BUFFER_MAX];
+    void init(size_t sz) {
+        sprite_data_buffer = new SpriteData[sz];
     }
 
     void clear() {
@@ -59,7 +58,7 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
 }
 
 template<typename T>
-void export_sprite_data_values(const Vector2 &position, const T &sprite, const int i, SpriteData &spr) {
+bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, const int i, SpriteData &spr) {
     // handle camera, zoom and stuff here
 
     // also we can do culling here
@@ -73,15 +72,37 @@ void export_sprite_data_values(const Vector2 &position, const T &sprite, const i
     // spr.x = entity_data.position[i].y - camera.y;
 
     const auto &camera = get_camera();
+    int16_t x = (int16_t)(position.x - camera.x);
+    int16_t y = (int16_t)(position.y - camera.y);
+    int w = sprite.w;
+    int h = sprite.h;
 
-    spr.x = (int16_t)(position.x - camera.x);
-    spr.y = (int16_t)(position.y - camera.y);
-    spr.w = sprite.w;
-    spr.h = sprite.h;
+    Rectangle view;
+    view.x = (int)camera.x - (gw / 2);
+    view.y = (int)camera.y - (gh / 2);
+    view.w = gw;
+    view.h = gh;
+
+    Rectangle item;
+    item.x = x;
+    item.y = y;
+    item.w = w;
+    item.h = h;
+
+    if(!view.intersects(item)) {
+        return false;
+    }
+    
+    spr.x = x;
+    spr.y = y;
+    spr.w = w;
+    spr.h = h;
     spr.sprite_index = sprite.sprite_sheet_index;
     spr.sprite_name = sprite.sprite_name;
     spr.rotation = sprite.rotation;
     spr.layer = sprite.layer;
+
+    return true;
 }
 
 void draw_buffer(const SpriteData *spr, const int length) {
@@ -96,6 +117,13 @@ void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
     render_buffer.sprite_count = 0;
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
     auto &sprite_count = render_buffer.sprite_count;
+
+    auto &tiles = _g->tiles;
+    for(size_t i = 0; i < tiles.size(); i++) {
+        if(export_sprite_data_values_cull(tiles[i].position, tiles[i].sprite, i, sprite_data_buffer[sprite_count])) {
+            sprite_count++;
+        }
+    }
 
     for(int i = 0; i < _g->players.length; i++) {
         Direction &d = _g->players.direction[i];

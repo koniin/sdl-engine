@@ -1,1 +1,2 @@
 c:\temp\temp_g\Sprite-sheeter\SpriteSheetPacker\bin\Debug\SpriteSheetPacker.exe shooter_export_config.cfg
+c:\temp\temp_g\Sprite-sheeter\SpriteSheetPacker\bin\Debug\SpriteSheetPacker.exe deserts_export_config.cfg

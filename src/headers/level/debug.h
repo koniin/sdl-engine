@@ -134,7 +134,19 @@ void debug(GameArea *level) {
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("projectile speed: " + std::to_string(level->players.weapon[0].projectile_speed));
     FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
+
+    
+    auto &camera = get_camera();
+    FrameLog::log("Camera x: " + std::to_string(camera.x) + ", y: " + std::to_string(camera.y));
     // FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
+    
+    Rectangle view;
+    view.x = (int)camera.x - (gw / 2);
+    view.y = (int)camera.y - (gh / 2);
+    view.w = gw;
+    view.h = gh;
+    std::string info = Text::format("view x: %d, y: %d, w: %d, h: %d", view.x, view.y, view.w, view.h);
+    FrameLog::log(info);
     
     if(!debug_config.enable_render) {
         return;

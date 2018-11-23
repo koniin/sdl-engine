@@ -112,6 +112,18 @@ inline void generate_level(int seed,
     // Style - from settings
     SDL_Color c = level_colors[settings.style];
     game_area_controller->set_background_color(c);
+    
+    int tile_size = 16;
+    int w = world_bounds.w / tile_size;
+    int h = world_bounds.h / tile_size;
+    const SpriteSheet &s = Resources::sprite_sheet_get("deserts");
+    for(int i = 0; i < w; i++) {
+        for(int j = 0; j < h; j++) {
+            int sprite = RNG::range_i(0, s.sheet_sprites.size() - 1);
+            SpriteComponent sc = SpriteComponent("deserts", s.sheet_sprites[sprite].name);
+            game_area_controller->add_static_tile(Vector2((float)(i *tile_size), (float)(j * tile_size)), sc);
+        }
+    }
 
     // Enemies (depends on settings? - no and yes? depends on difficulty and level also?)
     // same kind of enemy but different look depending on setting?

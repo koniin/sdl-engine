@@ -17,6 +17,10 @@ struct GameAreaController {
         game_area->background_color = color;
     }
 
+    void add_static_tile(const Vector2 &pos, const SpriteComponent &sprite) {
+        game_area->tiles.push_back({ pos, sprite });
+    }
+
     void spawn_projectiles();
     void spawn_effects();
 

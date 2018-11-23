@@ -8,9 +8,16 @@
 #include "emitter_config.h"
 #include "game_events.h"
 
+struct Tile {
+    Vector2 position;
+    SpriteComponent sprite;
+};
+
 struct GameArea {
     Rectangle world_bounds;
     SDL_Color background_color;
+    
+    std::vector<Tile> tiles;
 
     ECS::EntityManager entity_manager;
     Player players;

@@ -90,6 +90,7 @@ namespace Resources {
     void sprite_sheet_load(const std::string &name, const std::string &file);
     void sprite_sheet_copy_as_white(const std::string &name, const std::string &copy_from);
     size_t sprite_sheet_index(const std::string &name);
+    const SpriteSheet &sprite_sheet_get(const std::string &name);
     const std::vector<SpriteSheet> &get_sprite_sheets();
 
     void cleanup();
@@ -150,6 +151,8 @@ void draw_g_circle_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, 
 void draw_g_circle_filled_color(int x, int y, int rad, SDL_Color &color);
 void draw_g_circle_filled_RGBA(int x, int y, int rad, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 void draw_g_ellipseRGBA(int x, int y, int rx, int ry, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void draw_g_rectangle(int x, int y, int w, int h, const SDL_Color &color);
+void draw_g_rectangle_RGBA(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 void draw_g_rectangle_filled(int x, int y, int w, int h, const SDL_Color &color);
 void draw_g_rectangle_filled_RGBA(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 

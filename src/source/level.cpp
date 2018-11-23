@@ -26,11 +26,10 @@ enum State { Loading, Play, End } game_state;
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
-    // Set up a white copy of the sprite sheet
-    Resources::sprite_sheet_copy_as_white("shooterwhite", "shooter");
+    Resources::sprite_sheet_load("deserts", "deserts.data");
     
     collisions.allocate(128);
-    render_buffer.init();
+    render_buffer.init(1024);
     game_area = new GameArea();
     game_area_controller = new GameAreaController(game_area);
     GameEvents::init(128);
@@ -42,6 +41,7 @@ void level_load() {
 void start_test() {
     game_state = Play;
 }
+
 
 void level_init() {
     game_state = Loading;
@@ -182,10 +182,10 @@ void level_update() {
 
 void draw_background() {
     auto camera = get_camera();
-    int x = Math::max_i(0, 0 - camera.x);
-    int y = Math::max_i(0, 0 - camera.y);
-    int w = Math::min_i(game_area->world_bounds.right() - camera.x, x + gw);
-    int h = Math::min_i(game_area->world_bounds.bottom() - camera.y, y + gh);
+    int x = Math::max_i(0, 0 - (int)camera.x);
+    int y = Math::max_i(0, 0 - (int)camera.y);
+    int w = Math::min_i(game_area->world_bounds.right() - (int)camera.x, x + gw);
+    int h = Math::min_i(game_area->world_bounds.bottom() - (int)camera.y, y + gh);
     draw_g_rectangle_filled(x, y, w, h, game_area->background_color);
 }
 
@@ -208,6 +208,17 @@ void level_render() {
             }
             break;
     }
+
+    
+    auto &camera = get_camera();
+    Rectangle view;
+    view.x = (int)camera.x - (gw / 2);
+    view.y = (int)camera.y - (gh / 2);
+    view.w = gw;
+    view.h = gh;
+    
+    draw_g_rectangle_RGBA(view.x, view.y, view.w, view.h, 255, 0, 0, 255);
+
     Particles::render_circles_filled(game_area->particles);
     debug_render();
 }

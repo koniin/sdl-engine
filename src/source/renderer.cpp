@@ -133,7 +133,7 @@ namespace Resources {
 		auto &sheet = sprite_sheets[sprite_sheet_index];
 		return sheet.sheet_sprites[sheet.sprites_by_name.at(name)].region;
 	}
-	
+
     void sprite_remove(const std::string &name) {
 		auto itr = sprites.find(name);
 		if (itr != sprites.end()) {
@@ -191,6 +191,11 @@ namespace Resources {
 
 	size_t sprite_sheet_index(const std::string &name) {
 		return sprite_sheet_map[name];
+	}
+
+    const SpriteSheet &sprite_sheet_get(const std::string &name) {
+		auto sprite_sheet_index = sprite_sheet_map[name];
+		return sprite_sheets[sprite_sheet_index];
 	}
 
 	const std::vector<SpriteSheet> &get_sprite_sheets() {
@@ -771,6 +776,17 @@ void draw_g_ellipseRGBA(int x, int y, int rx, int ry, uint8_t r, uint8_t g, uint
         }
 }
 #pragma warning(pop)
+
+void draw_g_rectangle(int x, int y, int w, int h, const SDL_Color &color) {
+	draw_g_rectangle_RGBA(x, y, w, h, color.r, color.g, color.b, color.a);
+}
+
+void draw_g_rectangle_RGBA(int x, int y, int w, int h, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+	SDL_SetRenderDrawBlendMode(renderer.renderer, (a == 255) ? SDL_BLENDMODE_NONE : SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer.renderer, r, g, b, a); 
+	SDL_Rect rect = { x, y, w, h };
+	SDL_RenderDrawRect(renderer.renderer, &rect);
+}
 
 void draw_g_rectangle_filled(int x, int y, int w, int h, const SDL_Color &color) {
 	draw_g_rectangle_filled_RGBA(x, y, w, h, color.r, color.g, color.b, color.a);
