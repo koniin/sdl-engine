@@ -198,7 +198,7 @@ namespace Resources {
 		return sprite_sheets[sprite_sheet_index];
 	}
 
-	const std::vector<SpriteSheet> &get_sprite_sheets() {
+	std::vector<SpriteSheet> &get_sprite_sheets() {
 		return sprite_sheets;
 	}
 

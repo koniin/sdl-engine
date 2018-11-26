@@ -91,7 +91,7 @@ namespace Resources {
     void sprite_sheet_copy_as_white(const std::string &name, const std::string &copy_from);
     size_t sprite_sheet_index(const std::string &name);
     const SpriteSheet &sprite_sheet_get(const std::string &name);
-    const std::vector<SpriteSheet> &get_sprite_sheets();
+    std::vector<SpriteSheet> &get_sprite_sheets();
 
     void cleanup();
 }
