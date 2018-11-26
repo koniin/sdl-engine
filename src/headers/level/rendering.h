@@ -163,14 +163,6 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
 
     spr.angle = entity_data.sprite[i].rotation;
     spr.layer = entity_data.sprite[i].layer;
-
-    // spr.x = (int16_t)(entity_data.position[i].value.x - camera.x);
-    // spr.y = (int16_t)(entity_data.position[i].value.y - camera.y);
-    // spr.w = entity_data.sprite[i].w;
-    // spr.h = entity_data.sprite[i].h;
-    // spr.sprite_index = entity_data.sprite[i].sprite_sheet_index;
-    // spr.sprite_name = entity_data.sprite[i].sprite_name;
-    
 }
 
 template<typename T>
@@ -228,15 +220,6 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
     
     spr.angle = sprite.rotation;
     spr.layer = sprite.layer;
-
-    // spr.x = x;
-    // spr.y = y;
-    // spr.w = w;
-    // spr.h = h;
-    // spr.sprite_index = sprite.sprite_sheet_index;
-    // spr.sprite_name = sprite.sprite_name;
-    // spr.rotation = sprite.rotation;
-    // spr.layer = sprite.layer;
 
     return true;
 }
