@@ -77,8 +77,10 @@ struct EnemySpawn {
 };
 static std::vector<EnemySpawn> generated_enemies(64);
 
+
 void generate_enemies(int difficulty, int level, const MapSettings &settings, Rectangle &world_bounds) {
-    for(int i = 0; i < 5; i++) {
+    int enemies_to_generate = 1;
+    for(int i = 0; i < enemies_to_generate; i++) {
         generated_enemies.push_back(
             { 
                 GENRNG::vector2(10.0f, (float)world_bounds.right() - 10.0f, 10.0f, (float)world_bounds.bottom() - 10.0f)

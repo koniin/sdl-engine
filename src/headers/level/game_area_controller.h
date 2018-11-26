@@ -31,7 +31,7 @@ struct GameAreaController {
                 Vector2 boss_pos = Vector2();
                 do {
                     boss_pos = RNG::vector2(game_area->world_bounds.x, game_area->world_bounds.right(), game_area->world_bounds.y, game_area->world_bounds.bottom());
-                } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < (float)gw);
+                } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < (float)gh);
 
                 Engine::logn("boss spawned at: %.1f, %.1f", boss_pos.x, boss_pos.y);
                 spawn_target(boss_pos);
