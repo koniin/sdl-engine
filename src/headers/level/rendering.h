@@ -20,7 +20,7 @@
 
 struct SpriteData {
     SDL_Texture *tex;
-    SDL_Rect src;
+    SDL_Rect *src;
     SDL_Rect dest;
     float angle;
     int layer;
@@ -36,9 +36,12 @@ struct RenderBuffer {
     int sprite_count = 0;
     SpriteData *sprite_data_buffer;
     
-
     void init(size_t sz) {
         sprite_data_buffer = new SpriteData[sz];
+    }
+
+    void prepare() {
+        clear();
         sprite_sheets = &Resources::get_sprite_sheets();
     }
 
@@ -145,7 +148,7 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     const auto &camera = get_camera();
 
     auto &sheet = sprite_sheets->at(entity_data.sprite[i].sprite_sheet_index);
-    auto &region = sheet.sheet_sprites[sheet.sprites_by_name.at(entity_data.sprite[i].sprite_name)].region;
+    auto *region = &sheet.sheet_sprites[sheet.sprites_by_name.at(entity_data.sprite[i].sprite_name)].region;
 
     spr.tex = Resources::sprite_get(sheet.sprite_sheet_name)->image;
     spr.src = region;
@@ -210,7 +213,7 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
     }
     
     auto &sheet = sprite_sheets->at(sprite.sprite_sheet_index);
-    auto &region = sheet.sheet_sprites[sheet.sprites_by_name.at(sprite.sprite_name)].region;
+    auto *region = &sheet.sheet_sprites[sheet.sprites_by_name.at(sprite.sprite_name)].region;
 
     spr.dest.x = x;
     spr.dest.y = y;
@@ -237,15 +240,10 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
 
     return true;
 }
-    // draw_sprite_region_centered_ex(Resources::sprite_get(s.sprite_sheet_name), &s.sheet_sprites[s.sprites_by_name.at(sprite)].region, x, y, w, h, angle);
 
 void draw_buffer(const SpriteData *spr, const int length) {
-    // const std::vector<SpriteSheet> &sprite_sheets = Resources::get_sprite_sheets();
     for(int i = 0; i < length; i++) {    
-        SDL_RenderCopyEx(renderer.renderer, spr[i].tex, &spr[i].src, &spr[i].dest, spr[i].angle, NULL, SDL_FLIP_NONE);
-
-        // draw_spritesheet_name_centered_ex(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].w, spr[i].h, spr[i].rotation);
-         //draw_spritesheet_name_centered_rotated(sprite_sheets[spr[i].sprite_index], spr[i].sprite_name, spr[i].x, spr[i].y, spr[i].rotation);
+        SDL_RenderCopyEx(renderer.renderer, spr[i].tex, spr[i].src, &spr[i].dest, spr[i].angle, NULL, SDL_FLIP_NONE);
     }
 }
 
@@ -258,7 +256,7 @@ void draw_buffer(const SpriteData *spr, const int length) {
 // }
 
 void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
-    render_buffer.sprite_count = 0;
+    render_buffer.prepare();
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
     auto &sprite_count = render_buffer.sprite_count;
 
