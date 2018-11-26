@@ -28,11 +28,24 @@ struct GameAreaController {
             // Get player position and spawn outside that
             if(game_area->players.length > 0) {
                 auto player_pos = game_area->players.position[0].value;
-                Vector2 boss_pos = Vector2();
+                float minimum_spawn_distance = (float)gh;
+                Vector2 boss_pos;;
+                int count = 0;
                 do {
-                    boss_pos = RNG::vector2(game_area->world_bounds.x, game_area->world_bounds.right(), game_area->world_bounds.y, game_area->world_bounds.bottom());
-                } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < (float)gh);
+                    boss_pos = RNG::vector2(
+                        (float)game_area->world_bounds.x, 
+                        (float)game_area->world_bounds.right(), 
+                        (float)game_area->world_bounds.y, 
+                        (float)game_area->world_bounds.bottom());
 
+                    count++;
+                    if(count > 10) {
+                        boss_pos = Vector2((float)game_area->world_bounds.x / 2, (float)game_area->world_bounds.y / 2);
+                        break;
+                    }
+                } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < minimum_spawn_distance);
+
+                Engine::logn("spawn tries: %d", count);
                 Engine::logn("boss spawned at: %.1f, %.1f", boss_pos.x, boss_pos.y);
                 spawn_target(boss_pos);
             }

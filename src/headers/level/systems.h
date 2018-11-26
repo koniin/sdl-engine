@@ -406,7 +406,7 @@ void system_invulnerability(T &entity_data, const float dt) {
     for(int i = 0; i < entity_data.length; i++) {
         if(entity_data.health[i].invulnerability_timer > 0.0f) {
             entity_data.health[i].invulnerability_timer -= dt;
-            Engine::logn("invul: %.2f", entity_data.health[i].invulnerability_timer);
+            // Engine::logn("invul: %.2f", entity_data.health[i].invulnerability_timer);
         }
     }
 }
