@@ -77,13 +77,14 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
     int w = sprite.w;
     int h = sprite.h;
 
-    // Camera view is always the same since we swith 
+    // Camera view is always the same since we switch 
     // sprites position to render them outside view
+    int sprite_half_size = 8;
     Rectangle camera_view; 
     camera_view.x = 0;
     camera_view.y = 0;
-    camera_view.w = gw + 15;
-    camera_view.h = gh + 15;
+    camera_view.w = gw + sprite_half_size;
+    camera_view.h = gh + sprite_half_size;
 
     Rectangle item;
     item.x = x;
