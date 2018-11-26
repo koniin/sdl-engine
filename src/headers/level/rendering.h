@@ -77,11 +77,13 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
     int w = sprite.w;
     int h = sprite.h;
 
-    Rectangle view;
-    view.x = (int)camera.x - (gw / 2);
-    view.y = (int)camera.y - (gh / 2);
-    view.w = gw;
-    view.h = gh;
+    // Camera view is always the same since we swith 
+    // sprites position to render them outside view
+    Rectangle camera_view; 
+    camera_view.x = 0;
+    camera_view.y = 0;
+    camera_view.w = gw + 15;
+    camera_view.h = gh + 15;
 
     Rectangle item;
     item.x = x;
@@ -89,7 +91,7 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
     item.w = w;
     item.h = h;
 
-    if(!view.intersects(item)) {
+    if(!Math::intersect_AABB(camera_view, item)) {
         return false;
     }
     

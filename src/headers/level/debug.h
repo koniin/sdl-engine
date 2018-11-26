@@ -6,6 +6,7 @@
 #include "game_area.h"
 #include "rooms.h"
 #include "generator.h"
+#include "rendering.h"
 
 struct DebugRenderData {
     enum Type { Circle, Line } type;
@@ -18,23 +19,6 @@ struct DebugConfiguration {
     std::vector<DebugRenderData> render_data;
     Vector2 last_collision_point;
 } debug_config;
-
-void debug_render() {
-    if(!debug_config.enable_render) {
-        return;
-    }
-
-    for(auto &d : debug_config.render_data) {
-        if(d.type == DebugRenderData::Circle) {
-            draw_g_circle_RGBA(d.x, d.y, d.radius, 255, 0, 0, 255);
-        } else if(d.type == DebugRenderData::Line) {
-            draw_g_line_RGBA(d.x, d.y, d.x2, d.y2, 0, 255, 0, 255);
-        }
-    }
-
-    Point p = debug_config.last_collision_point.to_point();
-    draw_g_circle_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
-}
 
 template<typename T> 
 void debug_export_render_data_circles(const T &entity_data) {
@@ -63,8 +47,7 @@ void debug_export_render_data_lines(const T &entity_data) {
     }
 }
 
-
-void debug(GameArea *level) {
+void debug(RenderBuffer &render_buffer, GameArea *level) {
     static float projectile_speed = 8.0f;
     
     if(Input::key_pressed(SDLK_UP)) {
@@ -135,18 +118,11 @@ void debug(GameArea *level) {
     FrameLog::log("projectile speed: " + std::to_string(level->players.weapon[0].projectile_speed));
     FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
 
-    
-    auto &camera = get_camera();
-    FrameLog::log("Camera x: " + std::to_string(camera.x) + ", y: " + std::to_string(camera.y));
+    FrameLog::log("Render buffer count: " + std::to_string(render_buffer.sprite_count));
+    FrameLog::log("Tile count: " + std::to_string(level->tiles.size()));
+    //auto &camera = get_camera();
+    //FrameLog::log("Camera x: " + std::to_string(camera.x) + ", y: " + std::to_string(camera.y));
     // FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));
-    
-    Rectangle view;
-    view.x = (int)camera.x - (gw / 2);
-    view.y = (int)camera.y - (gh / 2);
-    view.w = gw;
-    view.h = gh;
-    std::string info = Text::format("view x: %d, y: %d, w: %d, h: %d", view.x, view.y, view.w, view.h);
-    FrameLog::log(info);
     
     if(!debug_config.enable_render) {
         return;
@@ -160,6 +136,23 @@ void debug(GameArea *level) {
     debug_export_render_data_circles(level->projectiles_target);
     debug_export_render_data_lines(level->projectiles_target);
     debug_export_render_data_circles(level->targets);
+}
+
+void debug_render() {
+    if(!debug_config.enable_render) {
+        return;
+    }
+
+    for(auto &d : debug_config.render_data) {
+        if(d.type == DebugRenderData::Circle) {
+            draw_g_circle_RGBA(d.x, d.y, d.radius, 255, 0, 0, 255);
+        } else if(d.type == DebugRenderData::Line) {
+            draw_g_line_RGBA(d.x, d.y, d.x2, d.y2, 0, 255, 0, 255);
+        }
+    }
+
+    Point p = debug_config.last_collision_point.to_point();
+    draw_g_circle_RGBA(p.x, p.y, 2, 255, 0, 0, 255);
 }
 
 #endif

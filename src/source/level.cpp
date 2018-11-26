@@ -29,7 +29,7 @@ void level_load() {
     Resources::sprite_sheet_load("deserts", "deserts.data");
     
     collisions.allocate(128);
-    render_buffer.init(1024);
+    render_buffer.init(2048);
     game_area = new GameArea();
     game_area_controller = new GameAreaController(game_area);
     GameEvents::init(128);
@@ -69,7 +69,7 @@ void level_init() {
     game_area_controller->spawn_target(Vector2(400, 200));
     game_area_controller->spawn_target(Vector2(350, 200));
 */
-    Timing::add_timer(2.0f, start_test);
+    Timing::add_timer(1.0f, start_test);
 }
 
 void level_clean() {
@@ -155,7 +155,7 @@ void game_area_update() {
 
     export_render_info(render_buffer, game_area);
 
-    debug(game_area);
+    debug(render_buffer, game_area);
 }
 
 void level_update() {
@@ -208,16 +208,6 @@ void level_render() {
             }
             break;
     }
-
-    
-    auto &camera = get_camera();
-    Rectangle view;
-    view.x = (int)camera.x - (gw / 2);
-    view.y = (int)camera.y - (gh / 2);
-    view.w = gw;
-    view.h = gh;
-    
-    draw_g_rectangle_RGBA(view.x, view.y, view.w, view.h, 255, 0, 0, 255);
 
     Particles::render_circles_filled(game_area->particles);
     debug_render();

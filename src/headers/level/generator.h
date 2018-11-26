@@ -114,8 +114,9 @@ inline void generate_level(int seed,
     game_area_controller->set_background_color(c);
     
     int tile_size = 16;
-    int w = world_bounds.w / tile_size;
-    int h = world_bounds.h / tile_size;
+    // Add one to width and height since we draw from center and we want edges to be filled with sprites
+    int w = (world_bounds.w / tile_size) + 1;
+    int h = (world_bounds.h / tile_size) + 1;
     const SpriteSheet &s = Resources::sprite_sheet_get("deserts");
     for(int i = 0; i < w; i++) {
         for(int j = 0; j < h; j++) {
