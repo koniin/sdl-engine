@@ -50,7 +50,7 @@ inline float easing_sine_in_out(float t) {
 typedef float (*easing_t)(float);
 
 namespace Engine {
-	static int32_t current_fps = 0;
+	extern int32_t current_fps;
 	static bool _is_running = true;
 
 	void init();

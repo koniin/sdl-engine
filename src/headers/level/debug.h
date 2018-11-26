@@ -108,13 +108,13 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
         debug_config.enable_render = !debug_config.enable_render;
     }
 
+    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Press F8 to toggle debug render");
     FrameLog::log("Players: " + std::to_string(level->players.length));
     FrameLog::log("Projectiles player: " + std::to_string(level->projectiles_player.length));
     FrameLog::log("Projectiles target: " + std::to_string(level->projectiles_target.length));
     FrameLog::log("Targets: " + std::to_string(level->targets.length));
     FrameLog::log("Particles: " + std::to_string(level->particles.length));
-    FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("projectile speed: " + std::to_string(level->players.weapon[0].projectile_speed));
     FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
 

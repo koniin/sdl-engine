@@ -9,6 +9,8 @@ namespace FrameLog {
 }
 
 namespace Engine {
+	int32_t current_fps = 0;
+
 	void init() {
 		Input::init();
 		Sound::init();
