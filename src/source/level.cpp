@@ -42,6 +42,29 @@ void start_test() {
     game_state = Play;
 }
 
+struct ToastMessage {
+    std::string message;
+    Vector2 position;
+};
+std::vector<ToastMessage> toasts;
+void clear_toasts() {
+    toasts.clear();
+}
+
+struct Arrow {
+    bool enabled = false;
+
+    void render() {
+        if(enabled) {
+            draw_spritesheet_name_centered(Resources::sprite_sheet_get("shooter"), "arrow", gw / 2, gh / 2);
+        }
+    }
+
+    void update(GameArea *ga) {
+
+    }
+
+} arrow;
 
 void level_init() {
     game_state = Loading;
@@ -149,7 +172,13 @@ void game_area_update() {
     handle_events(GameEvents::get_queued_events());
     GameEvents::clear();
 
-    game_area_controller->spawn_boss();
+    arrow.update(game_area);
+
+    if(game_area_controller->spawn_boss()) {
+        toasts.push_back({ "Boss is here.", Vector2((float)gw / 2, (float)gh / 2) });
+        Timing::add_timer(2.0f, clear_toasts);
+        arrow.enabled = true;
+    }
 
     if(game_area_controller->game_over() || game_area_controller->game_win()) {
         game_state = End;
@@ -234,6 +263,12 @@ void level_render_ui() {
                 render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
             }
             draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
+            
+            arrow.render();
+            
+            for(auto &t : toasts) {
+                draw_text_centered_str((int)t.position.x, (int)t.position.y, Colors::white, t.message);
+            }
             break;
         case End:
             break;

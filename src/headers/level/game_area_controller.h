@@ -18,38 +18,37 @@ struct GameAreaController {
         // place holder
     }
 
-    void spawn_boss() {
-        if(boss_spawned) {
-            return;
+    bool spawn_boss() {
+        if(boss_spawned || game_area->targets.length > 0 || game_area->players.length == 0) {
+            return false;
         }
 
-        if(game_area->targets.length == 0) {
-            boss_spawned = true;    
-            // Get player position and spawn outside that
-            if(game_area->players.length > 0) {
-                auto player_pos = game_area->players.position[0].value;
-                float minimum_spawn_distance = (float)gh;
-                Vector2 boss_pos;;
-                int count = 0;
-                do {
-                    boss_pos = RNG::vector2(
-                        (float)game_area->world_bounds.x, 
-                        (float)game_area->world_bounds.right(), 
-                        (float)game_area->world_bounds.y, 
-                        (float)game_area->world_bounds.bottom());
+        boss_spawned = true;
+        
+        // Get player position and spawn outside that
+        auto player_pos = game_area->players.position[0].value;
+        float minimum_spawn_distance = (float)gh;
+        Vector2 boss_pos;;
+        int count = 0;
+        do {
+            boss_pos = RNG::vector2(
+                (float)game_area->world_bounds.x, 
+                (float)game_area->world_bounds.right(), 
+                (float)game_area->world_bounds.y, 
+                (float)game_area->world_bounds.bottom());
 
-                    count++;
-                    if(count > 10) {
-                        boss_pos = Vector2((float)game_area->world_bounds.x / 2, (float)game_area->world_bounds.y / 2);
-                        break;
-                    }
-                } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < minimum_spawn_distance);
-
-                Engine::logn("spawn tries: %d", count);
-                Engine::logn("boss spawned at: %.1f, %.1f", boss_pos.x, boss_pos.y);
-                spawn_target(boss_pos);
+            count++;
+            if(count > 10) {
+                boss_pos = Vector2((float)game_area->world_bounds.x / 2, (float)game_area->world_bounds.y / 2);
+                break;
             }
-        }
+        } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < minimum_spawn_distance);
+
+        Engine::logn("spawn tries: %d", count);
+        Engine::logn("boss spawned at: %.1f, %.1f", boss_pos.x, boss_pos.y);
+        spawn_target(boss_pos);
+
+        return true;
     }
 
     void set_background_color(const SDL_Color &color) {
