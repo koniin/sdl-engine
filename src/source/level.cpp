@@ -149,6 +149,8 @@ void game_area_update() {
     handle_events(GameEvents::get_queued_events());
     GameEvents::clear();
 
+    game_area_controller->spawn_boss();
+
     if(game_area_controller->game_over() || game_area_controller->game_win()) {
         game_state = End;
     } 

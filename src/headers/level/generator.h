@@ -88,6 +88,10 @@ void generate_enemies(int difficulty, int level, const MapSettings &settings, Re
     }
 }
 
+EnemySpawn generate_boss() {
+    return { Vector2(), 0 };
+}
+
 inline Rectangle get_bounds(const MapSettings &settings) {
     return { 0, 0, (int)gw * 2, (int)gh * 2 };
     /*
@@ -135,6 +139,9 @@ inline void generate_level(int seed,
         // settings.modifiers
         game_area_controller->spawn_target(e.position);
     }
+
+    auto boss = generate_boss();
+    game_area_controller->set_boss(boss.id);
 
     // Player start
     Vector2 player_position = world_bounds.center();

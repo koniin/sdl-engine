@@ -13,6 +13,32 @@ struct GameAreaController {
         game_area->world_bounds = bounds;
     }
 
+    bool boss_spawned = false;
+    void set_boss(int id) {
+        // place holder
+    }
+
+    void spawn_boss() {
+        if(boss_spawned) {
+            return;
+        }
+
+        if(game_area->targets.length == 0) {
+            boss_spawned = true;    
+            // Get player position and spawn outside that
+            if(game_area->players.length > 0) {
+                auto player_pos = game_area->players.position[0].value;
+                Vector2 boss_pos = Vector2();
+                do {
+                    boss_pos = RNG::vector2(game_area->world_bounds.x, game_area->world_bounds.right(), game_area->world_bounds.y, game_area->world_bounds.bottom());
+                } while(Math::distance_f(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y) < (float)gw);
+
+                Engine::logn("boss spawned at: %.1f, %.1f", boss_pos.x, boss_pos.y);
+                spawn_target(boss_pos);
+            }
+        }
+    }
+
     void set_background_color(const SDL_Color &color) {
         game_area->background_color = color;
     }
