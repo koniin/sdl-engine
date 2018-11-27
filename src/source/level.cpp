@@ -53,15 +53,44 @@ void clear_toasts() {
 
 struct Arrow {
     bool enabled = false;
+    float angle = 0;
+    Vector2 position;
+    Vector2 center;
 
     void render() {
         if(enabled) {
-            draw_spritesheet_name_centered(Resources::sprite_sheet_get("shooter"), "arrow", gw / 2, gh / 2);
+            draw_spritesheet_name_centered_rotated(Resources::sprite_sheet_get("shooter"), "arrow", (int)position.x, (int)position.y, angle);
         }
     }
 
     void update(GameArea *ga) {
+        Vector2 p = ga->players.position[0].value;
+        Vector2 b = ga->targets.position[0].value;
 
+        angle = Math::degrees_between_v(p, b);
+        if(angle < 0) {
+            angle = 360 - (-angle);
+        }
+        // Atan2 results have 0 degrees point down the positive X axis, while our image is pointed up.
+        // Therefore we simply add 90 degrees to the rotation to orient our image
+        // If 0 degrees is to the right on your image, you do not need to add 90
+        angle = 90 + angle;
+        
+        center.x = (float)gw / 2;
+        center.y = (float)gh / 2;
+        auto dir = Math::direction(b, p);
+        position = center + dir * 100.0f;
+
+    //     Vector2 direction = Vector2(Math::cos_f(angle * ))
+    //     var velocityX = Math.cos((bullet.angle) * Math.PI / 180);
+    //     var velocityY = Math.sin((bullet.angle) * Math.PI / 180);
+
+ 
+
+    // bullet.x += velocityX;
+    // bullet.y += velocityY;
+
+    //     position = 
     }
 
 } arrow;

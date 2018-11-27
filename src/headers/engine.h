@@ -328,6 +328,7 @@ namespace Scenes {
 namespace Math {
 	static const float Pi = 3.14159265358979323846f;
 	static const float RAD_TO_DEGREE = 180.0f / (float)M_PI;
+	static const float DEGREE_TO_RAD = (float)M_PI / 180.0f;
 	
 	inline int clamp_i(int x, int a, int b) {
     	x = std::max(x, a);
@@ -367,6 +368,14 @@ namespace Math {
 	
 	inline float abs_f(float f) {
 		return std::abs(f);
+	}
+
+	inline float cos_f(float f) {
+		return std::cosf(f);
+	}
+
+	inline float sin_f(float f) {
+		return std::sinf(f);
 	}
 	
 	inline int sqrt(int i) {
