@@ -64,8 +64,20 @@ struct Arrow {
     }
 
     void update(GameArea *ga) {
+        if(!enabled) {
+            return;
+        }
+        
+        auto &camera = get_camera();
+        Rectangle view = { (int)camera.x, (int)camera.y, (int)gw, (int)gh };
+        
         Vector2 p = ga->players.position[0].value;
         Vector2 b = ga->targets.position[0].value;
+
+        if(view.contains(p.x, p.y) && view.contains(b.x, b.y)) {
+            enabled = false;
+            return;
+        }
 
         angle = Math::degrees_between_v(p, b);
         if(angle < 0) {
@@ -79,18 +91,7 @@ struct Arrow {
         center.x = (float)gw / 2;
         center.y = (float)gh / 2;
         auto dir = Math::direction(b, p);
-        position = center + dir * 100.0f;
-
-    //     Vector2 direction = Vector2(Math::cos_f(angle * ))
-    //     var velocityX = Math.cos((bullet.angle) * Math.PI / 180);
-    //     var velocityY = Math.sin((bullet.angle) * Math.PI / 180);
-
- 
-
-    // bullet.x += velocityX;
-    // bullet.y += velocityY;
-
-    //     position = 
+        position = center + dir * 150.0f;
     }
 
 } arrow;
@@ -107,6 +108,8 @@ void level_init() {
     // Do this three times and display the options to the player
     MapSettings settings;
     generate_settings(seed, difficulty, level, settings);
+
+    // then after loading screen and selection we do this
     generate_level(seed, difficulty, level, settings, game_area_controller);
     
     /*
