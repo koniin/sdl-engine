@@ -9,12 +9,8 @@
 #include "level\systems.h"
 #include "level\game_area.h"
 #include "level\game_area_controller.h"
+#include "level\ui.h"
 #include "particles.h"
-
-/* 
-    TODO: Need to clean this file from game logic
-
-*/
 
 static GameArea *game_area;
 static GameAreaController *game_area_controller;
@@ -41,60 +37,6 @@ void level_load() {
 void start_test() {
     game_state = Play;
 }
-
-struct ToastMessage {
-    std::string message;
-    Vector2 position;
-};
-std::vector<ToastMessage> toasts;
-void clear_toasts() {
-    toasts.clear();
-}
-
-struct Arrow {
-    bool enabled = false;
-    float angle = 0;
-    Vector2 position;
-    Vector2 center;
-
-    void render() {
-        if(enabled) {
-            draw_spritesheet_name_centered_rotated(Resources::sprite_sheet_get("shooter"), "arrow", (int)position.x, (int)position.y, angle);
-        }
-    }
-
-    void update(GameArea *ga) {
-        if(!enabled || ga->players.length == 0 || ga->targets.length == 0) {
-            return;
-        }
-        
-        auto &camera = get_camera();
-        Rectangle view = { (int)camera.x, (int)camera.y, (int)gw, (int)gh };
-        
-        Vector2 p = ga->players.position[0].value;
-        Vector2 b = ga->targets.position[0].value;
-
-        if(view.contains(p.to_point()) && view.contains(b.to_point())) {
-            enabled = false;
-            return;
-        }
-
-        angle = Math::degrees_between_v(p, b);
-        if(angle < 0) {
-            angle = 360 - (-angle);
-        }
-        // Atan2 results have 0 degrees point down the positive X axis, while our image is pointed up.
-        // Therefore we simply add 90 degrees to the rotation to orient our image
-        // If 0 degrees is to the right on your image, you do not need to add 90
-        angle = 90 + angle;
-        
-        center.x = (float)gw / 2;
-        center.y = (float)gh / 2;
-        auto dir = Math::direction(b, p);
-        position = center + dir * 150.0f;
-    }
-
-} arrow;
 
 void level_init() {
     game_state = Loading;
@@ -204,8 +146,6 @@ void game_area_update() {
     handle_events(GameEvents::get_queued_events());
     GameEvents::clear();
 
-    arrow.update(game_area);
-
     if(game_area_controller->spawn_boss()) {
         toasts.push_back({ "Boss is here.", Vector2((float)gw / 2, (float)gh / 2) });
         Timing::add_timer(2.0f, clear_toasts);
@@ -223,6 +163,8 @@ void game_area_update() {
 
 void level_update() {
     Timing::update_timers();
+    update_ui(game_area);
+    
     switch(game_state) {
         case Loading:
             if(Input::key_pressed(SDLK_b)) {
@@ -243,14 +185,15 @@ void level_update() {
     }
 }
 
-void draw_background() {
+/*
+void draw_background(GameArea *ga) {
     auto camera = get_camera();
     int x = Math::max_i(0, 0 - (int)camera.x);
     int y = Math::max_i(0, 0 - (int)camera.y);
-    int w = Math::min_i(game_area->world_bounds.right() - (int)camera.x, x + gw);
-    int h = Math::min_i(game_area->world_bounds.bottom() - (int)camera.y, y + gh);
-    draw_g_rectangle_filled(x, y, w, h, game_area->background_color);
-}
+    int w = Math::min_i(ga->world_bounds.right() - (int)camera.x, x + gw);
+    int h = Math::min_i(ga->world_bounds.bottom() - (int)camera.y, y + gh);
+    draw_g_rectangle_filled(x, y, w, h, ga->background_color);
+} */
 
 void level_render() {
     switch(game_state) {
@@ -258,7 +201,7 @@ void level_render() {
             draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "LOADING!");
             break;
         case Play:
-            draw_background();
+            // draw_background();
             draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
             break;
         case End:
@@ -276,16 +219,6 @@ void level_render() {
     debug_render();
 }
 
-void render_health_bar(int x, int y, int width, int height, float value, float max) {
-    const int border_size = 1;
-    const int border_size_d = 2;
-    float ratio = value / max;
-    auto hp_bar_width = (ratio * (float)width) - border_size_d;
-    draw_g_rectangle_filled_RGBA(x, y, width, height, 255, 255, 255, 255);
-    draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, width - border_size_d, height - 2, 0, 0, 0, 255);
-    draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, (int)hp_bar_width, 13, 255, 0, 0, 255);
-}
-
 void level_render_ui() {
     switch(game_state) {
         case Loading:
@@ -294,7 +227,7 @@ void level_render_ui() {
             if(game_area->players.length > 0) {
                 render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
             }
-            draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
+            // draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
             
             arrow.render();
             
