@@ -258,7 +258,7 @@ struct Rectangle {
 		return ((((x <= xi) && (xi < (x + w))) && (y <= yi)) && (yi < (y + h)));
 	}
 
-	bool contains(Point &p) {
+	bool contains(const Point &p) {
 		return contains(p.x, p.y);
 	}
 

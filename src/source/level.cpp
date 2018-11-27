@@ -64,7 +64,7 @@ struct Arrow {
     }
 
     void update(GameArea *ga) {
-        if(!enabled) {
+        if(!enabled || ga->players.length == 0 || ga->targets.length == 0) {
             return;
         }
         
@@ -74,7 +74,7 @@ struct Arrow {
         Vector2 p = ga->players.position[0].value;
         Vector2 b = ga->targets.position[0].value;
 
-        if(view.contains(p.x, p.y) && view.contains(b.x, b.y)) {
+        if(view.contains(p.to_point()) && view.contains(b.to_point())) {
             enabled = false;
             return;
         }
