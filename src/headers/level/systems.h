@@ -84,8 +84,6 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 
             auto fire_settings = GameData::create_fire_settings(players.config[i].attack, game_ctrl->map_settings);
 
-            // From attack
-            
             // From config (depends on rendering size)
             const float gun_barrel_distance = player_config.gun_barrel_distance;
 
@@ -115,6 +113,11 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
             Vector2 projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * fire_settings.projectile_speed;
             game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity, fire_settings.p_data);
+
+            // float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
+            // projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * -fire_settings.projectile_speed;
+            // gun_exit_position += 5.0f;
+            // game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity, fire_settings.p_data);
             // ---------------------------------
 
             // game_ctrl->spawn_smoke(muzzle_pos.value);
@@ -442,9 +445,21 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 
                 Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
 
-                ProjectileData p_data(1, 8);
+                ProjectileData p_data(1, 8, 1.0f);
                 projectiles.queue_projectile(projectile_position, projectile_velocity, p_data);
                 continue; // only fire at one target
+            }
+        }
+    }
+}
+
+template<typename T>
+void system_update_life_time(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.life_time[i].ttl > 0.0f) {
+            entity_data.life_time[i].time += Time::delta_time;
+            if(!entity_data.life_time[i].marked_for_deletion && entity_data.life_time[i].time >= entity_data.life_time[i].ttl) {
+                entity_data.life_time[i].marked_for_deletion = true;
             }
         }
     }

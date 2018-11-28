@@ -115,6 +115,8 @@ void game_area_update() {
     remove_out_of_bounds(game_area->projectiles_player, game_area->world_bounds);
     remove_out_of_bounds(game_area->projectiles_target, game_area->world_bounds);
     system_remove_completed_effects(game_area->effects);
+    system_update_life_time(game_area->projectiles_player);
+    system_update_life_time(game_area->projectiles_target);
 
     game_area_controller->spawn_projectiles();
     game_area_controller->spawn_effects();

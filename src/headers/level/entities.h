@@ -18,6 +18,8 @@ struct PlayerInput {
 
 struct LifeTime {
     bool marked_for_deletion = false;
+    float ttl = 0.0f;
+    float time = 0.0f;
 };
 
 struct Position {
@@ -236,9 +238,8 @@ struct Player : ECS::EntityData {
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
 
-        PlayerConfiguration pcfg;
-
         GameState *game_state = GameData::game_state_get();
+        PlayerConfiguration pcfg;
         pcfg.attack = game_state->player.attack;
         pcfg.drag = game_state->player.drag;
         pcfg.move_acceleration = game_state->player.move_acceleration;
@@ -253,8 +254,8 @@ struct Player : ECS::EntityData {
         SpriteComponent s = SpriteComponent("shooter", "player_1");
         s.layer = 10;
         sprite[handle.i] = s;
-        health[handle.i] = { 10, 10 };
-        collision[handle.i] = { 8 };
+        health[handle.i] = { game_state->player.hp, game_state->player.max_hp };
+        collision[handle.i] = { game_state->player.collision_radius };
         blink[handle.i] = BlinkEffect();
 
         SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2");
@@ -343,12 +344,15 @@ struct Projectile : ECS::EntityData {
         add_entity(e);
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
+        life_time[handle.i].ttl = p_data.time_to_live;
+        // Engine::logn("ttl %.1f ", p_data.time_to_live);
+        life_time[handle.i].time = 0;
 
         position[handle.i] = { p, p };
         velocity[handle.i] = Velocity(v.x, v.y);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2");
         sprite[handle.i] = s;
-        damage[handle.i] = { p_data.damage, 2.0f };
+        damage[handle.i] = { p_data.damage, p_data.force };
         collision[handle.i] = { p_data.radius };
     }
 };
