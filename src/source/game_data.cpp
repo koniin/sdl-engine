@@ -20,7 +20,7 @@ namespace GameData {
         float projectile_speed = Attacks[attack].projectile_speed;
         float knockback = Attacks[attack].knockback;
         char *sound_name = Attacks[attack].sound_name;
-        ProjectileData p_data;
+        ProjectileData p_data(1, 8);
 
         return FireSettings(fire_cooldown, accuracy, projectile_speed, knockback, sound_name, p_data);
     }

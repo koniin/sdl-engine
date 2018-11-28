@@ -442,7 +442,7 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 
                 Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
 
-                ProjectileData p_data;
+                ProjectileData p_data(1, 8);
                 projectiles.queue_projectile(projectile_position, projectile_velocity, p_data);
                 continue; // only fire at one target
             }

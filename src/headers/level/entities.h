@@ -348,8 +348,8 @@ struct Projectile : ECS::EntityData {
         velocity[handle.i] = Velocity(v.x, v.y);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2");
         sprite[handle.i] = s;
-        damage[handle.i] = { 1, 2.0f };
-        collision[handle.i] = { 8 };
+        damage[handle.i] = { p_data.damage, 2.0f };
+        collision[handle.i] = { p_data.radius };
     }
 };
 

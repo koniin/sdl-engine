@@ -102,6 +102,9 @@ struct GameState {
 
 struct ProjectileData {
     int damage = 1;
+    int radius = 0;
+
+    ProjectileData(int damage, int radius) : damage(damage), radius(radius) {}
 };
 
 struct FireSettings {
