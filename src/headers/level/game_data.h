@@ -146,27 +146,6 @@ struct FireSettings {
     }
 };
 
-template<typename Spawner> 
-void spawn_attack_projectiles(
-    const Attack &attack, 
-    const FireSettings &fs, 
-    const float attack_angle, 
-    const Vector2 &gun_exit_position,
-    Spawner *s) 
-    {
-    switch(attack) {
-        case Basic:{
-                float angle_with_accuracy = attack_angle + RNG::range_f(-fs.accuracy, fs.accuracy);
-                Vector2 projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * fs.projectile_speed;
-                s->spawn_player_projectile(gun_exit_position, projectile_velocity, fs.p_data);
-            }
-            break;
-        default:
-            ASSERT_WITH_MSG(false, "Attack not implemented!");
-            break;
-    }
-}
-
 namespace GameData {
     void game_state_new(int seed, Difficulty difficulty);
     GameState *game_state_get();

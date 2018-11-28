@@ -60,6 +60,24 @@ inline void system_player_get_input(Player &players) {
     }
 }
 
+inline void spawn_projectiles(
+    const Attack &attack, 
+    const FireSettings &fs, 
+    const float attack_angle, 
+    const Vector2 &gun_exit_position, GameAreaController *game_ctrl)  {
+    switch(attack) {
+        case Basic: {
+                float angle_with_accuracy = attack_angle + RNG::range_f(-fs.accuracy, fs.accuracy);
+                Vector2 projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * fs.projectile_speed;
+                game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity, fs.p_data);
+            }
+            break;
+        default:
+            ASSERT_WITH_MSG(false, "Attack not implemented!");
+            break;
+    }
+}
+
 inline void system_player_handle_input(Player &players, GameAreaController *game_ctrl) {
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
@@ -110,7 +128,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             // Spawn Projectile
             // ---------------------------------
             // Spawn a projectile with accuracy adjusted angle
-            spawn_attack_projectiles(players.config[i].attack, fire_settings, original_angle, gun_exit_position, game_ctrl);
+            spawn_projectiles(players.config[i].attack, fire_settings, original_angle, gun_exit_position, game_ctrl);
 
             // float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
             // projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * -fire_settings.projectile_speed;
