@@ -100,9 +100,28 @@ struct GameState {
     PlayerState player;
 };
 
+struct ProjectileData {
+    int damage = 1;
+};
+
+struct FireSettings {
+    float fire_cooldown;
+    float accuracy;
+    float projectile_speed;
+    float knockback;
+    char *sound_name;
+    ProjectileData p_data;
+
+    FireSettings(float cooldown, float accuracy, float speed, float knockback, char *sound_name, ProjectileData data) :
+        fire_cooldown(cooldown), accuracy(accuracy), projectile_speed(speed), knockback(knockback), sound_name(sound_name), p_data(data) {
+    }
+};
+
 namespace GameData {
     void game_state_new();
     GameState *game_state_get();
+
+    FireSettings create_fire_settings(const Attack &attack, const MapSettings &settings);
 };
 
 #endif

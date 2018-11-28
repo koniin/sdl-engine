@@ -310,6 +310,7 @@ struct Projectile : ECS::EntityData {
     struct SpawnProjectile {
         Vector2 position;
         Vector2 velocity;
+        ProjectileData p_data;
     };
     std::vector<SpawnProjectile> projectile_queue;
 
@@ -334,11 +335,11 @@ struct Projectile : ECS::EntityData {
         }
     }
 
-    void queue_projectile(Vector2 p, Vector2 v) {
-        projectile_queue.push_back({ p , v });
+    void queue_projectile(Vector2 p, Vector2 v, ProjectileData p_data) {
+        projectile_queue.push_back({ p , v, p_data });
     }
 
-    void create(ECS::Entity e, Vector2 p, Vector2 v) {
+    void create(ECS::Entity e, Vector2 p, Vector2 v, ProjectileData p_data) {
         add_entity(e);
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
