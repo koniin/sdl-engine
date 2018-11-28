@@ -10,6 +10,7 @@
 #include "level\game_area.h"
 #include "level\game_area_controller.h"
 #include "level\ui.h"
+#include "level\map_data.h"
 #include "particles.h"
 
 static GameArea *game_area;
@@ -17,7 +18,15 @@ static GameAreaController *game_area_controller;
 static CollisionPairs collisions;
 static RenderBuffer render_buffer;
 
-enum State { Loading, Play, End } game_state;
+enum State { SettingsSelection, Loading, Play, End } level_state;
+
+struct GameState {
+    int seed = 1338;
+    int difficulty = 1;
+    int level = 1;
+};
+
+GameState *game_state;
 
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
@@ -34,39 +43,20 @@ void level_load() {
     game_area_controller->sound_map["player_fire"] = Sound::load("test.wav");
 }
 
-void start_test() {
-    game_state = Play;
-}
-
 void level_init() {
-    game_state = Loading;
+    level_state = SettingsSelection;
     
+    game_state = new GameState();
+
     renderer_set_clear_color({ 8, 0, 18, 255 });
 
-    int seed = 1338;
-    int difficulty = 1;
-    int level = 1;
-
+    ui_prepare_settings_choices();
     // Do this three times and display the options to the player
-    MapSettings settings;
-    generate_settings(seed, difficulty, level, settings);
-
-    // then after loading screen and selection we do this
-    generate_level(seed, difficulty, level, settings, game_area_controller);
-    
-    /*
-    renderer_set_clear_color({ 8, 0, 18, 255 });
-    game_area->load({ 0, 0, (int)gw * 2, (int)gh * 2 });
-    
-    Vector2 player_position = Vector2(100, 200);
-    game_area_controller->spawn_player(player_position);
-    camera_lookat(player_position);
-
-    game_area_controller->spawn_target(Vector2(10, 10));
-    game_area_controller->spawn_target(Vector2(400, 200));
-    game_area_controller->spawn_target(Vector2(350, 200));
-*/
-    Timing::add_timer(1.0f, start_test);
+    for(int i = 0; i < 3; i++) {
+        MapSettings settings;
+        generate_settings(game_state->seed, game_state->difficulty, game_state->level, settings);
+        ui_add_settings_choice(settings);
+    }
 }
 
 void level_clean() {
@@ -153,7 +143,7 @@ void game_area_update() {
     }
 
     if(game_area_controller->game_over() || game_area_controller->game_win()) {
-        game_state = End;
+        level_state = End;
     } 
 
     export_render_info(render_buffer, game_area);
@@ -161,15 +151,26 @@ void game_area_update() {
     debug(render_buffer, game_area);
 }
 
+void start_test() {
+    level_state = Play;
+}
+
 void level_update() {
     Timing::update_timers();
-    update_ui(game_area);
-    
-    switch(game_state) {
-        case Loading:
-            if(Input::key_pressed(SDLK_b)) {
-                game_state = Play;
+    ui_update(game_area);
+
+    MapSettings s;
+    switch(level_state) {
+        case SettingsSelection:
+            ui_update_settings_select();
+            if(ui_has_settings_selection(s)) {
+                // then after loading screen and selection we do this
+                generate_level(game_state->seed, game_state->difficulty, game_state->level, s, game_area_controller);
+                Timing::add_timer(1.0f, start_test);    
+                level_state = Loading;
             }
+            break;
+        case Loading:
             break;
         case Play:
             game_area_input();
@@ -196,9 +197,11 @@ void draw_background(GameArea *ga) {
 } */
 
 void level_render() {
-    switch(game_state) {
+    switch(level_state) {
+        case SettingsSelection:
+            ui_render_settings_selection();
+            break;
         case Loading:
-            draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "LOADING!");
             break;
         case Play:
             // draw_background();
@@ -220,7 +223,9 @@ void level_render() {
 }
 
 void level_render_ui() {
-    switch(game_state) {
+    switch(level_state) {
+        case SettingsSelection:
+            break;
         case Loading:
             break;
         case Play:
@@ -236,6 +241,7 @@ void level_render_ui() {
             }
             break;
         case End:
+            draw_text_centered((int)gw / 2, (int)gh - 20, Colors::white, "Press B to restart level");
             break;
     }
 }

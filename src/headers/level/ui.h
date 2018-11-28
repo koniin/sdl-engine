@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "renderer.h"
 #include "game_area.h"
+#include "map_data.h"
 
 struct ToastMessage {
     std::string message;
@@ -74,7 +75,90 @@ inline void render_health_bar(int x, int y, int width, int height, float value, 
     draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, (int)hp_bar_width, 13, 255, 0, 0, 255);
 }
 
-void update_ui(GameArea *ga) {
+template<typename T>
+struct SelectList {
+    int current = 0;
+    int selected = -1;
+    std::vector<T> choices;
+};
+
+static SelectList<MapSettings> map_settings;
+static SelectList<int> upgrades_selection;
+
+template<typename T>
+static void select_list_change_selection(SelectList<T> &select_list, int direction) {
+    select_list.current += direction;
+    select_list.current = Math::clamp_i(select_list.current, 0, select_list.choices.size() - 1);
+}
+
+template<typename T> 
+static bool select_list_is_selected(const SelectList<T> &select_list, T &item) {
+    if(select_list.selected > -1) {
+        item = select_list.choices[select_list.selected];
+        return true;
+    }
+    return false;
+}
+
+template<typename T>
+static void select_list_reset_choices(SelectList<T> &select_list) {
+    select_list.current = 0;
+    select_list.selected = -1;
+    select_list.choices.clear();
+}
+
+template<typename T>
+void select_list_select(SelectList<T> &select_list) {
+    select_list.selected = select_list.current;
+}
+
+template<typename T>
+void select_list_change(SelectList<T> &select_list) {
+    if(Input::key_pressed(SDLK_a)) {
+        select_list_change_selection(select_list, -1);
+    } else if(Input::key_pressed(SDLK_d)) {
+        select_list_change_selection(select_list, 1);
+    } else if(Input::key_pressed(SDLK_SPACE) || Input::key_pressed(SDLK_RETURN)) {
+        select_list_select(select_list);
+    }
+}
+
+void ui_prepare_settings_choices() {
+    select_list_reset_choices(map_settings);
+}
+
+void ui_add_settings_choice(const MapSettings &item) {
+    map_settings.choices.push_back(item);
+}
+
+bool ui_has_settings_selection(MapSettings &item) {
+    return select_list_is_selected(map_settings, item);
+}
+
+void ui_render_settings_selection() {
+    int margin = 160;
+    int y = 180;
+    int x = margin;
+    int count = 0;
+    for(auto &settings : map_settings.choices) {
+        if(count == map_settings.current) {
+            draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 40, 40, 0, 255);
+        } else {
+            draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 0, 40, 40, 255);
+        }
+        
+        draw_text_centered(x, y, Colors::white, MapStyleNames[settings.style]);
+        draw_text_centered(x, y + 10, Colors::white, MapSizeNames[settings.map_size]);
+        x += margin;
+        count++;
+    }
+}
+
+void ui_update_settings_select() {
+    select_list_change(map_settings);
+}
+
+void ui_update(GameArea *ga) {
     arrow.update(ga);
 
     if(!toasts.empty()) {

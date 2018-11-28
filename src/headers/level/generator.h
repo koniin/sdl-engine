@@ -3,21 +3,9 @@
 
 #include "engine.h"
 #include "game_area_controller.h"
+#include "map_data.h"
+
 #include <unordered_set>
-
-#define MAPSIZE_SMALL 1
-
-#define MAPSTYLE_DESERT 0
-
-struct MapModifier {
-
-};
-
-struct MapSettings {
-    int map_size = 0;
-    int style = 0;
-    std::vector<MapModifier> modifiers;
-};
 
 namespace GENRNG {
 	static std::mt19937 RNG_generator;
@@ -58,10 +46,10 @@ namespace GENRNG {
 // To generate different options for the player
 void generate_settings(int seed, int difficulty, int level, MapSettings &settings) {
     // https://pathofexile.gamepedia.com/List_of_map_mods
-    settings.map_size = MAPSIZE_SMALL;
-    settings.style = MAPSTYLE_DESERT;
+    settings.map_size = MapSize::Small;
+    settings.style = MapStyle::Desert;
 
-    // settings.modifiers = { MapModifier() };
+    settings.modifiers = { { "Test modifier" } };
 }
 
 static SDL_Color level_colors[4] = {
