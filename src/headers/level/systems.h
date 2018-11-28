@@ -81,31 +81,42 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            pi.fire_cooldown = Attacks[players.config[i].attack].cooldown;
-    
+            // From attack
+            const float fire_cooldown = Attacks[players.config[i].attack].cooldown;
             const float accuracy = Attacks[players.config[i].attack].accuracy;
-            float angle = direction.angle + RNG::range_f(-accuracy, accuracy);
-            const Vector2 projectile_direction = Math::direction_from_angle(angle);
+            const float projectile_speed = Attacks[players.config[i].attack].projectile_speed;
+            const float knockback = Attacks[players.config[i].attack].knockback;
+            const char *sound_name = Attacks[players.config[i].attack].sound_name;
+            // From config
+            const float gun_barrel_distance = player_config.gun_barrel_distance;
 
+            // this is for all projectiles
+            // ---------------------------------
+            pi.fire_cooldown = fire_cooldown;
+            float original_angle = direction.angle;
             // set the projectile position to be gun_barrel_distance infront of the ship
-            auto projectile_pos = players.position[i].value;
-            projectile_pos += projectile_direction * player_config.gun_barrel_distance;
+            auto gun_exit_position = players.position[i].value;
+            auto projectile_direction = Math::direction_from_angle(original_angle);
+            gun_exit_position += Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
-            float projectile_speed = Attacks[players.config[i].attack].projectile_speed;
-            Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
-            game_ctrl->spawn_player_projectile(projectile_pos, projectile_velocity);
-            
-            // Rest of it
-            game_ctrl->spawn_muzzle_flash(projectile_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
-            
+            // Muzzle flash
+            game_ctrl->spawn_muzzle_flash(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
+            // Camera
             camera_shake(0.1f);
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
             // Player knockback
-            players.position[i].value -= projectile_direction * Attacks[players.config[i].attack].knockback;
-            //players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
+            players.position[i].value -= projectile_direction * knockback;
             // Sound
-            
-            Sound::queue(game_ctrl->sound_map[Attacks[players.config[i].attack].sound_name], 2);
+            Sound::queue(game_ctrl->sound_map[sound_name], 2);
+            // ---------------------------------
+
+            // Spawn Projectile
+            // ---------------------------------
+            // Spawn a projectile with accuracy adjusted angle
+            float angle_with_accuracy = original_angle + RNG::range_f(-accuracy, accuracy);
+            Vector2 projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * projectile_speed;
+            game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity);
+            // ---------------------------------
 
             // game_ctrl->spawn_smoke(muzzle_pos.value);
             
