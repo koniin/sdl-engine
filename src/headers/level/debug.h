@@ -7,6 +7,7 @@
 #include "rooms.h"
 #include "generator.h"
 #include "rendering.h"
+#include "game_data.h"
 
 struct DebugRenderData {
     enum Type { Circle, Line } type;
@@ -51,8 +52,9 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
     static float projectile_speed = 8.0f;
     
     if(Input::key_pressed(SDLK_UP)) {
-        projectile_speed++;
-        level->players.weapon[0].projectile_speed = projectile_speed / 0.016667f;
+        Engine::logn("not implemented");
+        // projectile_speed++;
+        // level->players.weapon[0].projectile_speed = projectile_speed / 0.016667f;
     }
 
     if(Input::key_pressed(SDLK_l)) {
@@ -115,8 +117,8 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
     FrameLog::log("Projectiles target: " + std::to_string(level->projectiles_target.length));
     FrameLog::log("Targets: " + std::to_string(level->targets.length));
     FrameLog::log("Particles: " + std::to_string(level->particles.length));
-    FrameLog::log("projectile speed: " + std::to_string(level->players.weapon[0].projectile_speed));
-    FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
+    // FrameLog::log("projectile speed: " + std::to_string(Attacks[level->players.config[0].attack].projectile_speed));
+    // FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
 
     FrameLog::log("Render buffer count: " + std::to_string(render_buffer.sprite_count));
     FrameLog::log("Tile count: " + std::to_string(level->tiles.size()));

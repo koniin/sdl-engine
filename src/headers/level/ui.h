@@ -4,7 +4,7 @@
 #include "engine.h"
 #include "renderer.h"
 #include "game_area.h"
-#include "map_data.h"
+#include "game_data.h"
 
 struct ToastMessage {
     std::string message;
@@ -83,7 +83,7 @@ struct SelectList {
 };
 
 static SelectList<MapSettings> map_settings;
-static SelectList<int> upgrades_selection;
+static SelectList<Upgrade> upgrades_selection;
 
 template<typename T>
 static void select_list_change_selection(SelectList<T> &select_list, int direction) {
@@ -123,16 +123,27 @@ void select_list_change(SelectList<T> &select_list) {
     }
 }
 
-void ui_prepare_settings_choices() {
+void ui_prepare_choices() {
     select_list_reset_choices(map_settings);
+    select_list_reset_choices(upgrades_selection);
 }
 
 void ui_add_settings_choice(const MapSettings &item) {
     map_settings.choices.push_back(item);
 }
 
+void ui_add_upgrade_choice(const Upgrade &item) {
+    upgrades_selection.choices.push_back(item);
+}
+
 bool ui_has_settings_selection(MapSettings &item) {
+    select_list_change(map_settings);
     return select_list_is_selected(map_settings, item);
+}
+
+bool ui_has_upgrades_selection(Upgrade &item) {
+    select_list_change(upgrades_selection);
+    return select_list_is_selected(upgrades_selection, item);
 }
 
 void ui_render_settings_selection() {
@@ -154,8 +165,23 @@ void ui_render_settings_selection() {
     }
 }
 
-void ui_update_settings_select() {
-    select_list_change(map_settings);
+void ui_render_upgrade_selection() {
+    int margin = 160;
+    int y = 180;
+    int x = margin;
+    int count = 0;
+    for(auto &upgrade : upgrades_selection.choices) {
+        if(count == upgrades_selection.current) {
+            draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 80, 40, 10, 255);
+        } else {
+            draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 80, 120, 40, 255);
+        }
+        
+        draw_text_centered(x, y, Colors::white, upgrade.name);
+        draw_text_centered(x, y + 10, Colors::white, upgrade.description);
+        x += margin;
+        count++;
+    }
 }
 
 void ui_update(GameArea *ga) {

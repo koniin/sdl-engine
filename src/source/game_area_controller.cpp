@@ -44,14 +44,14 @@ void GameAreaController::spawn_effects() {
     game_area->effects.effect_queue.clear();
 }
 
-void GameAreaController::spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent) {
+void GameAreaController::spawn_muzzle_flash(Vector2 p, Vector2 local_position, ECS::Entity parent) {
     auto spr = SpriteComponent("shooter", "bullet_1");
     spr.layer = 2;
     auto effect = EffectData(2 * Time::delta_time_fixed);
     effect.follow = parent;
     effect.local_position = local_position;
     effect.has_target = true;
-    game_area->effects.effect_queue.push_back({ p, Velocity(), spr, effect });
+    game_area->effects.effect_queue.push_back({ { p }, Velocity(), spr, effect });
 }
 
 void GameAreaController::spawn_explosion(Vector2 position, float offset_x, float offset_y) {

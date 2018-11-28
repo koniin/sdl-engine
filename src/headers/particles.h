@@ -52,6 +52,7 @@ namespace Particles {
     void emit(ParticleContainer &c, const Emitter &emitter);
     void spawn(ParticleContainer &c, const Vector2 &p, const float &life, const float &angle, const float &speed, const float &size, const float &size_end, const Vector2 &force, const SDL_Color &color_start, const SDL_Color &color_end);
     void update(ParticleContainer &c, const float dt);
+	void clear(ParticleContainer &c);
 	void render_circles(const ParticleContainer &c);
 	void render_circles_filled(const ParticleContainer &c);
     void render_rectangles_filled(const ParticleContainer &c);

@@ -60,6 +60,10 @@ namespace Particles {
 		}
 	}
 
+	void clear(ParticleContainer &c) {
+		c.length = 0;
+	}
+
     void render_circles(const ParticleContainer &c) {
 		const auto &camera = get_camera();
 		const Particle *particles = c.particles;

@@ -456,6 +456,14 @@ namespace Math {
             return normalize(direction);
 	}
 
+	inline Vector2 direction_from_angle(float angle) {
+		float rotation = angle / Math::RAD_TO_DEGREE;
+		Vector2 direction;
+        direction.x = cos_f(rotation);
+        direction.y = sin_f(rotation);
+		return direction;
+	}
+
 	inline float degrees_between_v(const Vector2 &a, const Vector2 &b) {
     	return atan2(b.y - a.y, b.x - a.x) * RAD_TO_DEGREE;
 	}

@@ -10,7 +10,7 @@
 #include "level\game_area.h"
 #include "level\game_area_controller.h"
 #include "level\ui.h"
-#include "level\map_data.h"
+#include "level\game_data.h"
 #include "particles.h"
 
 static GameArea *game_area;
@@ -19,14 +19,6 @@ static CollisionPairs collisions;
 static RenderBuffer render_buffer;
 
 enum State { SettingsSelection, Loading, Play, End } level_state;
-
-struct GameState {
-    int seed = 1338;
-    int difficulty = 1;
-    int level = 1;
-};
-
-GameState *game_state;
 
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
@@ -40,22 +32,24 @@ void level_load() {
     GameEvents::init(128);
     Timing::init(8);
 
-    game_area_controller->sound_map["player_fire"] = Sound::load("test.wav");
+    game_area_controller->sound_map["basic_fire"] = Sound::load("test.wav");
 }
 
 void level_init() {
     level_state = SettingsSelection;
     
-    game_state = new GameState();
-
     renderer_set_clear_color({ 8, 0, 18, 255 });
 
-    ui_prepare_settings_choices();
+    ui_prepare_choices();
     // Do this three times and display the options to the player
     for(int i = 0; i < 3; i++) {
         MapSettings settings;
-        generate_settings(game_state->seed, game_state->difficulty, game_state->level, settings);
+        generate_settings(settings);
         ui_add_settings_choice(settings);
+
+        Upgrade upgrade;
+        generate_random_upgrade(upgrade);
+        ui_add_upgrade_choice(upgrade);
     }
 }
 
@@ -144,6 +138,7 @@ void game_area_update() {
 
     if(game_area_controller->game_over() || game_area_controller->game_win()) {
         level_state = End;
+        Particles::clear(game_area->particles);
     } 
 
     export_render_info(render_buffer, game_area);
@@ -160,12 +155,12 @@ void level_update() {
     ui_update(game_area);
 
     MapSettings s;
+    Upgrade u;
     switch(level_state) {
         case SettingsSelection:
-            ui_update_settings_select();
             if(ui_has_settings_selection(s)) {
                 // then after loading screen and selection we do this
-                generate_level(game_state->seed, game_state->difficulty, game_state->level, s, game_area_controller);
+                generate_level(s, game_area_controller);
                 Timing::add_timer(1.0f, start_test);    
                 level_state = Loading;
             }
@@ -177,10 +172,19 @@ void level_update() {
             game_area_update();
             break;
         case End:
-            game_area_update();
-            if(Input::key_pressed(SDLK_b)) {
-                level_clean();
-                level_init();
+            if(game_area->players.length > 0) {
+                if(ui_has_upgrades_selection(u)) {
+                    level_clean();
+                    level_init();
+                    Engine::logn("Selection");
+                }
+            }
+            else {
+                game_area_update();
+                if(Input::key_pressed(SDLK_b)) {
+                    level_clean();
+                    level_init();
+                }
             }
             break;   
     }
@@ -209,11 +213,12 @@ void level_render() {
             break;
         case End:
             if(game_area->players.length > 0) {
-                draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "WIN!"); 
+                ui_render_upgrade_selection();
+                // draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+                // draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "WIN!"); 
             } else {
                 draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "DEAD!");
+                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "DEAD! - no implementation of restart etc");
             }
             break;
     }

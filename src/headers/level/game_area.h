@@ -39,10 +39,10 @@ struct GameArea {
         projectiles_target.allocate(256);
         targets.allocate(128);
         effects.allocate(128);
-
+        tiles.reserve(8000);
         emitters_configure(this);
     }
-        
+
     void clear() {
         players.clear();
         projectiles_player.clear();
@@ -50,6 +50,7 @@ struct GameArea {
         targets.clear();
         effects.clear();
         particles.length = 0;
+        tiles.clear();
     }
 	// WorldBounds bounds;
 	// std::vector<AvoidThis> avoidThis;

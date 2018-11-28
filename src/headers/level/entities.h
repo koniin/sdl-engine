@@ -3,35 +3,9 @@
 
 #include "engine.h"
 #include "framework.h"
+#include "game_data.h"
 
 const Vector2 SHADOW_POSITION = Vector2(22, 22);
-
-// Pixels per frame
-constexpr float player_move_acceleration() {
-    return 10.0f / 0.016667f;
-}
-
-// degrees per frame
-constexpr float player_move_rotation() {
-    return 3.0f / 0.016667f;
-}
-
-// pixels per frame
-constexpr float player_drag() {
-    return 0.04f / 0.016667f;
-}
-
-struct PlayerConfiguration {
-    int16_t radius = 8;
-	float rotation_speed = player_move_rotation(); // degrees
-	float move_acceleration = player_move_acceleration();
-	float drag = player_drag();
-    float gun_barrel_distance = 11.0f; // distance from center
-    float fire_knockback = 2.0f; // pixels
-    float fire_knockback_camera = -6.0f;
-    int exhaust_id = 1;
-    int shadow_id = 2;
-};
 
 struct PlayerInput {
 	// Input
@@ -82,16 +56,6 @@ struct Damage {
 
 struct CollisionData {
     int radius = 0;
-};
-
-// Pixels per frame
-constexpr float player_projectile_speed() {
-    return 8.0f / 0.016667f;
-}
-// Remember no fancy stuff, just plain data
-struct WeaponConfgiruation {
-    float fire_cooldown = 0.15f; // s
-	float projectile_speed = player_projectile_speed();
 };
 
 struct SpriteComponent {
@@ -197,9 +161,33 @@ struct ChildSprite {
     template<typename T>
     void remove_from(std::vector<T> &v, size_t i) {
         size_t last_index = v.size() - 1;
+        ASSERT_WITH_MSG(last_index < v.size(), "Remove is not good to use sometimes yes");
         v[i] = v[last_index];
         v.erase(v.end() - 1);
     }
+    
+    void clear() {
+        length = 0;
+        parent.clear();
+        position.clear();
+        local_position.clear();
+        sprite.clear();
+        animation.clear();
+        direction.clear();
+    }
+};
+
+struct PlayerConfiguration {
+    // Display settings
+    float fire_knockback_camera = -6.0f;
+    float gun_barrel_distance = 11.0f; // distance from center
+    int exhaust_id = 1;
+    int shadow_id = 2;
+
+    Attack attack;
+	float rotation_speed; // degrees
+	float move_acceleration;
+	float drag;
 };
 
 struct Player : ECS::EntityData {
@@ -212,7 +200,6 @@ struct Player : ECS::EntityData {
     std::vector<SpriteComponent> sprite;
     std::vector<Health> health;
     std::vector<CollisionData> collision;
-    std::vector<WeaponConfgiruation> weapon;
     std::vector<BlinkEffect> blink;
 
     ChildSprite child_sprites;
@@ -230,16 +217,13 @@ struct Player : ECS::EntityData {
         initialize(&sprite);
         initialize(&health);
         initialize(&collision);
-        initialize(&weapon);
         initialize(&blink);
 
         child_sprites.allocate(n * 4);
     }
 
     void clear() {
-        for(auto cs : child_map) {
-            child_sprites.remove(cs.second);
-        }
+        child_sprites.clear();
         child_map.clear();
 
         for(int i = 0; i < length; i++) {
@@ -253,6 +237,13 @@ struct Player : ECS::EntityData {
         life_time[handle.i].marked_for_deletion = false;
 
         PlayerConfiguration pcfg;
+
+        GameState *game_state = GameData::game_state_get();
+        pcfg.attack = game_state->player.attack;
+        pcfg.drag = game_state->player.drag;
+        pcfg.move_acceleration = game_state->player.move_acceleration;
+        pcfg.rotation_speed = game_state->player.rotation_speed;
+
         config[handle.i] = pcfg;
         position[handle.i] = { p };
         velocity[handle.i] = Velocity();
@@ -264,7 +255,6 @@ struct Player : ECS::EntityData {
         sprite[handle.i] = s;
         health[handle.i] = { 10, 10 };
         collision[handle.i] = { 8 };
-        weapon[handle.i] = WeaponConfgiruation();
         blink[handle.i] = BlinkEffect();
 
         SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2");
@@ -362,6 +352,11 @@ struct Projectile : ECS::EntityData {
     }
 };
 
+struct TargetWeaponConfiguration {
+    float fire_cooldown = 0.5f;
+    float projectile_speed = 0;
+};
+
 struct Target : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<TargetConfiguration> config;
@@ -373,7 +368,7 @@ struct Target : ECS::EntityData {
     std::vector<Health> health;
     std::vector<CollisionData> collision;
     std::vector<AI> ai;
-    std::vector<WeaponConfgiruation> weapon;
+    std::vector<TargetWeaponConfiguration> weapon;
 
     ChildSprite child_sprites;
     std::unordered_map<int, size_t> child_map;
@@ -397,9 +392,7 @@ struct Target : ECS::EntityData {
     }
 
     void clear() {
-        for(auto cs : child_map) {
-            child_sprites.remove(cs.second);
-        }
+        child_sprites.clear();
         child_map.clear();
 
         for(int i = 0; i < length; i++) {
@@ -423,7 +416,7 @@ struct Target : ECS::EntityData {
         health[handle.i] = { 2, 2 };
         collision[handle.i] = { 8 };
         ai[handle.i] = { 100.0f };
-        weapon[handle.i] = WeaponConfgiruation();
+        weapon[handle.i] = { .5f, 6.0f / 0.016667f };
 
         SpriteComponent shadow = SpriteComponent("shooter", "enemy_1_b");
         shadow.layer = 8;

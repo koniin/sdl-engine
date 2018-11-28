@@ -1,6 +1,7 @@
 #include "rooms.h"
 #include "menu.h"
-#include "level\level.h"
+#include "level/level.h"
+#include "level/game_data.h"
 
 #include <array>
 
@@ -33,6 +34,7 @@ void init_room(const Rooms room) {
         case NewGame:
             break;
         case Game:
+            GameData::game_state_new(); // <- should be in NewGame
             level_init();
             break;
         case AfterGame:

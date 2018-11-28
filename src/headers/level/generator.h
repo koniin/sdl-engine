@@ -3,7 +3,7 @@
 
 #include "engine.h"
 #include "game_area_controller.h"
-#include "map_data.h"
+#include "game_data.h"
 
 #include <unordered_set>
 
@@ -44,12 +44,21 @@ namespace GENRNG {
 }
 
 // To generate different options for the player
-void generate_settings(int seed, int difficulty, int level, MapSettings &settings) {
+void generate_settings(MapSettings &settings) {
+    // GameState *game_state = GameData::game_state_get();
+    
     // https://pathofexile.gamepedia.com/List_of_map_mods
     settings.map_size = MapSize::Small;
     settings.style = MapStyle::Desert;
 
     settings.modifiers = { { "Test modifier" } };
+}
+
+void generate_random_upgrade(Upgrade &upgrade) {
+    // GameState *game_state = GameData::game_state_get();
+
+    // GENRNG or just RNG?
+    upgrade = Upgrades[GENRNG::next_i(UPGRADE_COUNT - 1)];
 }
 
 static SDL_Color level_colors[4] = {
@@ -66,7 +75,7 @@ struct EnemySpawn {
 static std::vector<EnemySpawn> generated_enemies(64);
 
 
-void generate_enemies(int difficulty, int level, const MapSettings &settings, Rectangle &world_bounds) {
+void generate_enemies(const MapSettings &settings, Rectangle &world_bounds) {
     int enemies_to_generate = 1;
     for(int i = 0; i < enemies_to_generate; i++) {
         generated_enemies.push_back(
@@ -92,14 +101,16 @@ inline Rectangle get_bounds(const MapSettings &settings) {
 }
 
 // MAX level = 15
-inline void generate_level(int seed, 
-    int difficulty, 
-    int level,
+inline void generate_level(
     const MapSettings &settings, 
     GameAreaController *game_area_controller) {
 
-    GENRNG::init(seed);
+    GameState *game_state = GameData::game_state_get();
+
+    GENRNG::init(game_state->seed);
     
+    game_area_controller->set_settings(settings);
+
     Rectangle world_bounds = get_bounds(settings);
     game_area_controller->set_world_bounds(world_bounds);
 
@@ -123,10 +134,8 @@ inline void generate_level(int seed,
     // Enemies (depends on settings? - no and yes? depends on difficulty and level also?)
     // same kind of enemy but different look depending on setting?
     generated_enemies.clear();
-    generate_enemies(difficulty, level, settings, world_bounds);
+    generate_enemies(settings, world_bounds);
     for(auto &e : generated_enemies) {
-        // This is where we alter enemies with things from map?
-        // settings.modifiers
         game_area_controller->spawn_target(e.position);
     }
 

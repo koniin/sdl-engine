@@ -553,7 +553,7 @@ namespace Sound {
 			return;
 		}
 
-		Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);
+		// Engine::logn("Playing sound: %d with volume: %d", play_queue[queue_head].id, play_queue[queue_head].volume);
 		sound_play(play_queue[queue_head].id, play_queue[queue_head].volume);
 		
 		queue_head = (queue_head + 1) % MAX_QUEUE_SIZE;

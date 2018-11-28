@@ -2,10 +2,12 @@
 #define GAME_AREA_CONTROLLER_H
 
 #include "game_area.h"
+#include "game_data.h"
 
 struct GameAreaController {
     GameArea *game_area;
     std::unordered_map<std::string, Sound::SoundId> sound_map;
+    MapSettings map_settings;
 
     GameAreaController(GameArea *g) : game_area(g) {}
 
@@ -13,9 +15,14 @@ struct GameAreaController {
         game_area->world_bounds = bounds;
     }
 
+    void set_settings(const MapSettings &settings) {
+        map_settings = settings;
+    }
+
     bool boss_spawned = false;
     void set_boss(int id) {
         // place holder
+        boss_spawned = false;
     }
 
     bool spawn_boss() {
@@ -66,7 +73,7 @@ struct GameAreaController {
     void spawn_target(Vector2 position);
     
     void spawn_player_projectile(Vector2 pos, Vector2 velocity);
-    void spawn_muzzle_flash(Position p, Vector2 local_position, ECS::Entity parent);
+    void spawn_muzzle_flash(Vector2 p, Vector2 local_position, ECS::Entity parent);
     void spawn_explosion(Vector2 position, float offset_x, float offset_y);
     void spawn_smoke(Vector2 position) {
         game_area->smoke_emitter.position = position;

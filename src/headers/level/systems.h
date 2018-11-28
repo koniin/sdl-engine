@@ -66,7 +66,6 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
         Velocity &velocity = players.velocity[i];
         Direction &direction = players.direction[i];
         const PlayerConfiguration &player_config = players.config[i];
-        const auto &player_position = players.position[i];
         
         // Update rotation based on rotational speed
         direction.angle += pi.move_x * player_config.rotation_speed * Time::delta_time;
@@ -75,48 +74,41 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
         } else if(direction.angle < 0.0f) {
             direction.angle = 360.0f;
         }
-        float rotation = direction.angle / Math::RAD_TO_DEGREE;
-        direction.value.x = cos(rotation);
-        direction.value.y = sin(rotation);
+
+        direction.value = Math::direction_from_angle(direction.angle);
         
 	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::delta_time;
 	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-            pi.fire_cooldown = players.weapon[i].fire_cooldown;
-
-            auto projectile_pos = player_position;
-
-            // auto fire_dir = Math::direction(Vector2(Input::mousex, Input::mousey), projectile_pos.value);
-            // const Vector2 projectile_direction = fire_dir;
-            const Vector2 projectile_direction = direction.value;
+            pi.fire_cooldown = Attacks[players.config[i].attack].cooldown;
+    
+            const float accuracy = Attacks[players.config[i].attack].accuracy;
+            float angle = direction.angle + RNG::range_f(-accuracy, accuracy);
+            const Vector2 projectile_direction = Math::direction_from_angle(angle);
 
             // set the projectile position to be gun_barrel_distance infront of the ship
-            projectile_pos.value.x += projectile_direction.x * player_config.gun_barrel_distance;
-            projectile_pos.value.y += projectile_direction.y * player_config.gun_barrel_distance;        
-            auto muzzle_pos = projectile_pos;
-
-            // Accuracy
-            const float accuracy = 8; // how far from initial position it can maximaly spawn
-            projectile_pos.value.x += RNG::range_f(-accuracy, accuracy) * projectile_direction.y;
-            projectile_pos.value.y += RNG::range_f(-accuracy, accuracy) * projectile_direction.x;
-
-            float projectile_speed = players.weapon[i].projectile_speed;
+            auto projectile_pos = players.position[i].value;
+            projectile_pos += projectile_direction * player_config.gun_barrel_distance;
+            
+            float projectile_speed = Attacks[players.config[i].attack].projectile_speed;
             Vector2 projectile_velocity = Vector2(projectile_direction.x * projectile_speed, projectile_direction.y * projectile_speed);
-            game_ctrl->spawn_player_projectile(projectile_pos.value, projectile_velocity);
-            game_ctrl->spawn_muzzle_flash(muzzle_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
+            game_ctrl->spawn_player_projectile(projectile_pos, projectile_velocity);
+            
+            // Rest of it
+            game_ctrl->spawn_muzzle_flash(projectile_pos, Vector2(player_config.gun_barrel_distance, player_config.gun_barrel_distance), players.entity[i]);
             
             camera_shake(0.1f);
-
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
-
-            game_ctrl->spawn_smoke(muzzle_pos.value);
-            
             // Player knockback
-            players.position[i].value.x -= projectile_direction.x * player_config.fire_knockback;
-            players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
+            players.position[i].value -= projectile_direction * Attacks[players.config[i].attack].knockback;
+            //players.position[i].value.y -= projectile_direction.y * player_config.fire_knockback;
+            // Sound
+            
+            Sound::queue(game_ctrl->sound_map[Attacks[players.config[i].attack].sound_name], 2);
 
-            Sound::queue(game_ctrl->sound_map["player_fire"], 2);
+            // game_ctrl->spawn_smoke(muzzle_pos.value);
+            
             // auto b = GameEvents::get_event<PlayerFireBullet>();
             // b->test = 666;
             // GameEvents::queue(b);
