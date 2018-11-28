@@ -110,9 +110,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             // Spawn Projectile
             // ---------------------------------
             // Spawn a projectile with accuracy adjusted angle
-            float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
-            Vector2 projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * fire_settings.projectile_speed;
-            game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity, fire_settings.p_data);
+            spawn_attack_projectiles(players.config[i].attack, fire_settings, original_angle, gun_exit_position, game_ctrl);
 
             // float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
             // projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * -fire_settings.projectile_speed;
