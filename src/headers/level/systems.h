@@ -1,63 +1,30 @@
 #ifndef SYSTEMS_H
 #define SYSTEMS_H
 
+#include "game_input_wrapper.h"
 #include "entities.h"
 #include "game_area_controller.h"
 #include "game_events.h"
 #include "game_data.h"
 
-struct InputMapping {
-	SDL_Scancode up;
-	SDL_Scancode down;
-	SDL_Scancode left;
-	SDL_Scancode right;
-	SDL_Scancode fire;
-	SDL_Scancode shield;
-};
-
-const static InputMapping input_maps[2] = {
-	{ SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT },
-	{ SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
-};
-
 inline void system_player_get_input(Player &players) {
-    bool yes = false;
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
-        pi.move_x = 0;
-        pi.move_y = 0;
+        pi.move.x = pi.move.y = 0;
         pi.fire_x = 0;
         pi.fire_y = 0;
 
-        InputMapping key_map = input_maps[i];
-
-        if(Input::key_down(key_map.up)) {
-            pi.move_y = 1;
-        } else if(Input::key_down(key_map.down)) {
-            pi.move_y = -1;
-        } 
-        
-        if(Input::key_down(key_map.left)) {
-            pi.move_x = -1;
-        } else if(Input::key_down(key_map.right)) {
-            pi.move_x = 1;
-        }
+        GInput::direction(pi.move);
 
         pi.fire_cooldown = Math::max_f(0.0f, pi.fire_cooldown - Time::delta_time);
 
-        if(Input::key_down(key_map.fire)) {
+        if(GInput::down(GInput::Fire)) {
             pi.fire_x = pi.fire_y = 1;
-            yes = true;
         }
 
         if(Input::key_pressed(SDLK_p)) {
             Engine::pause(1.0f);
         }
-    }
-
-    if(yes) {
-        int a = 4;
-        a++;
     }
 }
 
@@ -69,7 +36,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
         const PlayerConfiguration &player_config = players.config[i];
         
         // Update rotation based on rotational speed
-        direction.angle += pi.move_x * player_config.rotation_speed * Time::delta_time;
+        direction.angle += pi.move.x * player_config.rotation_speed * Time::delta_time;
         if(direction.angle > 360.0f) {
             direction.angle = 0;
         } else if(direction.angle < 0.0f) {
@@ -78,8 +45,8 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 
         direction.value = Math::direction_from_angle(direction.angle);
         
-	    velocity.value.x += direction.value.x * pi.move_y * player_config.move_acceleration * Time::delta_time;
-	    velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
+	    velocity.value += direction.value * pi.move.y * player_config.move_acceleration * Time::delta_time;
+	    // velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
 
@@ -367,7 +334,7 @@ void system_child_sprite_exhaust(T &entity_data, ChildSprite &child_sprites) {
         auto &exhaust_animation = entity_data.child_sprites.animation[exhaust_id];
         auto &local_position = entity_data.child_sprites.local_position[exhaust_id];
      
-        if(pi.move_y > 0) {
+        if(pi.move.y > 0) {
             local_position = Vector2(-player_config.gun_barrel_distance, -player_config.gun_barrel_distance);
             exhaust_animation.start = 24;
             exhaust_animation.end = 28;
@@ -386,9 +353,9 @@ inline void system_player_ship_animate(Player &players) {
     system_animation_ping_pong(players.child_sprites);
 
     for(int i = 0; i < players.length; i++) {
-        if(players.input[i].move_x > 0) {
+        if(players.input[i].move.x > 0) {
             players.sprite[i].sprite_name = "player_turn_right";
-        } else if(players.input[i].move_x < 0) {
+        } else if(players.input[i].move.x < 0) {
             players.sprite[i].sprite_name = "player_turn_left";
         } else {
             players.sprite[i].sprite_name = "player_1";

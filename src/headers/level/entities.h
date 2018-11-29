@@ -8,9 +8,7 @@
 const Vector2 SHADOW_POSITION = Vector2(22, 22);
 
 struct PlayerInput {
-	// Input
-	float move_x = 0;
-	float move_y = 0;
+	Vector2 move;
 	float fire_x = 0;
 	float fire_y = 0;
 	float fire_cooldown = 0;
