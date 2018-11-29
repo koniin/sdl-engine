@@ -2,7 +2,6 @@
 #define GAME_AREA_CONTROLLER_H
 
 #include "game_area.h"
-#include "game_data.h"
 
 struct GameAreaController {
     GameArea *game_area;
@@ -72,7 +71,6 @@ struct GameAreaController {
     void spawn_player(Vector2 position);
     void spawn_target(Vector2 position);
     
-    void spawn_player_projectile(Vector2 pos, Vector2 velocity, ProjectileData p_data);
     void spawn_muzzle_flash(Vector2 p, Vector2 local_position, ECS::Entity parent);
     void spawn_explosion(Vector2 position, float offset_x, float offset_y);
     void spawn_smoke(Vector2 position) {

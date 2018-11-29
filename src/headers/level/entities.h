@@ -31,6 +31,7 @@ struct Velocity {
     Vector2 value;
 
     Velocity(): value(Vector2()) {}
+    Velocity(Vector2 v): value(v) {}
     Velocity(float xv, float yv): value(xv, yv) {}
 };
 
@@ -308,12 +309,7 @@ struct Projectile : ECS::EntityData {
     std::vector<Damage> damage;
     std::vector<CollisionData> collision;
 
-    struct SpawnProjectile {
-        Vector2 position;
-        Vector2 velocity;
-        ProjectileData p_data;
-    };
-    std::vector<SpawnProjectile> projectile_queue;
+    std::vector<ProjectileSpawn> projectile_queue;
 
     void allocate(size_t n) {
         allocate_entities(n);
@@ -336,24 +332,31 @@ struct Projectile : ECS::EntityData {
         }
     }
 
-    void queue_projectile(Vector2 p, Vector2 v, ProjectileData p_data) {
-        projectile_queue.push_back({ p , v, p_data });
+    void queue_projectile(ProjectileSpawn p) {
+        projectile_queue.push_back(p);
     }
 
-    void create(ECS::Entity e, Vector2 p, Vector2 v, ProjectileData p_data) {
+    void spawn_queued(ECS::EntityManager *entity_manager) {
+        for(size_t i = 0; i < projectile_queue.size(); i++) {
+            auto e = entity_manager->create();
+            create(e, projectile_queue[i]);
+        }
+        projectile_queue.clear();
+    }
+
+    void create(ECS::Entity e, ProjectileSpawn p) {
         add_entity(e);
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
-        life_time[handle.i].ttl = p_data.time_to_live;
+        life_time[handle.i].ttl = p.time_to_live;
         // Engine::logn("ttl %.1f ", p_data.time_to_live);
         life_time[handle.i].time = 0;
-
-        position[handle.i] = { p, p };
-        velocity[handle.i] = Velocity(v.x, v.y);
+        position[handle.i] = { p.position, p.position };
+        velocity[handle.i] = Velocity(Math::direction_from_angle(p.angle) * p.speed);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2");
         sprite[handle.i] = s;
-        damage[handle.i] = { p_data.damage, p_data.force };
-        collision[handle.i] = { p_data.radius };
+        damage[handle.i] = { p.damage, p.force };
+        collision[handle.i] = { p.radius };
     }
 };
 

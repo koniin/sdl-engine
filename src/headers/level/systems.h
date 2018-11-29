@@ -4,6 +4,7 @@
 #include "entities.h"
 #include "game_area_controller.h"
 #include "game_events.h"
+#include "game_data.h"
 
 struct InputMapping {
 	SDL_Scancode up;
@@ -60,24 +61,6 @@ inline void system_player_get_input(Player &players) {
     }
 }
 
-inline void spawn_projectiles(
-    const Attack &attack, 
-    const FireSettings &fs, 
-    const float attack_angle, 
-    const Vector2 &gun_exit_position, GameAreaController *game_ctrl)  {
-    switch(attack) {
-        case Basic: {
-                float angle_with_accuracy = attack_angle + RNG::range_f(-fs.accuracy, fs.accuracy);
-                Vector2 projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * fs.projectile_speed;
-                game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity, fs.p_data);
-            }
-            break;
-        default:
-            ASSERT_WITH_MSG(false, "Attack not implemented!");
-            break;
-    }
-}
-
 inline void system_player_handle_input(Player &players, GameAreaController *game_ctrl) {
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
@@ -100,23 +83,22 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
 
-            auto fire_settings = GameData::create_fire_settings(players.config[i].attack, game_ctrl->map_settings);
-
             // From config (depends on rendering size)
             const float gun_barrel_distance = player_config.gun_barrel_distance;
+            float original_angle = direction.angle;
+            // set the projectile start position to be gun_barrel_distance infront of the ship
+            auto gun_exit_position = players.position[i].value + Math::direction_from_angle(original_angle) * gun_barrel_distance;
+            
+            auto fire_settings = GameData::trigger_projectile_fire(player_config.attack, game_ctrl->map_settings, original_angle, gun_exit_position, game_ctrl->game_area->projectiles_player.projectile_queue);
 
             // this is for all projectiles
             // ---------------------------------
             pi.fire_cooldown = fire_settings.fire_cooldown;
-            float original_angle = direction.angle;
-            // set the projectile position to be gun_barrel_distance infront of the ship
-            auto gun_exit_position = players.position[i].value;
-            auto projectile_direction = Math::direction_from_angle(original_angle);
-            gun_exit_position += Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
             // Muzzle flash
             game_ctrl->spawn_muzzle_flash(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
             // Camera
+            auto projectile_direction = Math::direction_from_angle(original_angle);
             camera_shake(0.1f);
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
             // Player knockback
@@ -125,10 +107,6 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             Sound::queue(game_ctrl->sound_map[fire_settings.sound_name], 2);
             // ---------------------------------
 
-            // Spawn Projectile
-            // ---------------------------------
-            // Spawn a projectile with accuracy adjusted angle
-            spawn_projectiles(players.config[i].attack, fire_settings, original_angle, gun_exit_position, game_ctrl);
 
             // float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
             // projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * -fire_settings.projectile_speed;
@@ -456,13 +434,13 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
             if(entity_data.ai[i].search_area > Math::distance_v(ai_position, target_position)) {
                 entity_data.ai[i].fire_cooldown = entity_data.weapon[i].fire_cooldown;;
 
-                const Vector2 direction = Math::direction(target_position, ai_position);
-                const Vector2 projectile_position = ai_position;
+                // const Vector2 direction = Math::direction(target_position, ai_position);
+                float angle = Math::degrees_between_v(ai_position, target_position);
                 
-                Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
+                //Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
 
-                ProjectileData p_data(1, 8, 1.0f);
-                projectiles.queue_projectile(projectile_position, projectile_velocity, p_data);
+                ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f);
+                projectiles.queue_projectile(p);
                 continue; // only fire at one target
             }
         }

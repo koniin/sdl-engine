@@ -10,28 +10,9 @@ void GameAreaController::spawn_target(Vector2 position) {
     game_area->targets.create(e, position);
 }
 
-void GameAreaController::spawn_player_projectile(Vector2 position, Vector2 velocity, ProjectileData p_data) {
-    game_area->projectiles_player.queue_projectile(position, velocity, p_data);
-}
-
 void GameAreaController::spawn_projectiles() {
-    for(size_t i = 0; i < game_area->projectiles_player.projectile_queue.size(); i++) {
-        auto e = game_area->entity_manager.create();
-        game_area->projectiles_player.create(e, 
-            game_area->projectiles_player.projectile_queue[i].position, 
-            game_area->projectiles_player.projectile_queue[i].velocity,
-            game_area->projectiles_player.projectile_queue[i].p_data);
-    }
-    game_area->projectiles_player.projectile_queue.clear();
-
-    for(size_t i = 0; i < game_area->projectiles_target.projectile_queue.size(); i++) {
-        auto e = game_area->entity_manager.create();
-        game_area->projectiles_target.create(e, 
-            game_area->projectiles_target.projectile_queue[i].position, 
-            game_area->projectiles_target.projectile_queue[i].velocity,
-            game_area->projectiles_target.projectile_queue[i].p_data);
-    }
-    game_area->projectiles_target.projectile_queue.clear();
+    game_area->projectiles_player.spawn_queued(&game_area->entity_manager);
+    game_area->projectiles_target.spawn_queued(&game_area->entity_manager);
 }
 
 void GameAreaController::spawn_effects() {

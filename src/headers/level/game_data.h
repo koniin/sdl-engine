@@ -124,25 +124,35 @@ struct GameState {
     GameState(int seed, Difficulty difficulty) : seed(seed), difficulty(difficulty) {}
 };
 
-struct ProjectileData {
-    int damage;
-    int radius;
-    float force = 2.0f;
-    float time_to_live;
-
-    ProjectileData(int damage, int radius, float ttl) : damage(damage), radius(radius), time_to_live(ttl) {}
-};
-
 struct FireSettings {
     float fire_cooldown;
-    float accuracy;
-    float projectile_speed;
     float knockback;
     char *sound_name;
-    ProjectileData p_data;
 
-    FireSettings(float cooldown, float accuracy, float speed, float knockback, char *sound_name, ProjectileData data) :
-        fire_cooldown(cooldown), accuracy(accuracy), projectile_speed(speed), knockback(knockback), sound_name(sound_name), p_data(data) {
+    FireSettings(float cooldown, float knockback, char *sound_name) :
+        fire_cooldown(cooldown), knockback(knockback), sound_name(sound_name) {
+    }
+};
+
+struct ProjectileSpawn {
+    Vector2 position;
+    float angle;
+    float speed;
+    int damage;
+    int radius;
+    float time_to_live;
+
+    float force;
+
+    ProjectileSpawn(Vector2 pos, float angle, float speed, int damage, int radius, float ttl) : 
+        position(pos),
+        angle(angle),
+        speed(speed),
+        damage(damage), 
+        radius(radius), 
+        time_to_live(ttl) 
+    {
+        force = 2.0f;
     }
 };
 
@@ -150,11 +160,11 @@ namespace GameData {
     void game_state_new(int seed, Difficulty difficulty);
     GameState *game_state_get();
 
-    FireSettings create_fire_settings(const Attack &attack, const MapSettings &settings);
-    
+    FireSettings trigger_projectile_fire(const Attack &attack, const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);
+
     /*
     // Create enemy by type and then alter it with current map and gamestate
-    EnemySettings create_enemy_settings();
+    EnemySettings create_enemy();
     */
 };
 
