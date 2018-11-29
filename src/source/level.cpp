@@ -248,6 +248,8 @@ void level_render_ui() {
             }
             // draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
             
+            ui_render_map_settings(game_area_controller->map_settings);
+
             arrow.render();
             
             for(auto &t : toasts) {

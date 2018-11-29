@@ -187,6 +187,11 @@ void ui_render_upgrade_selection() {
     }
 }
 
+void ui_render_map_settings(const MapSettings &settings) {
+    draw_text_right_str(gw - 5, 10, Colors::white, MapStyleNames[settings.style]);
+    draw_text_right_str(gw - 5, 20, Colors::white, MapSizeNames[settings.map_size]);
+}
+
 void ui_update(GameArea *ga) {
     arrow.update(ga);
 
