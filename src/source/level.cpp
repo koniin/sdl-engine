@@ -25,6 +25,8 @@ void level_load() {
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     Resources::sprite_sheet_load("deserts", "deserts.data");
     
+    GameData::load_upgrades();
+
     collisions.allocate(128);
     render_buffer.init(2048);
     game_area = new GameArea();
@@ -46,9 +48,11 @@ void level_init() {
         MapSettings settings;
         generate_settings(settings);
         ui_add_settings_choice(settings);
+    }
 
-        Upgrade upgrade;
-        generate_random_upgrade(upgrade);
+    std::vector<Upgrade> upgrade_choices;
+    generate_random_upgrades(upgrade_choices, 3);
+    for(auto &upgrade : upgrade_choices) {
         ui_add_upgrade_choice(upgrade);
     }
 }
@@ -156,10 +160,9 @@ void level_update() {
     Timing::update_timers();
     ui_update(game_area);
 
-    MapSettings s;
-    Upgrade u;
     switch(level_state) {
-        case SettingsSelection:
+        case SettingsSelection: {
+            MapSettings s;
             if(ui_has_settings_selection(s)) {
                 // then after loading screen and selection we do this
                 generate_level(s, game_area_controller);
@@ -167,15 +170,18 @@ void level_update() {
                 level_state = Loading;
             }
             break;
+        }
         case Loading:
             break;
         case Play:
             game_area_input();
             game_area_update();
             break;
-        case End:
+        case End: {
+            Upgrade u;
             if(game_area->players.length > 0) {
                 if(ui_has_upgrades_selection(u)) {
+                    GameData::add_upgrade(u);
                     level_clean();
                     level_init();
                     Engine::logn("Selection");
@@ -188,7 +194,8 @@ void level_update() {
                     level_init();
                 }
             }
-            break;   
+            break; 
+        }  
     }
 }
 

@@ -12,7 +12,7 @@ void menu_unload() {
 
 void menu_update() {
     if(GInput::pressed(GInput::Start) || GInput::pressed(GInput::Fire)) {
-        room_goto(Rooms::Game);
+        room_goto(Rooms::NewGame);
     }
 }
 

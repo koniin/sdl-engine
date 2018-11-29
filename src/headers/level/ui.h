@@ -73,6 +73,9 @@ inline void render_health_bar(int x, int y, int width, int height, float value, 
     draw_g_rectangle_filled_RGBA(x, y, width, height, 255, 255, 255, 255);
     draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, width - border_size_d, height - 2, 0, 0, 0, 255);
     draw_g_rectangle_filled_RGBA(x + border_size, y + border_size, (int)hp_bar_width, 13, 255, 0, 0, 255);
+
+    std::string hp_text = std::to_string((int)value) + "/" + std::to_string((int)max);
+    draw_text_centered_str(x + (int)hp_bar_width / 2, y + height / 2 + border_size, Colors::white, hp_text);
 }
 
 template<typename T>

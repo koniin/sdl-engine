@@ -21,6 +21,10 @@ constexpr float player_drag() {
     return 0.04f / 0.016667f;
 }
 
+inline float per_frame_calculation(float s) {
+    return s / 0.016667f;
+}
+
 enum MapSize {
     Small = 0,
     Medium = 1,
@@ -59,28 +63,20 @@ struct MapSettings {
     std::vector<MapModifier> modifiers;
 };
 
-struct Upgrade {
-    char *name;
-    char *description;
-};
-
-static const size_t UPGRADE_COUNT = 3;
-static const Upgrade Upgrades[UPGRADE_COUNT] = { 
-    { "Damage", "damage increase" },
-    { "Help", "+1 MAX hp" }, 
-    { "FASTER!", "Bullet speed increase" } 
-};
-
 /// --------------
 /// Attacks
+
+const int NO_ATTACK = 666;
 
 enum Attack {
     Basic = 0,
     SIZE_OF_Attacks = 1
 };
 
-static const char* AttackNames[] = { "Basic" };
+static const char* AttackNames[SIZE_OF_Attacks] = { "Basic" };
+static const Attack AttackIds[SIZE_OF_Attacks] = { Basic };
 static_assert(sizeof(AttackNames)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackNames sizes dont match");
+static_assert(sizeof(AttackIds)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackIds sizes dont match");
 
 struct Attack_t {    
     char *sound_name;
@@ -101,15 +97,20 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
 
 /// --------------
 
-struct PlayerState {
-	float rotation_speed = player_move_rotation(); // degrees
-	float move_acceleration = player_move_acceleration();
-	float drag = player_drag();
-    Attack attack = Attack::Basic;
+struct Upgrade;
 
+struct PlayerStats {
+    Attack attack = Attack::Basic;
     int collision_radius = 8;
+    float drag = player_drag();
     int hp = 10;
     int max_hp = 10;
+    float move_acceleration = player_move_acceleration();
+    float rotation_speed = player_move_rotation(); // degrees
+	
+    void increase_hp(int amount) {
+        hp = Math::clamp_i(hp + amount, 0, max_hp);
+    }
 };
 
 struct TargetWeaponConfiguration {
@@ -135,7 +136,8 @@ struct GameState {
     Difficulty difficulty = Difficulty::Normal;
     int level = 1;
 
-    PlayerState player;
+    PlayerStats player;
+	std::vector<Upgrade> player_upgrades;
 
     GameState(int seed, Difficulty difficulty) : seed(seed), difficulty(difficulty) {}
 };
@@ -172,11 +174,74 @@ struct ProjectileSpawn {
     }
 };
 
+struct PlayerModifier {
+    int attack = NO_ATTACK;
+    int collision_radius = 0;
+    float drag = 0;
+    int hp = 0;
+    int max_hp = 0;
+	float move_acceleration = 0;
+    float rotation_speed = 0; // degrees
+
+    void apply(PlayerStats &player_stats) const {
+        if(attack != NO_ATTACK) {
+            player_stats.attack = AttackIds[attack];
+        }
+        player_stats.collision_radius += collision_radius;
+        player_stats.drag += drag;
+        player_stats.max_hp += max_hp;
+        player_stats.increase_hp(hp);
+        player_stats.move_acceleration += move_acceleration;
+        player_stats.rotation_speed += rotation_speed;
+    }
+};
+
+struct ProjectileStatModifier {
+    float accuracy = 0; // how much the projectile can go of the straight line when fired (spreads in -angle to angle from initial angle)
+    float cooldown = 0; // how much time between projectiles
+    float knockback = 0;
+    int projectile_damage = 0;
+    int projectile_radius = 0; // for collisions
+    float projectile_speed = 0; 
+    float time_to_live = 0; // Time to live so it's range but not really
+    
+    void apply(Attack_t &t_attack) const {
+        t_attack.accuracy += accuracy;
+        t_attack.cooldown += cooldown;
+        t_attack.knockback += knockback;
+        t_attack.projectile_damage += projectile_damage;
+        t_attack.projectile_radius += projectile_radius;
+        t_attack.projectile_speed += projectile_speed;
+        t_attack.range += time_to_live;
+    }
+};
+
+struct Upgrade {
+    char *name;
+    char *description;
+    std::vector<PlayerModifier> player_m;
+    std::vector<ProjectileStatModifier> projectile_m;
+    
+    void apply_projectile_modifiers(Attack_t &t_attack) const {
+        for(auto &m : projectile_m) {
+            m.apply(t_attack);
+        }
+    }
+
+    void apply_player_modifiers(PlayerStats &player_stats) const {
+        for(auto &m : player_m) {
+            m.apply(player_stats);
+        }
+    }
+};
+
 namespace GameData {
     void game_state_new(int seed, Difficulty difficulty);
     GameState *game_state_get();
-
-
+    void load_upgrades();
+    std::vector<Upgrade> &get_upgrades();
+    void set_attack(const Attack &attack);
+    void add_upgrade(const Upgrade &u);
     FireSettings trigger_projectile_fire(const Attack &attack, const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);
 
     /*

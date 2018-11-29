@@ -6,6 +6,7 @@
 #include "game_data.h"
 
 #include <unordered_set>
+#include <algorithm>
 
 namespace GENRNG {
 	static std::mt19937 RNG_generator;
@@ -54,11 +55,20 @@ void generate_settings(MapSettings &settings) {
     settings.modifiers = { { "Test modifier" } };
 }
 
-void generate_random_upgrade(Upgrade &upgrade) {
-    // GameState *game_state = GameData::game_state_get();
+void generate_random_upgrades(std::vector<Upgrade> &upgrade_choices, const size_t &count) {
+    std::vector<int> _gen_choices;
+    _gen_choices.reserve(count);
+    
+    auto &upgrades = GameData::get_upgrades();
+    int max = upgrades.size();
 
-    // GENRNG or just RNG?
-    upgrade = Upgrades[GENRNG::next_i(UPGRADE_COUNT - 1)];
+    for(int i = 0; i < max; i++) {
+        _gen_choices.push_back(i);
+    }
+    std::shuffle(std::begin(_gen_choices), std::end(_gen_choices), GENRNG::RNG_generator);
+    for(size_t i = 0; i < _gen_choices.size(); i++) {
+        upgrade_choices.push_back(upgrades[_gen_choices[i]]);
+    }
 }
 
 static SDL_Color level_colors[4] = {

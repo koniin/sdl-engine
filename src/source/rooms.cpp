@@ -34,7 +34,6 @@ void init_room(const Rooms room) {
         case NewGame:
             break;
         case Game:
-            GameData::game_state_new(1338, Difficulty::Normal); // <- should be in NewGame
             level_init();
             break;
         case AfterGame:
@@ -71,6 +70,8 @@ void room_update() {
             menu_update();
             break;
         case NewGame:
+            GameData::game_state_new(1338, Difficulty::Normal);
+            room_goto(Rooms::Game);
             break;
         case Game:
             level_update();
