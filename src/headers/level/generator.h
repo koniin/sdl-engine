@@ -47,12 +47,31 @@ namespace GENRNG {
 // To generate different options for the player
 void generate_settings(MapSettings &settings) {
     // GameState *game_state = GameData::game_state_get();
-    
-    // https://pathofexile.gamepedia.com/List_of_map_mods
+    // game_state->difficulty
+    // game_state->level
+
+    // Difficulty could also be that you get harder modifiers
+    // difficulty modifier that increases every map modifier
+
+    // we could do a random range something like this: 
+    // int range = difficulty * level;
+    // max(range_i(range / 2, range), 10)
+    size_t modifiers_to_generate = 2;
+
     settings.map_size = MapSize::Small;
     settings.style = MapStyle::Desert;
 
-    settings.modifiers = { { "Test modifier" } };
+    auto &modifiers = GameData::get_map_modifiers();
+    std::vector<int> _gen_choices(modifiers.size());
+    int max = modifiers.size();
+    for(int i = 0; i < max; i++) {
+        _gen_choices[i] = i;
+    }
+    std::shuffle(std::begin(_gen_choices), std::end(_gen_choices), GENRNG::RNG_generator);
+
+    for(size_t i = 0; i < modifiers_to_generate; i++) {
+        settings.modifiers.push_back(modifiers[_gen_choices[i]]);
+    }
 }
 
 void generate_random_upgrades(std::vector<Upgrade> &upgrade_choices, const size_t &count) {
@@ -66,7 +85,7 @@ void generate_random_upgrades(std::vector<Upgrade> &upgrade_choices, const size_
         _gen_choices.push_back(i);
     }
     std::shuffle(std::begin(_gen_choices), std::end(_gen_choices), GENRNG::RNG_generator);
-    for(size_t i = 0; i < _gen_choices.size(); i++) {
+    for(size_t i = 0; i < count; i++) {
         upgrade_choices.push_back(upgrades[_gen_choices[i]]);
     }
 }
@@ -85,19 +104,28 @@ struct EnemySpawn {
 static std::vector<EnemySpawn> generated_enemies(64);
 
 void generate_enemies(const MapSettings &settings, Rectangle &world_bounds) {
+    // GameState *game_state = GameData::game_state_get();
+    // game_state->difficulty
+    // game_state->level
     int enemies_to_generate = 1;
     for(int i = 0; i < enemies_to_generate; i++) {
+        Enemy enemy;
+        
+        settings.apply_enemy_modifiers(enemy);
+
         generated_enemies.push_back(
             { 
                 GENRNG::vector2(10.0f, (float)world_bounds.right() - 10.0f, 10.0f, (float)world_bounds.bottom() - 10.0f), 
-                Enemy()
+                enemy
             }
         );
     }
 }
 
-Enemy generate_boss() {
-    return Enemy();
+Enemy generate_boss(const MapSettings &settings) {
+    Enemy enemy;
+    settings.apply_enemy_modifiers(enemy);
+    return enemy;
 }
 
 inline Rectangle get_bounds(const MapSettings &settings) {
@@ -148,101 +176,13 @@ inline void generate_level(
         game_area_controller->spawn_target(e.position, e.e);
     }
 
-    auto boss = generate_boss();
+    auto boss = generate_boss(settings);
     game_area_controller->set_boss(boss);
 
     // Player start
     Vector2 player_position = world_bounds.center();
     camera_lookat(player_position);
     game_area_controller->spawn_player(player_position);
-}
-
-struct IRDSObject {
-    float rdsProbability; // The chance for this item to drop
-    bool rdsUnique;        // Only drops once per query
-    bool rdsAlways;        // Drops always
-    int id;
-};
-
-struct RDSTable {
-    std::vector<IRDSObject> rdsContents; // The contents of the table
-};
-
-inline std::vector<IRDSObject> rds(int rdsCount, RDSTable &table) {
-    std::unordered_set<int> unique_drops;
-    std::vector<IRDSObject> return_value;
-
-    /*
-    // Do the PreEvaluation on all objects contained in the current table
-    // This is the moment where those objects might disable themselves.
-    for (IRDSObject &o : table.rdsContents) {
-        o.OnRDSPreResultEvaluation(EventArgs.Empty);
-    }
-    */
-
-    // Add all the objects that are hit "Always" to the result
-    // Those objects are really added always, no matter what "Count"
-    // is set in the table! If there are 5 objects "always", those 5 will
-    // drop, even if the count says only 3.
-    for (IRDSObject &o : table.rdsContents) {
-        if(!o.rdsAlways) {
-            continue;
-        }
-        
-        if(o.rdsUnique) {
-            if(unique_drops.find(o.id) == unique_drops.end()) {
-                return_value.push_back(o);
-                unique_drops.insert(o.id);
-            }
-        } else {
-            return_value.push_back(o);
-        }
-    }
-
-    int alwayscnt = return_value.size();
-    int realdropcnt = rdsCount - alwayscnt;
-
-    if(realdropcnt <= 0) {
-        return return_value;
-    }
-
-    for (int dropcount = 0; dropcount < realdropcnt; dropcount++) {
-        float sum = 0.0f;
-
-        // Calculate sum of all probabilities in the table that are not already added as always
-        for(auto &o : table.rdsContents) {
-            if(o.rdsAlways) {
-                continue;
-            }
-            sum += o.rdsProbability;
-        }
-        
-        // This is the magic random number that will decide, which object is hit now
-        // public static double GetDoubleValue(double max)             // From 0.0 (incl) to max (excl)
-        // double hitvalue = RDSRandom.GetDoubleValue(sum);
-        float hitValue = RNG::range_f(0.0f, sum - 1.0f); // -1 to change to exclusive?
-        
-        // Find out in a loop which object's probability hits the random value...
-        float runningvalue = 0;
-        for(auto &o : table.rdsContents) {
-            // Count up until we find the first item that exceeds the hitvalue...
-            runningvalue += o.rdsProbability;
-            if (hitValue < runningvalue) {
-                // ...and the oscar goes too...
-                if(o.rdsUnique) {
-                    if(unique_drops.find(o.id) == unique_drops.end()) {
-                        return_value.push_back(o);
-                        unique_drops.insert(o.id);
-                    }
-                } else {
-                    return_value.push_back(o);
-                }
-                break;
-            }
-        }
-    }
-
-    return return_value;
 }
 
 #endif

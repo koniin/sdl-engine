@@ -1,10 +1,12 @@
 #include "level/game_data.h"
 
 static void add_upgrades_to_list(std::vector<Upgrade> &upgrades);
+static void add_map_modifiers_to_list(std::vector<MapModifier> &modifiers);
 
 namespace GameData {
     GameState *game_state = nullptr;
     std::vector<Upgrade> upgrades;
+    std::vector<MapModifier> map_modifiers;
 
     void game_state_new(int seed, Difficulty difficulty) {
         if(game_state != nullptr) {
@@ -17,12 +19,17 @@ namespace GameData {
         return game_state;
     }
 
-    void load_upgrades() {
+    void load_data() {
         add_upgrades_to_list(upgrades);
+        add_map_modifiers_to_list(map_modifiers);
     }
 
     std::vector<Upgrade> &get_upgrades() {
         return upgrades;
+    }
+    
+    std::vector<MapModifier> &get_map_modifiers() {
+        return map_modifiers;
     }
 
     void set_attack(const Attack & attack) {
@@ -47,8 +54,9 @@ namespace GameData {
 
     // Order
     // 1. first we take the data from the attack and use as base
-    // 2. apply modifiers to the base
+    // 2. apply player upgrade modifiers to the base
     // 3. apply map settings things to that
+    // 4. then we fire the projectiles based on those numbers
     FireSettings trigger_projectile_fire(const Attack &attack, const MapSettings &settings, 
         float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue) 
     {
@@ -58,7 +66,7 @@ namespace GameData {
             upgrade.apply_projectile_modifiers(t_attack);
         }
 
-        // Apply map modifiers
+        settings.apply_player_projectile_modifiers(t_attack);
         
         float fire_cooldown = t_attack.cooldown;
         float accuracy = t_attack.accuracy;
@@ -72,6 +80,8 @@ namespace GameData {
         float angle_with_accuracy = angle + RNG::range_f(-accuracy, accuracy);
         ProjectileSpawn p(pos, angle_with_accuracy, projectile_speed, projectile_damage, projectile_radius, time_to_live);
         
+        // TODO: Make this into properties of the attack instead
+        //       so it can decide how many projectiles to fire and their properties instead
         switch(attack) {
             case Basic: {
                     projectiles_queue.push_back(p);
@@ -112,5 +122,37 @@ static void add_upgrades_to_list(std::vector<Upgrade> &upgrades) {
         u.projectile_m.push_back(m);
 
         upgrades.push_back(u);
+    }
+}
+
+static void add_map_modifiers_to_list(std::vector<MapModifier> &modifiers) {
+    { 
+        MapModifier m = { "Hardened", "+1 HP for enemies" };
+        EnemyModifier em;
+        em.max_hp = 1;
+        em.hp = 1;
+        m.enemy_m.push_back(em);
+        modifiers.push_back(m);
+    }
+    { 
+        MapModifier m = { "Alert", "Larger detection radius" };
+        EnemyModifier em;
+        em.activation_radius = 100.0f;
+        m.enemy_m.push_back(em);
+        modifiers.push_back(m);
+    }
+    {
+        MapModifier m = { "Power", "More enemy damage" };
+        ProjectileStatModifier pm;
+        pm.projectile_damage = 2;
+        m.target_proj_m.push_back(pm);
+        modifiers.push_back(m);
+    }
+    {
+        MapModifier m = { "Weakness", "Less player damage" };
+        ProjectileStatModifier pm;
+        pm.projectile_damage = 1;
+        m.player_proj_m.push_back(pm);
+        modifiers.push_back(m);
     }
 }

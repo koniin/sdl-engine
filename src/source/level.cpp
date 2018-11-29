@@ -25,7 +25,7 @@ void level_load() {
 	Resources::sprite_sheet_load("shooter", "shooter_sprites.data");
     Resources::sprite_sheet_load("deserts", "deserts.data");
     
-    GameData::load_upgrades();
+    GameData::load_data();
 
     collisions.allocate(128);
     render_buffer.init(2048);
@@ -246,7 +246,6 @@ void level_render_ui() {
             if(game_area->players.length > 0) {
                 render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
             }
-            // draw_text_centered((int)(gw/2), 10, Colors::white, "UI TEXT");
             
             ui_render_map_settings(game_area_controller->map_settings);
 

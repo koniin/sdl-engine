@@ -44,24 +44,12 @@ static const char* MapStyleNames[] = { "Desert" };
 static_assert(sizeof(MapSizeNames)/sizeof(char*) == MapSize::SIZE_OF_MapSize, "MapSizeNames sizes dont match");
 static_assert(sizeof(MapStyleNames)/sizeof(char*) == MapStyle::SIZE_OF_MapStyle, "MapStyleNames sizes dont match");
 
-// Should be like 
-// name 
-// description
-// modifier (for drops)
-
-struct MapModifier {
-    char *name;
-    char *description;
-    float drop_modifier;
-
-    // -> actual modifier (function?)
-};
-
-struct MapSettings {
-    MapSize map_size;
-    MapStyle style;
-    std::vector<MapModifier> modifiers;
-};
+struct Upgrade;
+struct PlayerModifier;
+struct ProjectileStatModifier;
+struct EnemyModifier;
+struct Attack_t;
+struct Enemy;
 
 /// --------------
 /// Attacks
@@ -76,7 +64,7 @@ enum Attack {
 static const char* AttackNames[SIZE_OF_Attacks] = { "Basic" };
 static const Attack AttackIds[SIZE_OF_Attacks] = { Basic };
 static_assert(sizeof(AttackNames)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackNames sizes dont match");
-static_assert(sizeof(AttackIds)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackIds sizes dont match");
+
 
 struct Attack_t {    
     char *sound_name;
@@ -96,8 +84,6 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
 };
 
 /// --------------
-
-struct Upgrade;
 
 struct PlayerStats {
     Attack attack = Attack::Basic;
@@ -125,6 +111,20 @@ struct Enemy {
     float activation_radius = 100.0f;
 
     TargetWeaponConfiguration weapon;
+};
+
+struct EnemyModifier {
+    int hp = 0;
+    int max_hp = 0;
+    int collision_radius = 0;
+    float activation_radius = 0;
+    
+    void apply(Enemy &enemy) const {
+        enemy.hp += hp;
+        enemy.max_hp += max_hp;
+        enemy.collision_radius += collision_radius;
+        enemy.activation_radius += activation_radius;
+    }
 };
 
 enum Difficulty {
@@ -194,6 +194,13 @@ struct PlayerModifier {
         player_stats.move_acceleration += move_acceleration;
         player_stats.rotation_speed += rotation_speed;
     }
+
+    // void reverse(PlayerStats &player_stats) const {
+    //     player_stats.collision_radius -= collision_radius;
+    //     player_stats.drag -= drag;
+    //     player_stats.move_acceleration -= move_acceleration;
+    //     player_stats.rotation_speed -= rotation_speed;
+    // }
 };
 
 struct ProjectileStatModifier {
@@ -235,11 +242,59 @@ struct Upgrade {
     }
 };
 
+struct MapModifier {
+    char *name;
+    char *description;
+    float drop_modifier;
+    
+    std::vector<PlayerModifier> player_m;
+    std::vector<EnemyModifier> enemy_m;
+    std::vector<ProjectileStatModifier> player_proj_m;
+    std::vector<ProjectileStatModifier> target_proj_m;
+
+    void apply_player_projectile_modifiers(Attack_t &t_attack) const {
+        for(auto &m : player_proj_m) {
+            m.apply(t_attack);
+        }
+    }
+
+    void apply_enemy_modifiers(Enemy &enemy) const {
+        for(auto &m : enemy_m) {
+            m.apply(enemy);
+        }
+    }
+
+    // void apply_enemy_projectile_modifiers(Attack_t &t_attack) const {
+    //     for(auto &m : target_proj_m) {
+    //         m.apply(t_attack);
+    //     }
+    // }
+};
+
+struct MapSettings {
+    MapSize map_size;
+    MapStyle style;
+    std::vector<MapModifier> modifiers;
+
+    void apply_player_projectile_modifiers(Attack_t &t_attack) const {
+        for(auto &m : modifiers) {
+            m.apply_player_projectile_modifiers(t_attack);
+        }
+    }
+
+    void apply_enemy_modifiers(Enemy &enemy) const {
+        for(auto &m : modifiers) {
+            m.apply_enemy_modifiers(enemy);
+        }
+    }
+};
+
 namespace GameData {
     void game_state_new(int seed, Difficulty difficulty);
     GameState *game_state_get();
-    void load_upgrades();
+    void load_data();
     std::vector<Upgrade> &get_upgrades();
+    std::vector<MapModifier> &get_map_modifiers();
     void set_attack(const Attack &attack);
     void add_upgrade(const Upgrade &u);
     FireSettings trigger_projectile_fire(const Attack &attack, const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);

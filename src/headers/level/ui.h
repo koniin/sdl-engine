@@ -151,10 +151,10 @@ bool ui_has_upgrades_selection(Upgrade &item) {
 
 void ui_render_settings_selection() {
     int margin = 160;
-    int y = 180;
     int x = margin;
     int count = 0;
     for(auto &settings : map_settings.choices) {
+        int y = 180;
         if(count == map_settings.current) {
             draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 40, 40, 0, 255);
         } else {
@@ -163,6 +163,12 @@ void ui_render_settings_selection() {
         
         draw_text_centered(x, y, Colors::white, MapStyleNames[settings.style]);
         draw_text_centered(x, y + 10, Colors::white, MapSizeNames[settings.map_size]);
+        y = y + 20;
+        for(auto &m : settings.modifiers) {
+            draw_text_centered(x, y, Colors::white, m.description);
+            y += 10;
+        }
+
         x += margin;
         count++;
     }
@@ -175,9 +181,9 @@ void ui_render_upgrade_selection() {
     int count = 0;
     for(auto &upgrade : upgrades_selection.choices) {
         if(count == upgrades_selection.current) {
-            draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 80, 40, 10, 255);
-        } else {
             draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 80, 120, 40, 255);
+        } else {
+            draw_g_rectangle_filled_RGBA(x - 50, y - 10, 100, 100, 80, 40, 10, 255);
         }
         
         draw_text_centered(x, y, Colors::white, upgrade.name);
@@ -190,6 +196,11 @@ void ui_render_upgrade_selection() {
 void ui_render_map_settings(const MapSettings &settings) {
     draw_text_right_str(gw - 5, 10, Colors::white, MapStyleNames[settings.style]);
     draw_text_right_str(gw - 5, 20, Colors::white, MapSizeNames[settings.map_size]);
+    int start = 30;
+    for(auto &m : settings.modifiers) {
+        draw_text_right_str(gw - 5, start, Colors::white, m.description);
+        start += 10;
+    }
 }
 
 void ui_update(GameArea *ga) {
