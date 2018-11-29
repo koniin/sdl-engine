@@ -114,11 +114,11 @@ void select_list_select(SelectList<T> &select_list) {
 
 template<typename T>
 void select_list_change(SelectList<T> &select_list) {
-    if(Input::key_pressed(SDLK_a)) {
+    if(GInput::pressed(GInput::Left)) {
         select_list_change_selection(select_list, -1);
-    } else if(Input::key_pressed(SDLK_d)) {
+    } else if(GInput::pressed(GInput::Right)) {
         select_list_change_selection(select_list, 1);
-    } else if(Input::key_pressed(SDLK_SPACE) || Input::key_pressed(SDLK_RETURN)) {
+    } else if(GInput::pressed(GInput::Start)) {
         select_list_select(select_list);
     }
 }

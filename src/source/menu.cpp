@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "rooms.h"
+#include "game_input_wrapper.h"
 
 void menu_load() {
     Engine::logn("menu_load");
@@ -10,7 +11,7 @@ void menu_unload() {
 }
 
 void menu_update() {
-    if(Input::key_pressed(SDLK_SPACE)) {
+    if(GInput::pressed(GInput::Start) || GInput::pressed(GInput::Fire)) {
         room_goto(Rooms::Game);
     }
 }

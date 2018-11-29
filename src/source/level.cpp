@@ -183,7 +183,7 @@ void level_update() {
             }
             else {
                 game_area_update();
-                if(Input::key_pressed(SDLK_b)) {
+                if(GInput::pressed(GInput::Start)) {
                     level_clean();
                     level_init();
                 }
@@ -248,7 +248,7 @@ void level_render_ui() {
             }
             break;
         case End:
-            draw_text_centered((int)gw / 2, (int)gh - 20, Colors::white, "Press B to restart level");
+            draw_text_centered((int)gw / 2, (int)gh - 20, Colors::white, "Press Start to restart level");
             break;
     }
 }

@@ -22,7 +22,7 @@ inline void system_player_get_input(Player &players) {
             pi.fire_x = pi.fire_y = 1;
         }
 
-        if(Input::key_pressed(SDLK_p)) {
+        if( GInput::pressed(GInput::Pause)) {
             Engine::pause(1.0f);
         }
     }

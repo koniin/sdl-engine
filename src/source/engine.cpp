@@ -179,7 +179,10 @@ namespace Input {
     // Uint8* previous_mouse_state;
 
     std::unordered_set<int> keysDown;
-    std::unordered_set<int> keysUp;
+	std::unordered_set<int> keysDownNow;
+	std::unordered_set<int> keysUpNow;
+    // std::unordered_set<int> keysUp;
+	// std::unordered_set<int> keysDown_previous;
 
     void init() {
         controller = NULL;
@@ -193,8 +196,8 @@ namespace Input {
  
     void update_states() {
         current_keyboard_state = SDL_GetKeyboardState(NULL);
-        keysDown.clear();
-        keysUp.clear();
+        keysDownNow.clear();
+		keysUpNow.clear();
 		SDL_GetMouseState(&mousex, &mousey);
 		mouse_left_down = false;
     }
@@ -202,9 +205,11 @@ namespace Input {
     void map(const SDL_Event *event) {
         if (event->type == SDL_KEYDOWN) {
 		    keysDown.insert(event->key.keysym.sym);
+			keysDownNow.insert(event->key.keysym.sym);
 		}
         if (event->type == SDL_KEYUP) {
-		    keysUp.insert(event->key.keysym.sym);
+			keysDown.erase(event->key.keysym.sym);
+		    keysUpNow.insert(event->key.keysym.sym);
 		}
 		if(event->type == SDL_MOUSEBUTTONDOWN) {
 			if(event->button.button == SDL_BUTTON_LEFT ) {
@@ -217,12 +222,16 @@ namespace Input {
         return current_keyboard_state[scanCode];
     }
 
+	bool key_down_k(const SDL_Keycode &keyCode) {
+        return keysDown.count(keyCode) > 0;
+    }
+
     bool key_released(const SDL_Keycode &keyCode) {
-        return keysUp.count(keyCode) > 0;
+        return keysUpNow.count(keyCode) > 0;
     }
 
     bool key_pressed(const SDL_Keycode &keyCode) {
-        return keysDown.count(keyCode) > 0;
+        return keysDownNow.count(keyCode) > 0;
     }
 }
 

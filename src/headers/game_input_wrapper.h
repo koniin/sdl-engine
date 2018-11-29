@@ -5,92 +5,42 @@
 
 namespace GInput {
     enum Action {
-        Start,
-        Cancel,
-        Left,
-        Right,
-        Up,
-        Down,
-        Fire
+        Start = 0,
+        Cancel = 1,
+        Pause = 2,
+        Left = 3,
+        Right = 4,
+        Up = 5,
+        Down = 6,
+        Fire = 7,
+        ACTION_COUNT
     };
 
-    struct InputMapping {
-        SDL_Scancode up;
-        SDL_Scancode down;
-        SDL_Scancode left;
-        SDL_Scancode right;
-        SDL_Scancode fire;
-        SDL_Scancode shield;
-    };
-
-    const static InputMapping input_maps[2] = {
-        { SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D, SDL_SCANCODE_SPACE, SDL_SCANCODE_LSHIFT },
-        { SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT, SDL_SCANCODE_KP_ENTER, SDL_SCANCODE_RSHIFT }
+    const static SDL_Keycode input_map[ACTION_COUNT] = {
+        SDLK_RETURN, SDLK_BACKSPACE, SDLK_p, SDLK_a, SDLK_d, SDLK_w, SDLK_s, SDLK_SPACE
     };
 
     inline void direction(Vector2 &direction) {
-        InputMapping key_map = input_maps[0];
-        if(Input::key_down(key_map.left)) {
+        if(Input::key_down_k(input_map[Action::Left])) {
             direction.x = -1;
-        } else if(Input::key_down(key_map.right)) {
+        } else if(Input::key_down_k(input_map[Action::Right])) {
             direction.x = 1;
         }
 
-        if(Input::key_down(key_map.up)) {
+        if(Input::key_down_k(input_map[Action::Up])) {
             direction.y = 1;
-        } else if(Input::key_down(key_map.down)) {
+        } else if(Input::key_down_k(input_map[Action::Down])) {
             direction.y = -1;
         }
     }
 
     inline bool down(const Action &action) {
-        InputMapping key_map = input_maps[0];
-        switch(action) {
-            case Fire: { return Input::key_down(key_map.fire); }
-            case Left: { return Input::key_down(key_map.left); }
-            case Right: { return Input::key_down(key_map.right); }
-            case Up: { return Input::key_down(key_map.up); }
-            case Down: { return Input::key_down(key_map.down); }
-            default: {
-                ASSERT_WITH_MSG(false, "KEY NOT IMPLEMENTED");
-                break;
-            }
-        }
+        return Input::key_down_k(input_map[action]);
     }
 
-    // inline bool pressed(const Action &action) {
-    //     InputMapping key_map = input_maps[0];
-    //     switch(action) {
-    //         case Fire: { return Input::key_pressed(key_map.fire); }
-    //         case Left: { return Input::key_pressed(key_map.left); }
-    //         case Right: { return Input::key_pressed(key_map.right); }
-    //         case Up: { return Input::key_pressed(key_map.up); }
-    //         case Down: { return Input::key_pressed(key_map.down); }
-    //     }
-    // }
-
-    // inline bool down(const Action &action) {
-        
-
-    //     switch(action) {
-    //         case Left: {
-    //             return Input::key_down(key_map.left);
-    //         }
-    //         case Left: {
-    //             return Input::key_down(key_map.left);
-    //         }
-    //     }
-    // }
-
-    // inline void pressed(const Action &action) {
-    //     switch(action) {
-    //         case Left: {
-    //             return ;
-    //         }
-    //     }
-    //     return Input::key_pressed(SDLK_SPACE);
-    // }
-
+    inline bool pressed(const Action &action) {
+        return Input::key_pressed(input_map[action]);
+    }
 }
 
 #endif
