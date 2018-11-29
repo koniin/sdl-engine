@@ -2,6 +2,7 @@
 #define GAME_AREA_CONTROLLER_H
 
 #include "game_area.h"
+#include "game_data.h"
 
 struct GameAreaController {
     GameArea *game_area;
@@ -19,8 +20,10 @@ struct GameAreaController {
     }
 
     bool boss_spawned = false;
-    void set_boss(int id) {
+    Enemy level_boss;
+    void set_boss(const Enemy &boss) {
         // place holder
+        level_boss = boss;
         boss_spawned = false;
     }
 
@@ -52,7 +55,8 @@ struct GameAreaController {
 
         Engine::logn("spawn tries: %d", count);
         Engine::logn("boss spawned at: %.1f, %.1f", boss_pos.x, boss_pos.y);
-        spawn_target(boss_pos);
+
+        spawn_target(boss_pos, level_boss);
 
         return true;
     }
@@ -68,8 +72,8 @@ struct GameAreaController {
     void spawn_projectiles();
     void spawn_effects();
 
-    void spawn_player(Vector2 position);
-    void spawn_target(Vector2 position);
+    void spawn_player(const Vector2 &position);
+    void spawn_target(const Vector2 &position, const Enemy &e);
     
     void spawn_muzzle_flash(Vector2 p, Vector2 local_position, ECS::Entity parent);
     void spawn_explosion(Vector2 position, float offset_x, float offset_y);

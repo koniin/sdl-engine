@@ -360,11 +360,6 @@ struct Projectile : ECS::EntityData {
     }
 };
 
-struct TargetWeaponConfiguration {
-    float fire_cooldown = 0.5f;
-    float projectile_speed = 0;
-};
-
 struct Target : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<TargetConfiguration> config;
@@ -408,7 +403,7 @@ struct Target : ECS::EntityData {
         }
     }
 
-    void create(const ECS::Entity &e, const Vector2 &p) {
+    void create(const ECS::Entity &e, const Vector2 &p, const Enemy &enemy) {
         add_entity(e);
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
@@ -421,10 +416,10 @@ struct Target : ECS::EntityData {
         s.layer = 10;
         sprite[handle.i] = s;
         blink[handle.i] = BlinkEffect();
-        health[handle.i] = { 2, 2 };
-        collision[handle.i] = { 8 };
-        ai[handle.i] = { 100.0f };
-        weapon[handle.i] = { .5f, 6.0f / 0.016667f };
+        health[handle.i] = { enemy.hp, enemy.max_hp };
+        collision[handle.i] = { enemy.collision_radius };
+        ai[handle.i] = { enemy.activation_radius };
+        weapon[handle.i] = enemy.weapon;
 
         SpriteComponent shadow = SpriteComponent("shooter", "enemy_1_b");
         shadow.layer = 8;

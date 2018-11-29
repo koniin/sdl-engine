@@ -4,7 +4,8 @@
 #include "engine.h"
 
 // Pixels per frame
-constexpr float base_projectile_speed() {
+// Base projectile speed
+constexpr float bp_spd() {
     return 8.0f / 0.016667f;
 }
 // Pixels per frame
@@ -65,7 +66,7 @@ struct Upgrade {
 
 static const size_t UPGRADE_COUNT = 3;
 static const Upgrade Upgrades[UPGRADE_COUNT] = { 
-    { "Blaster", "damage increase" },
+    { "Damage", "damage increase" },
     { "Help", "+1 MAX hp" }, 
     { "FASTER!", "Bullet speed increase" } 
 };
@@ -81,20 +82,21 @@ enum Attack {
 static const char* AttackNames[] = { "Basic" };
 static_assert(sizeof(AttackNames)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackNames sizes dont match");
 
-struct Attack_t {
+struct Attack_t {    
     char *sound_name;
     float cooldown; // how much time between projectiles
     float accuracy; // how much the projectile can go of the straight line when fired (spreads in -angle to angle from initial angle)
     
     float knockback;
-    float range;
+    float range; // Time to live so it's range but not really
     float projectile_speed; 
     int projectile_damage;
-    int projectile_radius;
+    int projectile_radius; // for collisions
 };
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
-    { "basic_fire", 0.25f, 8.0f, 2.0f, 0.8f, base_projectile_speed(), 1, 8 }
+    // sound      | cooldown  | accuracy  | knockback | range | speed     | damage    | radius    
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8 }
 };
 
 /// --------------
@@ -108,6 +110,20 @@ struct PlayerState {
     int collision_radius = 8;
     int hp = 10;
     int max_hp = 10;
+};
+
+struct TargetWeaponConfiguration {
+    float fire_cooldown = 0.5f;
+    float projectile_speed = 6.0f / 0.016667f;
+};
+
+struct Enemy {
+    int hp = 2;
+    int max_hp = 2;
+    int collision_radius = 8;
+    float activation_radius = 100.0f;
+
+    TargetWeaponConfiguration weapon;
 };
 
 enum Difficulty {
@@ -159,6 +175,7 @@ struct ProjectileSpawn {
 namespace GameData {
     void game_state_new(int seed, Difficulty difficulty);
     GameState *game_state_get();
+
 
     FireSettings trigger_projectile_fire(const Attack &attack, const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);
 

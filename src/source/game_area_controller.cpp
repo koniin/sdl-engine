@@ -1,13 +1,13 @@
 #include "level\game_area_controller.h"
 
-void GameAreaController::spawn_player(Vector2 position) {
+void GameAreaController::spawn_player(const Vector2 &position) {
     auto e = game_area->entity_manager.create();
     game_area->players.create(e, position);
 }
 
-void GameAreaController::spawn_target(Vector2 position) {
-    auto e = game_area->entity_manager.create();
-    game_area->targets.create(e, position);
+void GameAreaController::spawn_target(const Vector2 &position, const Enemy &e) {
+    auto entity = game_area->entity_manager.create();
+    game_area->targets.create(entity, position, e);
 }
 
 void GameAreaController::spawn_projectiles() {

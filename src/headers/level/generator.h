@@ -70,25 +70,24 @@ static SDL_Color level_colors[4] = {
 
 struct EnemySpawn {
     Vector2 position;
-    int id;
+    Enemy e;
 };
 static std::vector<EnemySpawn> generated_enemies(64);
-
 
 void generate_enemies(const MapSettings &settings, Rectangle &world_bounds) {
     int enemies_to_generate = 1;
     for(int i = 0; i < enemies_to_generate; i++) {
         generated_enemies.push_back(
             { 
-                GENRNG::vector2(10.0f, (float)world_bounds.right() - 10.0f, 10.0f, (float)world_bounds.bottom() - 10.0f)
-                , 0 
+                GENRNG::vector2(10.0f, (float)world_bounds.right() - 10.0f, 10.0f, (float)world_bounds.bottom() - 10.0f), 
+                Enemy()
             }
         );
     }
 }
 
-EnemySpawn generate_boss() {
-    return { Vector2(), 0 };
+Enemy generate_boss() {
+    return Enemy();
 }
 
 inline Rectangle get_bounds(const MapSettings &settings) {
@@ -136,21 +135,16 @@ inline void generate_level(
     generated_enemies.clear();
     generate_enemies(settings, world_bounds);
     for(auto &e : generated_enemies) {
-        game_area_controller->spawn_target(e.position);
+        game_area_controller->spawn_target(e.position, e.e);
     }
 
     auto boss = generate_boss();
-    game_area_controller->set_boss(boss.id);
+    game_area_controller->set_boss(boss);
 
     // Player start
     Vector2 player_position = world_bounds.center();
     camera_lookat(player_position);
     game_area_controller->spawn_player(player_position);
-
-    // Boss - only activate on all other dead
-        // conditional something or just a special type of variable somewhere?
-    
-    // (drops?)
 }
 
 struct IRDSObject {

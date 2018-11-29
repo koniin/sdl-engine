@@ -538,6 +538,19 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
     }
 }
 
+// Projectile hits target
+void on_hit(CollisionPair &collision_pair, Projectile &first, Target &second) {
+    mark_for_deletion(first, collision_pair.first);
+
+    // pierce 
+    // split
+} 
+
+// Projectile hits player
+void on_hit(CollisionPair &collision_pair, Projectile &first, Player &second) {
+    mark_for_deletion(first, collision_pair.first);
+} 
+
 template<typename First, typename Second>
 void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second, GameAreaController *game_ctrl) {
     collision_pairs.sort_by_distance();
@@ -557,8 +570,8 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
         // or it could be many events but the less the simpler right
         // but for now it's just easier to call functions directly since we don't have
         // anything else listening to things
-        mark_for_deletion(entity_first, collision_pairs[i].first);
-        // on_hit(entity_first, entity_second, collision_pairs[i]);
+       
+        on_hit(collision_pairs[i], entity_first, entity_second);
         if(is_invulnerable(entity_second, collision_pairs[i].second)) {
             continue;
         }

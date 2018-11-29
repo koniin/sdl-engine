@@ -34,7 +34,7 @@ namespace GameData {
         int projectile_radius = t_attack.projectile_radius;
 
         
-
+        // Calculate final accuracy
         float angle_with_accuracy = angle + RNG::range_f(-accuracy, accuracy);
         ProjectileSpawn p(pos, angle_with_accuracy, projectile_speed, projectile_damage, projectile_radius, time_to_live);
         
