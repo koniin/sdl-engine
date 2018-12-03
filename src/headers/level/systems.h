@@ -477,6 +477,24 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         if(++projectile.pierce[handle.i].count > projectile.pierce[handle.i].limit) {
             mark_for_deletion(projectile, entities.first);
         }
+        
+        int split_count = 2;
+        if(split_count > 0) {
+            std::vector<float> angles = { -90, 90 };
+            float angle = RNG::range_f(0, 360);
+            
+            for(auto &angle_offset : angles) {
+                float final_angle = angle + angle_offset;
+                float final_speed = projectile.velocity[handle.i].value.length();
+                int damage = projectile.damage[handle.i].value;
+                Vector2 pos = entities.collision_point;
+                int radius = projectile.collision[handle.i].radius;
+                float time_to_live = 0.4f;
+                int pierce_count = 0;
+                ProjectileSpawn p(pos, final_angle, final_speed, damage, radius, time_to_live, pierce_count);
+                game_ctrl->game_area->projectiles_player.queue_projectile(p);
+            }
+        }
     } else {
         return;
     }
