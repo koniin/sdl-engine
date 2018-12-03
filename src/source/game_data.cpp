@@ -130,10 +130,10 @@ static void add_upgrades_to_list(std::vector<Upgrade> &upgrades) {
 
 static void add_map_modifiers_to_list(std::vector<MapModifier> &modifiers) {
     { 
-        MapModifier m = { "Hardened", "+1 HP for enemies" };
+        MapModifier m = { "Hardened", "+5 HP for enemies" };
         EnemyModifier em;
-        em.max_hp = 1;
-        em.hp = 1;
+        em.max_hp = 5;
+        em.hp = 5;
         m.enemy_m.push_back(em);
         modifiers.push_back(m);
     }
@@ -154,7 +154,7 @@ static void add_map_modifiers_to_list(std::vector<MapModifier> &modifiers) {
     {
         MapModifier m = { "Weakness", "Less player damage" };
         ProjectileStatModifier pm;
-        pm.projectile_damage = 1;
+        pm.projectile_damage = -1;
         m.player_proj_m.push_back(pm);
         modifiers.push_back(m);
     }
