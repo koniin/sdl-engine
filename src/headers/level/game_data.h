@@ -62,12 +62,12 @@ enum Attack {
     Triple = 2,
     Circle = 3,
     Back = 4,
-    SIZE_OF_Attacks = 5
+    Fire = 5,
+    SIZE_OF_Attacks = 6
 };
 
-static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back" };
-static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back };
-static_assert(sizeof(AttackNames)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackNames sizes dont match");
+static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back", "Fire" };
+static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back, Fire };
 
 struct Attack_t {    
     char *sound_name;
@@ -90,12 +90,13 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
     { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { -8, 0, 8 } },
     { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2,   1,          8,        { 0, 45, 90, 135, 180, 225, 270, 315 } },
     { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0, 180 } },
+    { "basic_fire", 0.1f,      4.0f,       0.0f,       0.4f,   bp_spd() * 0.5f,   1,          8,        { 0 } },
 };
 
 /// --------------
 
 struct PlayerStats {
-    Attack attack = Attack::Back;
+    Attack attack = Attack::Fire;
     int collision_radius = 8;
     float drag = player_drag();
     int hp = 10;
