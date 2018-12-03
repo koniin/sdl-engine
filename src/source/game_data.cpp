@@ -102,9 +102,9 @@ namespace GameData {
 
 static void add_upgrades_to_list(std::vector<Upgrade> &upgrades) {
     {
-        Upgrade u = { "Phat", "+1 MAX hp" };
+        Upgrade u = { "Phat", "+4 MAX hp" };
         PlayerModifier m;
-        m.max_hp = 1;
+        m.max_hp = 4;
 
         u.player_m.push_back(m);
 
@@ -113,7 +113,7 @@ static void add_upgrades_to_list(std::vector<Upgrade> &upgrades) {
     {
         Upgrade u = { "Muscle Up", "damage increase" };
         ProjectileStatModifier m;
-        m.projectile_damage = 1;
+        m.projectile_damage = 2;
         u.projectile_m.push_back(m);
 
         upgrades.push_back(u);
@@ -130,10 +130,10 @@ static void add_upgrades_to_list(std::vector<Upgrade> &upgrades) {
 
 static void add_map_modifiers_to_list(std::vector<MapModifier> &modifiers) {
     { 
-        MapModifier m = { "Hardened", "+5 HP for enemies" };
+        MapModifier m = { "Hardened", "Increased HP for enemies" };
         EnemyModifier em;
-        em.max_hp = 5;
-        em.hp = 5;
+        em.max_hp = enemy_base_hp;
+        em.hp = enemy_base_hp_max;
         m.enemy_m.push_back(em);
         modifiers.push_back(m);
     }
