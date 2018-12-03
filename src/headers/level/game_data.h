@@ -98,13 +98,13 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
     { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0 } },
     { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0, 90, -90 } },
     { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(),   1,          8,        { -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12 } },
-    { "basic_fire", 0.7f,      1.0f,       10.0f,       1.0f,   bp_spd() * 0.3f,   10,          16,        { 0 } },
+    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f,   10,          16,        { 0 } },
 };
 
 /// --------------
 
 struct PlayerStats {
-    Attack attack = Attack::Blast;
+    Attack attack = Attack::Boom;
     int collision_radius = 8;
     float drag = player_drag();
     int hp = 10;
@@ -123,8 +123,8 @@ struct TargetWeaponConfiguration {
 };
 
 struct Enemy {
-    int hp = 10;
-    int max_hp = 10;
+    int hp = 5;
+    int max_hp = 5;
     int collision_radius = 8;
     float activation_radius = 100.0f;
 
