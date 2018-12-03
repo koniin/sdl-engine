@@ -73,13 +73,15 @@ namespace GameData {
         float knockback = t_attack.knockback;
         float time_to_live = t_attack.range;
         float projectile_speed = t_attack.projectile_speed;
+        float projectile_speed_mod = t_attack.projectile_speed_mod;
         int projectile_damage = t_attack.projectile_damage;
         int projectile_radius = t_attack.projectile_radius;
         std::vector<float> &angles = t_attack.projectile_angles;
 
         for(auto &angle_offset : angles) {
             float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);
-            ProjectileSpawn p(pos, final_angle, projectile_speed, projectile_damage, projectile_radius, time_to_live);
+            float final_speed = projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
+            ProjectileSpawn p(pos, final_angle, final_speed, projectile_damage, projectile_radius, time_to_live);
             projectiles_queue.push_back(p);
         }
 

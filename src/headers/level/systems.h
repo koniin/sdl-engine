@@ -452,8 +452,8 @@ inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPai
 
         camera_shake(0.1f);
 
-        // 29 frames because that is so cool
-        float invulnerability_time = 29 * Time::delta_time_fixed;
+        // 20 frames because that is so cool
+        float invulnerability_time = 20 * Time::delta_time_fixed;
         set_invulnerable(health, invulnerability_time);
         blink_sprite(p, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
     } else {
@@ -495,10 +495,10 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         // play hit sound
         // Sound::queue(test_sound_id, 2);
         
-        // 29 frames because that is so cool
-        float invulnerability_time = 12 * Time::delta_time_fixed;
+        // 6 frames because that is so cool
+        float invulnerability_time = 6 * Time::delta_time_fixed;
         set_invulnerable(health, invulnerability_time);
-        blink_sprite(t, entities.second, invulnerability_time, 4 * Time::delta_time_fixed);
+        blink_sprite(t, entities.second, invulnerability_time, 3 * Time::delta_time_fixed);
     } else {
         Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt");
         // Do we need to handle this case?
@@ -507,6 +507,7 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
 
 // Projectile hits target
 void on_hit(CollisionPair &collision_pair, Projectile &first, Target &second) {
+    
     mark_for_deletion(first, collision_pair.first);
 
     // pierce 

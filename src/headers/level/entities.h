@@ -299,6 +299,10 @@ struct Player : ECS::EntityData {
     }
 };
 
+struct ProjectileSpecialization {
+
+};
+
 struct Projectile : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<Position> position;
@@ -306,6 +310,7 @@ struct Projectile : ECS::EntityData {
     std::vector<SpriteComponent> sprite;
     std::vector<Damage> damage;
     std::vector<CollisionData> collision;
+    std::vector<ProjectileSpecialization> specialization;
 
     std::vector<ProjectileSpawn> projectile_queue;
 
@@ -318,6 +323,7 @@ struct Projectile : ECS::EntityData {
         initialize(&sprite);
         initialize(&damage);
         initialize(&collision);
+        initialize(&specialization);
 
         projectile_queue.reserve(64);
     }
@@ -355,6 +361,8 @@ struct Projectile : ECS::EntityData {
         sprite[handle.i] = s;
         damage[handle.i] = { p.damage, p.force };
         collision[handle.i] = { p.radius };
+
+        specialization[handle.i] = {  };
     }
 };
 

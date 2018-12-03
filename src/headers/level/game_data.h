@@ -8,6 +8,10 @@
 constexpr float bp_spd() {
     return 8.0f / 0.016667f;
 }
+
+constexpr float bp_spd_mod() {
+    return 1.0f / 0.016667f;
+}
 // Pixels per frame
 constexpr float player_move_acceleration() {
     return 10.0f / 0.016667f;
@@ -82,6 +86,7 @@ struct Attack_t {
     float knockback; // how far projectiles knock enemies back
     float range; // Time to live so it's range but not really
     float projectile_speed; // speed in pixels / second (x / (1/60)) 
+    float projectile_speed_mod;
     int projectile_damage;
     int projectile_radius; // for collisions
 
@@ -89,18 +94,18 @@ struct Attack_t {
 };
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
-    // sound      | cooldown  | accuracy  | knockback | ttl    | speed     | damage    | radius | angles   
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   3,          8,        { 0 }   }, // Basic
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(),   3,          8,        { -8, 8 } }, // Double
-    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(),   3,          8,        { -8, 0, 8 } }, // Triple
-    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2,   3,          8,  { 0, 45, 90, 135, 180, 225, 270, 315 } }, // Circle
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(),   3,          8,        { 0, 180 } }, // Back
-    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(),   2,          8,        { 0 } }, // Flamer
-    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(),   2,          8,        { 0 } }, // Rapid
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   3,          8,        { 0, 90, -90 } }, // Side
-    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(),   3,          8,        { -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12 } }, // Blast
-    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f,   9,          16,        { 0 } }, // Boom
-    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(),   3,          8,        { 0 } }, // Minigun
+    // sound      | cooldown  | accuracy  | knockback | ttl    | speed  | spd_mod | damage    | radius | angles   
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,        { 0 }   }, // Basic
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,        { -8, 8 } }, // Double
+    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,        { -8, 0, 8 } }, // Triple
+    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,  { 0, 45, 90, 135, 180, 225, 270, 315 } }, // Circle
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,        { 0, 180 } }, // Back
+    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,          8,        { 0 } }, // Flamer
+    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,        { 0 } }, // Rapid
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,        { 0, 90, -90 } }, // Side
+    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8,        { -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12 } }, // Blast
+    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16,        { 0 } }, // Boom
+    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8,        { 0 } }, // Minigun
 };
 
 /// --------------
@@ -111,7 +116,7 @@ const int enemy_base_hp = 5;
 const int enemy_base_hp_max = 5;
 
 struct PlayerStats {
-    Attack attack = Attack::Minigun;
+    Attack attack = Attack::Blast;
     int collision_radius = 8;
     float drag = player_drag();
     int hp = player_start_hp;
@@ -244,7 +249,7 @@ struct ProjectileStatModifier {
         t_attack.projectile_damage += projectile_damage;
         t_attack.projectile_radius += projectile_radius;
         t_attack.projectile_speed += projectile_speed;
-        t_attack.range += time_to_live;
+        t_attack.range += time_to_live;    
     }
 };
 
