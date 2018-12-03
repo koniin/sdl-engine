@@ -116,7 +116,7 @@ const int enemy_base_hp = 5;
 const int enemy_base_hp_max = 5;
 
 struct PlayerStats {
-    Attack attack = Attack::Blast;
+    Attack attack = Attack::Flamer;
     int collision_radius = 8;
     float drag = player_drag();
     int hp = player_start_hp;
