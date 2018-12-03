@@ -299,8 +299,9 @@ struct Player : ECS::EntityData {
     }
 };
 
-struct ProjectileSpecialization {
-
+struct Pierce {
+    int count = 0;
+    int limit = 0;
 };
 
 struct Projectile : ECS::EntityData {
@@ -310,7 +311,7 @@ struct Projectile : ECS::EntityData {
     std::vector<SpriteComponent> sprite;
     std::vector<Damage> damage;
     std::vector<CollisionData> collision;
-    std::vector<ProjectileSpecialization> specialization;
+    std::vector<Pierce> pierce;
 
     std::vector<ProjectileSpawn> projectile_queue;
 
@@ -323,7 +324,7 @@ struct Projectile : ECS::EntityData {
         initialize(&sprite);
         initialize(&damage);
         initialize(&collision);
-        initialize(&specialization);
+        initialize(&pierce);
 
         projectile_queue.reserve(64);
     }
@@ -362,7 +363,7 @@ struct Projectile : ECS::EntityData {
         damage[handle.i] = { p.damage, p.force };
         collision[handle.i] = { p.radius };
 
-        specialization[handle.i] = {  };
+        pierce[handle.i] = { 0, p.pierce_count };
     }
 };
 

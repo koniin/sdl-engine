@@ -406,7 +406,7 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 
                 //Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
 
-                ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f);
+                ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f, 0);
                 projectiles.queue_projectile(p);
                 continue; // only fire at one target
             }
@@ -436,8 +436,37 @@ void system_remove_deleted(T &entity_data) {
     }
 }
 
+
+// Projectile hits target
+void on_hit(const CollisionPair &collision_pair, Projectile &first, Target &second) {
+    auto handle = first.get_handle(collision_pair.first);
+    if(first.is_valid(handle)) {
+        if(is_invulnerable(second, collision_pair.second))
+            return;
+
+        if(++first.pierce[handle.i].count > first.pierce[handle.i].limit) {
+            mark_for_deletion(first, collision_pair.first);
+        }
+    } else {
+        Engine::logn("NEVER GET HERE?!");
+        mark_for_deletion(first, collision_pair.first);
+    }
+}
+
+// Projectile hits player
+void on_hit(const CollisionPair &collision_pair, Projectile &first, Player &second) {
+    mark_for_deletion(first, collision_pair.first);
+} 
+
 // Player is dealt damage
 inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities, GameAreaController *game_ctrl) {
+    bool invulnerable = is_invulnerable(p, entities.second);
+
+    on_hit(entities, projectile, p);
+    if(invulnerable) {
+        return;
+    }
+    
     int amount_dealt = deal_damage(projectile, entities.first, p, entities.second);
 
     auto &health = get_health(p, entities.second);
@@ -464,6 +493,13 @@ inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPai
 
 // Target is dealt damage
 inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities, GameAreaController *game_ctrl) {
+    bool invulnerable = is_invulnerable(t, entities.second);
+
+    on_hit(entities, projectile, t);
+    if(invulnerable) {
+        return;
+    }
+
     // Knockback
     auto &damage = get_damage(projectile, entities.first);
     auto &velocity = get_velocity(projectile, entities.first);
@@ -495,6 +531,8 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         // play hit sound
         // Sound::queue(test_sound_id, 2);
         
+        Engine::logn("hp %d", health.hp);
+
         // 6 frames because that is so cool
         float invulnerability_time = 6 * Time::delta_time_fixed;
         set_invulnerable(health, invulnerability_time);
@@ -504,20 +542,6 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         // Do we need to handle this case?
     }
 }
-
-// Projectile hits target
-void on_hit(CollisionPair &collision_pair, Projectile &first, Target &second) {
-    
-    mark_for_deletion(first, collision_pair.first);
-
-    // pierce 
-    // split
-} 
-
-// Projectile hits player
-void on_hit(CollisionPair &collision_pair, Projectile &first, Player &second) {
-    mark_for_deletion(first, collision_pair.first);
-} 
 
 template<typename First, typename Second>
 void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_first, Second &entity_second, GameAreaController *game_ctrl) {
@@ -538,11 +562,7 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
         // or it could be many events but the less the simpler right
         // but for now it's just easier to call functions directly since we don't have
         // anything else listening to things
-       
-        on_hit(collision_pairs[i], entity_first, entity_second);
-        if(is_invulnerable(entity_second, collision_pairs[i].second)) {
-            continue;
-        }
+
         on_deal_damage(entity_first, entity_second, collision_pairs[i], game_ctrl);
         // ----
     }

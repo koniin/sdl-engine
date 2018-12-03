@@ -76,12 +76,15 @@ namespace GameData {
         float projectile_speed_mod = t_attack.projectile_speed_mod;
         int projectile_damage = t_attack.projectile_damage;
         int projectile_radius = t_attack.projectile_radius;
+        int pierce_count = t_attack.pierce_count;
         std::vector<float> &angles = t_attack.projectile_angles;
+
+        Engine::logn("pierce: %d", pierce_count);
 
         for(auto &angle_offset : angles) {
             float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);
             float final_speed = projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
-            ProjectileSpawn p(pos, final_angle, final_speed, projectile_damage, projectile_radius, time_to_live);
+            ProjectileSpawn p(pos, final_angle, final_speed, projectile_damage, projectile_radius, time_to_live, pierce_count);
             projectiles_queue.push_back(p);
         }
 
