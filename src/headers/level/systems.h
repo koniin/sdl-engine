@@ -496,9 +496,9 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         // Sound::queue(test_sound_id, 2);
         
         // 29 frames because that is so cool
-        float invulnerability_time = 29 * Time::delta_time_fixed;
+        float invulnerability_time = 12 * Time::delta_time_fixed;
         set_invulnerable(health, invulnerability_time);
-        blink_sprite(t, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
+        blink_sprite(t, entities.second, invulnerability_time, 4 * Time::delta_time_fixed);
     } else {
         Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt");
         // Do we need to handle this case?
