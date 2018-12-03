@@ -65,11 +65,13 @@ enum Attack {
     Fire = 5,
     Rapid = 6,
     Side = 7,
-    SIZE_OF_Attacks = 8
+    Blast = 8,
+    Boom = 9,
+    SIZE_OF_Attacks = 10
 };
 
-static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back", "Fire", "Rapid", "Side" };
-static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back, Fire, Rapid, Side };
+static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back", "Fire", "Rapid", "Side", "Blast", "Boom" };
+static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back, Fire, Rapid, Side, Blast, Boom };
 
 struct Attack_t {    
     char *sound_name;
@@ -95,12 +97,14 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
     { "basic_fire", 0.1f,      4.0f,       0.0f,       0.4f,   bp_spd() * 0.5f,   1,          8,        { 0 } },
     { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0 } },
     { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0, 90, -90 } },
+    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(),   1,          8,        { -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12 } },
+    { "basic_fire", 0.7f,      1.0f,       10.0f,       1.0f,   bp_spd() * 0.3f,   10,          16,        { 0 } },
 };
 
 /// --------------
 
 struct PlayerStats {
-    Attack attack = Attack::Side;
+    Attack attack = Attack::Blast;
     int collision_radius = 8;
     float drag = player_drag();
     int hp = 10;
