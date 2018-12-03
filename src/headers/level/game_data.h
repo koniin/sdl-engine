@@ -91,24 +91,52 @@ struct Attack_t {
     int projectile_damage;
     int projectile_radius; // for collisions
     int pierce_count;
-
-    std::vector<float> projectile_angles; // how many projectiles and their angle offset from direction angle
 };
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
-    // sound      | cooldown  | accuracy  | knockback | ttl    | speed  | spd_mod | damage | radius | pierce | angles   
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0,       { 0 }   }, // Basic
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,       { -8, 8 } }, // Double
-    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0,       { -8, 0, 8 } }, // Triple
-    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,  { 0, 45, 90, 135, 180, 225, 270, 315 } }, // Circle
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,       { 0, 180 } }, // Back
-    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,0,          8,        { 0 } }, // Flamer
-    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,0,        { 0 } }, // Rapid
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,0,        { 0, 90, -90 } }, // Side
-    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8, 0,       { -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12 } }, // Blast
-    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0,       { 0 } }, // Boom
-    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,       { 0 } }, // Minigun
-    { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1,       { 0 } }, // Nailgun
+    // sound      | cooldown  | accuracy  | knockback | ttl    | speed  | spd_mod | damage | radius | pierce 
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0,          }, // Basic
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,        }, // Double
+    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0,      }, // Triple
+    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,   }, // Circle
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,       }, // Back
+    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,0,          8, }, // Flamer
+    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,0,        }, // Rapid
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,0,         }, // Side
+    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8, 0, }, // Blast
+    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0, }, // Boom
+    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,      }, // Minigun
+    { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, }, // Nailgun
+};
+
+static const std::vector<float> Projectile_angles[SIZE_OF_Attacks] = { 
+    { { 0 }   }, // Basic
+    { { -8, 8 } }, // Double
+    { { -8, 0, 8 } }, // Triple
+    { { 0, 45, 90, 135, 180, 225, 270, 315 } }, // Circle
+    { { 0, 180 } }, // Back
+    { { 0 } }, // Flamer
+    { { 0 } }, // Rapid
+    { { 0, 90, -90 } }, // Side
+    { { -12, -10, -8, -6, -4, -2, 2, 4, 6, 8, 10, 12 } }, // Blast
+    { { 0 } }, // Boom
+    { { 0 } }, // Minigun
+    { { 0 } }, // Nailgun
+};
+
+static const std::vector<float> Extra_projectile_angles[SIZE_OF_Attacks] = { 
+    { { -8, 8 }   }, // Basic
+    { { -8, 0, 8 } }, // Double
+    { { -12, -6, 6, 12 } }, // Triple
+    { { 0, 45, 90, 135, 180, 225, 270, 315 } }, // Circle
+    { { -8, 8, 180 } }, // Back
+    { { 4, -4 } }, // Flamer
+    { { 2, -2 } }, // Rapid
+    { { 8, -8, 90, -90 } }, // Side
+    { { -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12 } }, // Blast
+    { { 2, -2 } }, // Boom
+    { { 2, -2 } }, // Minigun
+    { { 1, -1 } }, // Nailgun
 };
 
 /// --------------
@@ -246,6 +274,7 @@ struct ProjectileStatModifier {
     int projectile_radius = 0; // for collisions
     float projectile_speed = 0; 
     float time_to_live = 0; // Time to live so it's range but not really
+    int extra_projectile = 0;
     
     void apply(Attack_t &t_attack) const {
         t_attack.accuracy += accuracy;
@@ -254,7 +283,7 @@ struct ProjectileStatModifier {
         t_attack.projectile_damage += projectile_damage;
         t_attack.projectile_radius += projectile_radius;
         t_attack.projectile_speed += projectile_speed;
-        t_attack.range += time_to_live;    
+        t_attack.range += time_to_live; 
     }
 };
 
@@ -274,6 +303,14 @@ struct Upgrade {
         for(auto &m : player_m) {
             m.apply(player_stats);
         }
+    }
+
+    int count_extra_projectiles() {
+        int c = 0;
+        for(auto &m : projectile_m) {
+            c += m.extra_projectile;
+        }
+        return c;
     }
 };
 

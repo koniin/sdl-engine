@@ -52,6 +52,17 @@ namespace GameData {
         */
     }
 
+    const std::vector<float> &get_angles(const Attack &attack, const int &projectile_extra_count) {
+        switch(projectile_extra_count) {
+            case 0:
+                return Projectile_angles[attack];
+            case 1:
+                return Extra_projectile_angles[attack];
+            default: 
+                ASSERT_WITH_MSG(false, "EXTRA PROJECTILES FOR THIS COUNT NOT IMPLEMENTED");
+        }
+    }
+
     // Order
     // 1. first we take the data from the attack and use as base
     // 2. apply player upgrade modifiers to the base
@@ -62,8 +73,10 @@ namespace GameData {
     {
         Attack_t t_attack = Attacks[attack];
 
+        int p_extra_count = 0;
         for(auto &upgrade : game_state->player_upgrades) {
             upgrade.apply_projectile_modifiers(t_attack);
+            p_extra_count += upgrade.count_extra_projectiles();
         }
 
         settings.apply_player_projectile_modifiers(t_attack);
@@ -77,9 +90,9 @@ namespace GameData {
         int projectile_damage = t_attack.projectile_damage;
         int projectile_radius = t_attack.projectile_radius;
         int pierce_count = t_attack.pierce_count;
-        std::vector<float> &angles = t_attack.projectile_angles;
-
-        Engine::logn("pierce: %d", pierce_count);
+        
+        // find angles
+        const std::vector<float> &angles = get_angles(attack, p_extra_count);
 
         for(auto &angle_offset : angles) {
             float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);

@@ -436,34 +436,12 @@ void system_remove_deleted(T &entity_data) {
     }
 }
 
-
-// Projectile hits target
-void on_hit(const CollisionPair &collision_pair, Projectile &first, Target &second) {
-    auto handle = first.get_handle(collision_pair.first);
-    if(first.is_valid(handle)) {
-        if(is_invulnerable(second, collision_pair.second))
-            return;
-
-        if(++first.pierce[handle.i].count > first.pierce[handle.i].limit) {
-            mark_for_deletion(first, collision_pair.first);
-        }
-    } else {
-        Engine::logn("NEVER GET HERE?!");
-        mark_for_deletion(first, collision_pair.first);
-    }
-}
-
-// Projectile hits player
-void on_hit(const CollisionPair &collision_pair, Projectile &first, Player &second) {
-    mark_for_deletion(first, collision_pair.first);
-} 
-
 // Player is dealt damage
 inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPair &entities, GameAreaController *game_ctrl) {
-    bool invulnerable = is_invulnerable(p, entities.second);
+    // Remove projectile
+    mark_for_deletion(projectile, entities.first);
 
-    on_hit(entities, projectile, p);
-    if(invulnerable) {
+    if(is_invulnerable(p, entities.second)) {
         return;
     }
     
@@ -494,9 +472,12 @@ inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPai
 // Target is dealt damage
 inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPair &entities, GameAreaController *game_ctrl) {
     bool invulnerable = is_invulnerable(t, entities.second);
-
-    on_hit(entities, projectile, t);
-    if(invulnerable) {
+    auto handle = projectile.get_handle(entities.first);
+    if(!invulnerable && projectile.is_valid(handle)) {
+        if(++projectile.pierce[handle.i].count > projectile.pierce[handle.i].limit) {
+            mark_for_deletion(projectile, entities.first);
+        }
+    } else {
         return;
     }
 
