@@ -58,35 +58,44 @@ const int NO_ATTACK = 666;
 
 enum Attack {
     Basic = 0,
-    SIZE_OF_Attacks = 1
+    Double = 1,
+    Triple = 2,
+    Circle = 3,
+    Back = 4,
+    SIZE_OF_Attacks = 5
 };
 
-static const char* AttackNames[SIZE_OF_Attacks] = { "Basic" };
-static const Attack AttackIds[SIZE_OF_Attacks] = { Basic };
+static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back" };
+static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back };
 static_assert(sizeof(AttackNames)/sizeof(char*) == Attack::SIZE_OF_Attacks, "AttackNames sizes dont match");
-
 
 struct Attack_t {    
     char *sound_name;
     float cooldown; // how much time between projectiles
     float accuracy; // how much the projectile can go of the straight line when fired (spreads in -angle to angle from initial angle)
     
-    float knockback;
+    float knockback; // how far projectiles knock enemies back
     float range; // Time to live so it's range but not really
-    float projectile_speed; 
+    float projectile_speed; // speed in pixels / second (x / (1/60)) 
     int projectile_damage;
     int projectile_radius; // for collisions
+
+    std::vector<float> projectile_angles; // how many projectiles and their angle offset from direction angle
 };
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
-    // sound      | cooldown  | accuracy  | knockback | range | speed     | damage    | radius    
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8 }
+    // sound      | cooldown  | accuracy  | knockback | ttl    | speed     | damage    | radius | angles   
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0 }   },
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { -8, 8 } },
+    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { -8, 0, 8 } },
+    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2,   1,          8,        { 0, 45, 90, 135, 180, 225, 270, 315 } },
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(),   1,          8,        { 0, 180 } },
 };
 
 /// --------------
 
 struct PlayerStats {
-    Attack attack = Attack::Basic;
+    Attack attack = Attack::Back;
     int collision_radius = 8;
     float drag = player_drag();
     int hp = 10;

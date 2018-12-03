@@ -75,22 +75,25 @@ namespace GameData {
         float projectile_speed = t_attack.projectile_speed;
         int projectile_damage = t_attack.projectile_damage;
         int projectile_radius = t_attack.projectile_radius;
+        std::vector<float> &angles = t_attack.projectile_angles;
 
-        // Calculate final accuracy
-        float angle_with_accuracy = angle + RNG::range_f(-accuracy, accuracy);
-        ProjectileSpawn p(pos, angle_with_accuracy, projectile_speed, projectile_damage, projectile_radius, time_to_live);
-        
-        // TODO: Make this into properties of the attack instead
-        //       so it can decide how many projectiles to fire and their properties instead
-        switch(attack) {
-            case Basic: {
-                    projectiles_queue.push_back(p);
-                }
-                break;
-            default:
-                ASSERT_WITH_MSG(false, Text::format("Attack not implemented!: %s", AttackNames[attack]));
-                break;
+        for(auto &angle_offset : angles) {
+            float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);
+            ProjectileSpawn p(pos, final_angle, projectile_speed, projectile_damage, projectile_radius, time_to_live);
+            projectiles_queue.push_back(p);
         }
+
+        // // TODO: Make this into properties of the attack instead
+        // //       so it can decide how many projectiles to fire and their properties instead
+        // switch(attack) {
+        //     case Basic: {
+                    
+        //         }
+        //         break;
+        //     default:
+        //         ASSERT_WITH_MSG(false, Text::format("Attack not implemented!: %s", AttackNames[attack]));
+        //         break;
+        // }
         
         char *sound_name = t_attack.sound_name;
         return FireSettings(fire_cooldown, knockback, sound_name);
