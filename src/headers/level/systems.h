@@ -49,28 +49,35 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 	    // velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
-
             // From config (depends on rendering size)
             const float gun_barrel_distance = player_config.gun_barrel_distance;
             float original_angle = direction.angle;
             // set the projectile start position to be gun_barrel_distance infront of the ship
             auto gun_exit_position = players.position[i].value + Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
-            auto fire_settings = game_ctrl->player_projectile_fire(original_angle, gun_exit_position);
+            Ammunition &ammo = players.ammo[i];
+            auto fire_result = game_ctrl->player_projectile_fire(ammo.ammo, original_angle, gun_exit_position);
+
+            if(fire_result.ammo_used == 0) {
+                Engine::logn("Implement some kind of out of ammo sound etc");
+                return;
+            }
+
             // this is for all projectiles
             // ---------------------------------
-            pi.fire_cooldown = fire_settings.fire_cooldown;
+            ammo.ammo = Math::max_i(ammo.ammo - fire_result.ammo_used, 0);
+            pi.fire_cooldown = fire_result.fire_cooldown;
             
             // Muzzle flash
-            game_ctrl->spawn_muzzle_flash(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
+            game_ctrl->spawn_muzzle_flash_effect(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
             // Camera
             auto projectile_direction = Math::direction_from_angle(original_angle);
             camera_shake(0.1f);
             camera_displace(projectile_direction * player_config.fire_knockback_camera);
             // Player knockback
-            players.position[i].value -= projectile_direction * fire_settings.knockback;
+            players.position[i].value -= projectile_direction * fire_result.knockback;
             // Sound
-            Sound::queue(game_ctrl->sound_map[fire_settings.sound_name], 2);
+            Sound::queue(game_ctrl->sound_map[fire_result.sound_name], 2);
             // ---------------------------------
 
 
@@ -449,7 +456,7 @@ inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPai
     auto &health = get_health(p, entities.second);
     if(health.hp <= 0) {
         auto &second_pos = get_position(p, entities.second);
-        game_ctrl->spawn_explosion(second_pos.value, 10, 10);
+        game_ctrl->spawn_explosion_effect(second_pos.value, 10, 10);
 
         // TODO: Trigger some kind of death thing so we know game is over
     } else if(amount_dealt > 0) {
@@ -508,7 +515,7 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         camera_shake(0.1f);
         
         auto &p = get_position(t, entities.second);
-        game_ctrl->spawn_explosion(p.value, 10, 10);
+        game_ctrl->spawn_explosion_effect(p.value, 10, 10);
     } else if(amount_dealt > 0) {
         // play hit sound
         // Sound::queue(test_sound_id, 2);
@@ -547,6 +554,17 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
 
         on_deal_damage(entity_first, entity_second, collision_pairs[i], game_ctrl);
         // ----
+    }
+}
+
+template<typename T>
+void system_ammo_recharge(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        entity_data.ammo[i].timer += Time::delta_time;
+        if(entity_data.ammo[i].timer > entity_data.ammo[i].ammo_recharge_time) {
+            entity_data.ammo[i].ammo = Math::min_i(entity_data.ammo[i].ammo_max, entity_data.ammo[i].ammo + entity_data.ammo[i].ammo_recharge);
+            entity_data.ammo[i].timer = 0.0f;
+        }       
     }
 }
 

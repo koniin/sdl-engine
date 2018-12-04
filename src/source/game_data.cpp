@@ -68,7 +68,7 @@ namespace GameData {
     // 2. apply player upgrade modifiers to the base
     // 3. apply map settings things to that
     // 4. then we fire the projectiles based on those numbers
-    FireSettings trigger_projectile_fire(const MapSettings &settings, 
+    ProjectileFireResult trigger_projectile_fire(const int &ammo, const MapSettings &settings, 
         float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue) 
     {
         const Attack &attack = game_state->player.attack;
@@ -82,42 +82,30 @@ namespace GameData {
 
         settings.apply_player_projectile_modifiers(t_attack);
         
-        float fire_cooldown = t_attack.cooldown;
-        float accuracy = t_attack.accuracy;
-        float knockback = t_attack.knockback;
-        float time_to_live = t_attack.range;
-        float projectile_speed = t_attack.projectile_speed;
-        float projectile_speed_mod = t_attack.projectile_speed_mod;
-        int projectile_damage = t_attack.projectile_damage;
-        int projectile_radius = t_attack.projectile_radius;
-        int pierce_count = t_attack.pierce_count;
-        int split_count = t_attack.split_count;
-        
-        // find angles
-        const std::vector<float> &angles = get_angles(attack, p_extra_count);
-        ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK!");
-        
-        for(auto &angle_offset : angles) {
-            float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);
-            float final_speed = projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
-            ProjectileSpawn p(pos, final_angle, final_speed, projectile_damage, projectile_radius, time_to_live, pierce_count, split_count);
-            projectiles_queue.push_back(p);
-        }
-
-        // // TODO: Make this into properties of the attack instead
-        // //       so it can decide how many projectiles to fire and their properties instead
-        // switch(attack) {
-        //     case Basic: {
-                    
-        //         }
-        //         break;
-        //     default:
-        //         ASSERT_WITH_MSG(false, Text::format("Attack not implemented!: %s", AttackNames[attack]));
-        //         break;
-        // }
-        
         char *sound_name = t_attack.sound_name;
-        return FireSettings(fire_cooldown, knockback, sound_name);
+        auto fire_settings = ProjectileFireResult(t_attack.cooldown, t_attack.knockback, sound_name);
+
+        int ammo_usage = t_attack.ammo;
+        if(ammo_usage <= ammo) {
+            fire_settings.ammo_used = ammo_usage;
+            // find angles
+            const std::vector<float> &angles = get_angles(attack, p_extra_count);
+            ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK!");
+            
+            const float &accuracy = t_attack.accuracy;
+            const float &time_to_live = t_attack.range;
+            const float &projectile_speed_mod = t_attack.projectile_speed_mod;
+
+            for(auto &angle_offset : angles) {
+                float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);
+                float final_speed = t_attack.projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
+                ProjectileSpawn p(pos, final_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
+                    time_to_live, t_attack.pierce_count, t_attack.split_count);
+                projectiles_queue.push_back(p);
+            }
+        } 
+        
+        return fire_settings;
     }
 
     void split_player_projectile(const MapSettings &settings, const int &count, const Vector2 &position, std::vector<ProjectileSpawn> &projectiles_queue) {

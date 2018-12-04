@@ -114,6 +114,8 @@ void game_area_update() {
     system_invulnerability(game_area->targets, Time::delta_time);
     system_invulnerability(game_area->players, Time::delta_time);
 
+    system_ammo_recharge(game_area->players);
+
     system_remove_no_health_left(game_area->targets);
     system_remove_no_health_left(game_area->players);
     remove_out_of_bounds(game_area->projectiles_player, game_area->world_bounds);

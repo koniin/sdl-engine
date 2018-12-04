@@ -93,23 +93,24 @@ struct Attack_t {
     int projectile_radius; // for collisions
     int pierce_count;
     int split_count;
+    int ammo;
 };
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
     // sound      | cooldown  | accuracy  | knockback | ttl    | speed  | spd_mod | damage | radius | pierce | split 
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0, 0         }, // Basic
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0       }, // Double
-    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0, 0     }, // Triple
-    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,0   }, // Circle
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,0       }, // Back
-    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,8,0,0 }, // Flamer
-    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,0, 0       }, // Rapid
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,0, 0        }, // Side
-    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8, 0,0 }, // Blast
-    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0,0 }, // Boom
-    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0     }, // Minigun
-    { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, 0 }, // Nailgun
-    { "basic_fire", 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4 }, // Splitter
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0, 0, 10         }, // Basic
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10       }, // Double
+    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0, 0, 10     }, // Triple
+    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,0, 10   }, // Circle
+    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,0, 10       }, // Back
+    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,8,0,0, 10 }, // Flamer
+    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,0, 0, 10       }, // Rapid
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,0, 0, 10        }, // Side
+    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8, 0,0, 10 }, // Blast
+    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0,0, 10 }, // Boom
+    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10     }, // Minigun
+    { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, 0, 10 }, // Nailgun
+    { "basic_fire", 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4, 10 }, // Splitter
 };
 
 static const std::vector<float> Projectile_angles[SIZE_OF_Attacks] = { 
@@ -161,7 +162,10 @@ struct PlayerStats {
     int max_hp = player_start_hp_max;
     float move_acceleration = player_move_acceleration();
     float rotation_speed = player_move_rotation(); // degrees
-	
+    int ammo_max = 100; // - how much ammo you can maximally have (also start ammo at each level?)
+    int ammo_recharge = 10; // - how much you recharge every tick
+    float ammo_recharge_time = 0.25f; // - how often a tick is
+
     void increase_hp(int amount) {
         hp = Math::clamp_i(hp + amount, 0, max_hp);
     }
@@ -210,13 +214,15 @@ struct GameState {
     GameState(int seed, Difficulty difficulty) : seed(seed), difficulty(difficulty) {}
 };
 
-struct FireSettings {
+struct ProjectileFireResult {
     float fire_cooldown;
     float knockback;
     char *sound_name;
+    int ammo_used;
 
-    FireSettings(float cooldown, float knockback, char *sound_name) :
+    ProjectileFireResult(float cooldown, float knockback, char *sound_name) :
         fire_cooldown(cooldown), knockback(knockback), sound_name(sound_name) {
+            ammo_used = 0;
     }
 };
 
@@ -380,7 +386,7 @@ namespace GameData {
     std::vector<MapModifier> &get_map_modifiers();
     void set_attack(const Attack &attack);
     void add_upgrade(const Upgrade &u);
-    FireSettings trigger_projectile_fire(const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);
+    ProjectileFireResult trigger_projectile_fire(const int &ammo, const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);
     void split_player_projectile(const MapSettings &settings, const int &count, const Vector2 &position, std::vector<ProjectileSpawn> &projectiles_queue);
     /*
     // Create enemy by type and then alter it with current map and gamestate

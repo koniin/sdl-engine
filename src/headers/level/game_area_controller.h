@@ -75,9 +75,9 @@ struct GameAreaController {
     void spawn_player(const Vector2 &position);
     void spawn_target(const Vector2 &position, const Enemy &e);
     
-    void spawn_muzzle_flash(Vector2 p, Vector2 local_position, ECS::Entity parent);
-    void spawn_explosion(Vector2 position, float offset_x, float offset_y);
-    void spawn_smoke(Vector2 position) {
+    void spawn_muzzle_flash_effect(Vector2 p, Vector2 local_position, ECS::Entity parent);
+    void spawn_explosion_effect(Vector2 position, float offset_x, float offset_y);
+    void spawn_smoke_effect(Vector2 position) {
         game_area->smoke_emitter.position = position;
         Particles::emit(game_area->particles, game_area->smoke_emitter);
     }
@@ -91,8 +91,8 @@ struct GameAreaController {
         return game_area->targets.length == 0;
     }
 
-    FireSettings player_projectile_fire(const float &angle, const Vector2 &position) {
-        return GameData::trigger_projectile_fire(map_settings, angle, position, game_area->projectiles_player.projectile_queue);
+    ProjectileFireResult player_projectile_fire(const int &ammo, const float &angle, const Vector2 &position) {
+        return GameData::trigger_projectile_fire(ammo, map_settings, angle, position, game_area->projectiles_player.projectile_queue);
     }
 
     void player_projectile_hit(const ECS::Entity &player_projectile, const ECS::Entity &target_entity, const Vector2 &collision_point) {
@@ -103,6 +103,10 @@ struct GameAreaController {
                 GameData::split_player_projectile(map_settings, split_count, collision_point, game_area->projectiles_player.projectile_queue);
             }
         }
+    }
+
+    void spawn_explosion_projectile(const Vector2 pos) {
+        //game_area->projectiles_player.queue_projectile();
     }
 };
 

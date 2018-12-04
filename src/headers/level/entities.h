@@ -118,6 +118,15 @@ struct Animation {
     Animation(float duration, float start, float end, easing_t ease): duration(duration), start(start), end(end), ease(ease) {}
 };
 
+struct Ammunition {
+    // ammo, ammo_max, ammo_recharge, ammo_recharge_time
+    int ammo = 0; // - current ammo
+    int ammo_max = 0; // - how much ammo you can maximally have (also the start number)
+    int ammo_recharge = 0; // - how much you recharge every tick
+    float ammo_recharge_time = 0; // - how often a tick is
+    float timer = 0;
+};
+
 struct ChildSprite {
     size_t length = 0;
 
@@ -185,7 +194,6 @@ struct PlayerConfiguration {
     int exhaust_id = 1;
     int shadow_id = 2;
 
-    Attack attack;
 	float rotation_speed; // degrees
 	float move_acceleration;
 	float drag;
@@ -202,6 +210,7 @@ struct Player : ECS::EntityData {
     std::vector<Health> health;
     std::vector<CollisionData> collision;
     std::vector<BlinkEffect> blink;
+    std::vector<Ammunition> ammo;
 
     ChildSprite child_sprites;
     std::unordered_map<int, size_t> child_map;
@@ -219,6 +228,7 @@ struct Player : ECS::EntityData {
         initialize(&health);
         initialize(&collision);
         initialize(&blink);
+        initialize(&ammo);
 
         child_sprites.allocate(n * 4);
     }
@@ -239,7 +249,6 @@ struct Player : ECS::EntityData {
 
         GameState *game_state = GameData::game_state_get();
         PlayerConfiguration pcfg;
-        pcfg.attack = game_state->player.attack;
         pcfg.drag = game_state->player.drag;
         pcfg.move_acceleration = game_state->player.move_acceleration;
         pcfg.rotation_speed = game_state->player.rotation_speed;
@@ -256,6 +265,7 @@ struct Player : ECS::EntityData {
         health[handle.i] = { game_state->player.hp, game_state->player.max_hp };
         collision[handle.i] = { game_state->player.collision_radius };
         blink[handle.i] = BlinkEffect();
+        ammo[handle.i] = { game_state->player.ammo_max, game_state->player.ammo_max, game_state->player.ammo_recharge, game_state->player.ammo_recharge_time };
 
         SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2");
         child_sprite.h = child_sprite.h + (child_sprite.h / 2);
