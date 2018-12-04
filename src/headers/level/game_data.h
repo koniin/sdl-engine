@@ -109,7 +109,7 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
     { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0,0 }, // Boom
     { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0     }, // Minigun
     { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, 0 }, // Nailgun
-    { "basic_fire", 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 2 }, // Splitter
+    { "basic_fire", 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4 }, // Splitter
 };
 
 static const std::vector<float> Projectile_angles[SIZE_OF_Attacks] = { 
