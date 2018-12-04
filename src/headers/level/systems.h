@@ -57,7 +57,8 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             
             Ammunition &ammo = players.ammo[i];
             auto fire_result = game_ctrl->player_projectile_fire(ammo.ammo, original_angle, gun_exit_position);
-
+            pi.fire_cooldown = fire_result.fire_cooldown;
+            
             if(fire_result.ammo_used == 0) {
                 Engine::logn("Implement some kind of out of ammo sound etc");
                 return;
@@ -66,7 +67,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             // this is for all projectiles
             // ---------------------------------
             ammo.ammo = Math::max_i(ammo.ammo - fire_result.ammo_used, 0);
-            pi.fire_cooldown = fire_result.fire_cooldown;
+            
             
             // Muzzle flash
             game_ctrl->spawn_muzzle_flash_effect(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
