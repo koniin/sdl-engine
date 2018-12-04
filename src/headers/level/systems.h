@@ -5,7 +5,7 @@
 #include "entities.h"
 #include "game_area_controller.h"
 #include "game_events.h"
-#include "game_data.h"
+
 
 inline void system_player_get_input(Player &players) {
     for(int i = 0; i < players.length; i++) {
@@ -56,8 +56,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             // set the projectile start position to be gun_barrel_distance infront of the ship
             auto gun_exit_position = players.position[i].value + Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
-            auto fire_settings = GameData::trigger_projectile_fire(player_config.attack, game_ctrl->map_settings, original_angle, gun_exit_position, game_ctrl->game_area->projectiles_player.projectile_queue);
-
+            auto fire_settings = game_ctrl->player_projectile_fire(original_angle, gun_exit_position);
             // this is for all projectiles
             // ---------------------------------
             pi.fire_cooldown = fire_settings.fire_cooldown;
@@ -406,7 +405,7 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 
                 //Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
 
-                ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f, 0);
+                ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f, 0, 0);
                 projectiles.queue_projectile(p);
                 continue; // only fire at one target
             }
@@ -478,23 +477,7 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
             mark_for_deletion(projectile, entities.first);
         }
         
-        int split_count = 2;
-        if(split_count > 0) {
-            std::vector<float> angles = { -90, 90 };
-            float angle = RNG::range_f(0, 360);
-            
-            for(auto &angle_offset : angles) {
-                float final_angle = angle + angle_offset;
-                float final_speed = projectile.velocity[handle.i].value.length();
-                int damage = projectile.damage[handle.i].value;
-                Vector2 pos = entities.collision_point;
-                int radius = projectile.collision[handle.i].radius;
-                float time_to_live = 0.4f;
-                int pierce_count = 0;
-                ProjectileSpawn p(pos, final_angle, final_speed, damage, radius, time_to_live, pierce_count);
-                game_ctrl->game_area->projectiles_player.queue_projectile(p);
-            }
-        }
+        game_ctrl->player_projectile_hit(entities.first, entities.second, entities.collision_point);
     } else {
         return;
     }

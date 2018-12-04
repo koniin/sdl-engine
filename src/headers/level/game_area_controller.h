@@ -90,6 +90,20 @@ struct GameAreaController {
     const bool game_win() {
         return game_area->targets.length == 0;
     }
+
+    FireSettings player_projectile_fire(const float &angle, const Vector2 &position) {
+        return GameData::trigger_projectile_fire(map_settings, angle, position, game_area->projectiles_player.projectile_queue);
+    }
+
+    void player_projectile_hit(const ECS::Entity &player_projectile, const ECS::Entity &target_entity, const Vector2 &collision_point) {
+        auto handle = game_area->projectiles_player.get_handle(player_projectile);
+        if(game_area->projectiles_player.is_valid(handle)) {
+            int split_count = game_area->projectiles_player.split[handle.i].count;
+            if(split_count > 0) {
+                GameData::split_player_projectile(map_settings, split_count, collision_point, game_area->projectiles_player.projectile_queue);
+            }
+        }
+    }
 };
 
 #endif

@@ -304,6 +304,10 @@ struct Pierce {
     int limit = 0;
 };
 
+struct Split {
+    int count = 0;
+};
+
 struct Projectile : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<Position> position;
@@ -312,6 +316,7 @@ struct Projectile : ECS::EntityData {
     std::vector<Damage> damage;
     std::vector<CollisionData> collision;
     std::vector<Pierce> pierce;
+    std::vector<Split> split;
 
     std::vector<ProjectileSpawn> projectile_queue;
 
@@ -325,6 +330,7 @@ struct Projectile : ECS::EntityData {
         initialize(&damage);
         initialize(&collision);
         initialize(&pierce);
+        initialize(&split);
 
         projectile_queue.reserve(64);
     }
@@ -364,6 +370,7 @@ struct Projectile : ECS::EntityData {
         collision[handle.i] = { p.radius };
 
         pierce[handle.i] = { 0, p.pierce_count };
+        split[handle.i] = { p.split_count };
     }
 };
 

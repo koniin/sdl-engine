@@ -68,9 +68,10 @@ namespace GameData {
     // 2. apply player upgrade modifiers to the base
     // 3. apply map settings things to that
     // 4. then we fire the projectiles based on those numbers
-    FireSettings trigger_projectile_fire(const Attack &attack, const MapSettings &settings, 
+    FireSettings trigger_projectile_fire(const MapSettings &settings, 
         float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue) 
     {
+        const Attack &attack = game_state->player.attack;
         Attack_t t_attack = Attacks[attack];
 
         int p_extra_count = 0;
@@ -90,14 +91,16 @@ namespace GameData {
         int projectile_damage = t_attack.projectile_damage;
         int projectile_radius = t_attack.projectile_radius;
         int pierce_count = t_attack.pierce_count;
+        int split_count = t_attack.split_count;
         
         // find angles
         const std::vector<float> &angles = get_angles(attack, p_extra_count);
-
+        ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK!");
+        
         for(auto &angle_offset : angles) {
             float final_angle = angle + angle_offset + RNG::range_f(-accuracy, accuracy);
             float final_speed = projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
-            ProjectileSpawn p(pos, final_angle, final_speed, projectile_damage, projectile_radius, time_to_live, pierce_count);
+            ProjectileSpawn p(pos, final_angle, final_speed, projectile_damage, projectile_radius, time_to_live, pierce_count, split_count);
             projectiles_queue.push_back(p);
         }
 
@@ -115,6 +118,34 @@ namespace GameData {
         
         char *sound_name = t_attack.sound_name;
         return FireSettings(fire_cooldown, knockback, sound_name);
+    }
+
+    void split_player_projectile(const MapSettings &settings, const int &count, const Vector2 &position, std::vector<ProjectileSpawn> &projectiles_queue) {
+        const Attack &attack = game_state->player.attack;
+        Attack_t t_attack = Attacks[attack];
+
+        int p_extra_count = 0;
+        for(auto &upgrade : game_state->player_upgrades) {
+            upgrade.apply_projectile_modifiers(t_attack);
+            p_extra_count += upgrade.count_extra_projectiles();
+        }
+
+        settings.apply_player_projectile_modifiers(t_attack);
+    
+        float angle = RNG::range_f(0, 360);
+        float final_speed = bp_spd();
+        int damage = 2;
+        int radius = 8;
+        float time_to_live = 0.4f;
+        int pierce_count = 0;
+        int split_count = 0; // don't want projectiles to split recursively?
+
+        size_t max_split = Math::min_i(count + p_extra_count, split_angles.size());
+        for(size_t i = 0; i < max_split; i++) {
+            float final_angle = angle + split_angles[i];
+            ProjectileSpawn p(position, final_angle, final_speed, damage, radius, time_to_live, pierce_count, split_count);
+            projectiles_queue.push_back(p);
+        }
     }
 };
 
