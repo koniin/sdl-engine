@@ -157,7 +157,7 @@ const int enemy_base_hp_max = 5;
 struct PlayerStats {
     Attack attack = Attack::Splitter;
     int collision_radius = 8;
-    float max_velocity = player_move_acceleration() * 5;
+    float max_velocity = 200.0f;
     int hp = player_start_hp;
     int max_hp = player_start_hp_max;
     float move_acceleration = player_move_acceleration();

@@ -47,8 +47,8 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
         
         velocity.value += direction.value * pi.move.y * player_config.move_acceleration * Time::delta_time;
         
-        float max = 200.0f;
-        float min = -200.0f;
+        float max = player_config.max_velocity;
+        float min = -player_config.max_velocity;
         Vector2 v = velocity.value;
         if (v.length() > max) {
             v = v.normal() * max;
