@@ -157,7 +157,7 @@ const int enemy_base_hp_max = 5;
 struct PlayerStats {
     Attack attack = Attack::Splitter;
     int collision_radius = 8;
-    float drag = player_drag();
+    float max_velocity = player_move_acceleration() * 5;
     int hp = player_start_hp;
     int max_hp = player_start_hp_max;
     float move_acceleration = player_move_acceleration();
@@ -219,10 +219,12 @@ struct ProjectileFireResult {
     float knockback;
     char *sound_name;
     int ammo_used;
+    bool did_fire;
 
     ProjectileFireResult(float cooldown, float knockback, char *sound_name) :
         fire_cooldown(cooldown), knockback(knockback), sound_name(sound_name) {
             ammo_used = 0;
+            did_fire = false;
     }
 };
 
@@ -255,7 +257,7 @@ struct ProjectileSpawn {
 struct PlayerModifier {
     int attack = NO_ATTACK;
     int collision_radius = 0;
-    float drag = 0;
+    float max_velocity = 0;
     int hp = 0;
     int max_hp = 0;
 	float move_acceleration = 0;
@@ -266,7 +268,7 @@ struct PlayerModifier {
             player_stats.attack = AttackIds[attack];
         }
         player_stats.collision_radius += collision_radius;
-        player_stats.drag += drag;
+        player_stats.max_velocity += max_velocity;
         player_stats.max_hp += max_hp;
         player_stats.increase_hp(hp);
         player_stats.move_acceleration += move_acceleration;

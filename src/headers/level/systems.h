@@ -45,7 +45,19 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 
         direction.value = Math::direction_from_angle(direction.angle);
         
-	    velocity.value += direction.value * pi.move.y * player_config.move_acceleration * Time::delta_time;
+        velocity.value += direction.value * pi.move.y * player_config.move_acceleration * Time::delta_time;
+        
+        float max = 200.0f;
+        float min = -200.0f;
+        Vector2 v = velocity.value;
+        if (v.length() > max) {
+            v = v.normal() * max;
+        } else if (v.length() < min) {
+            v = v.normal() * min;
+        }
+        velocity.value = v;
+        
+        
 	    // velocity.value.y += direction.value.y * pi.move_y * player_config.move_acceleration * Time::delta_time;
 
         if(pi.fire_cooldown <= 0.0f && Math::length_vector_f(pi.fire_x, pi.fire_y) > 0.5f) {
@@ -58,8 +70,8 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             Ammunition &ammo = players.ammo[i];
             auto fire_result = game_ctrl->player_projectile_fire(ammo.ammo, original_angle, gun_exit_position);
             pi.fire_cooldown = fire_result.fire_cooldown;
-            
-            if(fire_result.ammo_used == 0) {
+
+            if(!fire_result.did_fire) {
                 Engine::logn("Implement some kind of out of ammo sound etc");
                 return;
             }
@@ -67,7 +79,6 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             // this is for all projectiles
             // ---------------------------------
             ammo.ammo = Math::max_i(ammo.ammo - fire_result.ammo_used, 0);
-            
             
             // Muzzle flash
             game_ctrl->spawn_muzzle_flash_effect(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
@@ -80,19 +91,6 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             // Sound
             Sound::queue(game_ctrl->sound_map[fire_result.sound_name], 2);
             // ---------------------------------
-
-
-            // float angle_with_accuracy = original_angle + RNG::range_f(-fire_settings.accuracy, fire_settings.accuracy);
-            // projectile_velocity = Math::direction_from_angle(angle_with_accuracy) * -fire_settings.projectile_speed;
-            // gun_exit_position += 5.0f;
-            // game_ctrl->spawn_player_projectile(gun_exit_position, projectile_velocity, fire_settings.p_data);
-            // ---------------------------------
-
-            // game_ctrl->spawn_smoke(muzzle_pos.value);
-            
-            // auto b = GameEvents::get_event<PlayerFireBullet>();
-            // b->test = 666;
-            // GameEvents::queue(b);
         }
     }
 }
@@ -200,9 +198,8 @@ inline void system_remove_completed_effects(Effect &effects) {
 }
 
 template<typename T>
-void system_drag(T &entity_data) {
+void system_drag(T &entity_data, const float drag) {
     for(int i = 0; i < entity_data.length; i++) {
-        const float drag = entity_data.config[i].drag;
         Velocity &velocity = entity_data.velocity[i];
         velocity.value = velocity.value - velocity.value * drag * Time::delta_time;
     }

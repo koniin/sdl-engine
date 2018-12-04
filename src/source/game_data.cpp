@@ -88,6 +88,7 @@ namespace GameData {
         int ammo_usage = t_attack.ammo;
         if(ammo_usage <= ammo) {
             fire_settings.ammo_used = ammo_usage;
+            fire_settings.did_fire = true;
             // find angles
             const std::vector<float> &angles = get_angles(attack, p_extra_count);
             ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK!");
