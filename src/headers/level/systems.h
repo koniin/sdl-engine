@@ -487,6 +487,9 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         return;
     }
 
+    auto &pos_exp = get_position(projectile, entities.first);
+    game_ctrl->spawn_explosion_projectile(pos_exp.value);
+
     // Knockback
     auto &damage = get_damage(projectile, entities.first);
     auto &velocity = get_velocity(projectile, entities.first);
