@@ -68,7 +68,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             auto gun_exit_position = players.position[i].value + Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
             Ammunition &ammo = players.ammo[i];
-            auto fire_result = game_ctrl->player_projectile_fire(ammo.ammo, original_angle, gun_exit_position);
+            auto fire_result = game_ctrl->player_projectile_fire(ammo.value, original_angle, gun_exit_position);
             pi.fire_cooldown = fire_result.fire_cooldown;
 
             if(!fire_result.did_fire) {
@@ -78,7 +78,7 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 
             // this is for all projectiles
             // ---------------------------------
-            ammo.ammo = Math::max_i(ammo.ammo - fire_result.ammo_used, 0);
+            ammo.value = Math::max_i(ammo.value - fire_result.ammo_used, 0);
             
             // Muzzle flash
             game_ctrl->spawn_muzzle_flash_effect(gun_exit_position, Vector2(gun_barrel_distance, gun_barrel_distance), players.entity[i]);
@@ -468,7 +468,7 @@ inline void on_deal_damage(Projectile &projectile, Player &p, const CollisionPai
         set_invulnerable(health, invulnerability_time);
         blink_sprite(p, entities.second, invulnerability_time, 5 * Time::delta_time_fixed);
     } else {
-        Engine::logn("CASE NOT IMPLEMENTED -> no damage dealt on player");
+        Engine::logn("Shield hit or other type of invulnerability");
         // Do we need to handle this case?
     }
 }
@@ -559,10 +559,21 @@ template<typename T>
 void system_ammo_recharge(T &entity_data) {
     for(int i = 0; i < entity_data.length; i++) {
         entity_data.ammo[i].timer += Time::delta_time;
-        if(entity_data.ammo[i].timer > entity_data.ammo[i].ammo_recharge_time) {
-            entity_data.ammo[i].ammo = Math::min_i(entity_data.ammo[i].ammo_max, entity_data.ammo[i].ammo + entity_data.ammo[i].ammo_recharge);
+        if(entity_data.ammo[i].timer > entity_data.ammo[i].recharge_time) {
+            entity_data.ammo[i].value = Math::min_i(entity_data.ammo[i].max, entity_data.ammo[i].value + entity_data.ammo[i].recharge);
             entity_data.ammo[i].timer = 0.0f;
         }       
+    }
+}
+
+template<typename T>
+void system_shield_recharge(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        entity_data.shield[i].timer += Time::delta_time;
+        if(entity_data.shield[i].timer > entity_data.shield[i].recharge_time) {
+            entity_data.shield[i].value = Math::min_i(entity_data.shield[i].max, entity_data.shield[i].value + entity_data.shield[i].recharge);
+            entity_data.shield[i].timer = 0.0f;
+        }
     }
 }
 

@@ -119,11 +119,18 @@ struct Animation {
 };
 
 struct Ammunition {
-    // ammo, ammo_max, ammo_recharge, ammo_recharge_time
-    int ammo = 0; // - current ammo
-    int ammo_max = 0; // - how much ammo you can maximally have (also the start number)
-    int ammo_recharge = 0; // - how much you recharge every tick
-    float ammo_recharge_time = 0; // - how often a tick is
+    int value = 0; // - current ammo
+    int max = 0; // - how much ammo you can maximally have (also the start number)
+    int recharge = 0; // - how much you recharge every tick
+    float recharge_time = 0; // - how often a tick is
+    float timer = 0;
+};
+
+struct Shield {
+    int value = 0; // - current shield
+    int max = 0; // - how much is maximum shield value
+    int recharge = 0; // - how much you recharge every tick
+    float recharge_time = 0; // - how often a tick is
     float timer = 0;
 };
 
@@ -211,6 +218,7 @@ struct Player : ECS::EntityData {
     std::vector<CollisionData> collision;
     std::vector<BlinkEffect> blink;
     std::vector<Ammunition> ammo;
+    std::vector<Shield> shield;
 
     ChildSprite child_sprites;
     std::unordered_map<int, size_t> child_map;
@@ -229,6 +237,7 @@ struct Player : ECS::EntityData {
         initialize(&collision);
         initialize(&blink);
         initialize(&ammo);
+        initialize(&shield);
 
         child_sprites.allocate(n * 4);
     }
@@ -266,6 +275,8 @@ struct Player : ECS::EntityData {
         collision[handle.i] = { game_state->player.collision_radius };
         blink[handle.i] = BlinkEffect();
         ammo[handle.i] = { game_state->player.ammo_max, game_state->player.ammo_max, game_state->player.ammo_recharge, game_state->player.ammo_recharge_time };
+
+        shield[handle.i] = { game_state->player.shield_max, game_state->player.shield_max, game_state->player.shield_recharge, game_state->player.shield_recharge_time };
 
         SpriteComponent child_sprite = SpriteComponent("shooter", "bullet_2");
         child_sprite.h = child_sprite.h + (child_sprite.h / 2);
@@ -575,6 +586,13 @@ Health &get_health(T &entity_data, ECS::Entity e) {
 }
 
 template<typename T>
+Shield &get_shield(T &entity_data, ECS::Entity e) {
+    ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
+    auto handle = entity_data.get_handle(e);
+    return entity_data.shield[handle.i];
+}
+
+template<typename T>
 Damage &get_damage(T &entity_data, ECS::Entity e) {
     ASSERT_WITH_MSG(entity_data.contains(e), "Entity is not alive or fetching from wrong entity");
     auto handle = entity_data.get_handle(e);
@@ -645,9 +663,16 @@ inline int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Ta
 inline int deal_damage(Projectile &projectile, ECS::Entity projectile_entity, Player &player, ECS::Entity player_entity) {
     auto &damage = get_damage(projectile, projectile_entity);
     auto &health = get_health(player, player_entity);
-    health.hp -= damage.value;
-    Engine::logn("Deal damage to player: %d", damage.value);
-    return damage.value;
+    auto &shield = get_shield(player, player_entity);
+    // Engine::logn("\n\tincoming damage: %d", damage.value);
+    // Engine::logn("\tshield: %d", shield.value);
+    int damage_after_shield = Math::max_i(0, damage.value - shield.value);
+    // Engine::logn("\tdamage after shield: %d", damage_after_shield);
+    shield.value = Math::max_i(0, shield.value - damage.value);
+    // Engine::logn("\tshield after damage: %d", shield.value);
+    health.hp -= damage_after_shield;
+    // Engine::logn("\tDeal damage to player: %d", damage_after_shield);
+    return damage_after_shield;
 }
 
 template<typename T>

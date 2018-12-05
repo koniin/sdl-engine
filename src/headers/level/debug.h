@@ -79,7 +79,7 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
 
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Press F8 to toggle debug render");
-    FrameLog::log("Player ammo: " + std::to_string(level->players.ammo[0].ammo));
+    FrameLog::log("Player ammo: " + std::to_string(level->players.ammo[0].value));
     FrameLog::log("Projectiles player: " + std::to_string(level->projectiles_player.length));
     FrameLog::log("Projectiles target: " + std::to_string(level->projectiles_target.length));
     FrameLog::log("Targets: " + std::to_string(level->targets.length));

@@ -83,15 +83,15 @@ namespace GameData {
         settings.apply_player_projectile_modifiers(t_attack);
         
         char *sound_name = t_attack.sound_name;
-        auto fire_settings = ProjectileFireResult(t_attack.cooldown, t_attack.knockback, sound_name);
+        auto fire_result = ProjectileFireResult(t_attack.cooldown, t_attack.knockback, sound_name);
 
         int ammo_usage = t_attack.ammo;
         if(ammo_usage <= ammo) {
-            fire_settings.ammo_used = ammo_usage;
-            fire_settings.did_fire = true;
+            fire_result.ammo_used = ammo_usage;
+            fire_result.did_fire = true;
             // find angles
             const std::vector<float> &angles = get_angles(attack, p_extra_count);
-            ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK!");
+            ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK and extra count!");
             
             const float &accuracy = t_attack.accuracy;
             const float &time_to_live = t_attack.range;
@@ -106,7 +106,7 @@ namespace GameData {
             }
         } 
         
-        return fire_settings;
+        return fire_result;
     }
 
     void split_player_projectile(const MapSettings &settings, const int &count, const Vector2 &position, std::vector<ProjectileSpawn> &projectiles_queue) {
