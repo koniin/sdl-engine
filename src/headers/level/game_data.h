@@ -165,9 +165,9 @@ struct PlayerStats {
     int ammo_max = 100; // - how much ammo you can maximally have (also start ammo at each level)
     int ammo_recharge = 10; // - how much you recharge every tick
     float ammo_recharge_time = 0.25f; // - how often a tick is
-    int shield_max = 2; 
-    int shield_recharge = 1; 
-    float shield_recharge_time = 2.0f; 
+    int shield_max = 0; // ex: 2
+    int shield_recharge = 0; // ex: 1
+    float shield_recharge_time = 300.0f; // ex: 2.0f 
 
     void increase_hp(int amount) {
         hp = Math::clamp_i(hp + amount, 0, max_hp);

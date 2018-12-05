@@ -115,6 +115,7 @@ void game_area_update() {
     system_invulnerability(game_area->players, Time::delta_time);
 
     system_ammo_recharge(game_area->players);
+    system_shield_recharge(game_area->players);
 
     system_remove_no_health_left(game_area->targets);
     system_remove_no_health_left(game_area->players);
