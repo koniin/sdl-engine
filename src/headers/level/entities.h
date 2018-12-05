@@ -329,6 +329,12 @@ struct Split {
     int count = 0;
 };
 
+struct HomingComponent {
+    float radius = 0;
+    bool has_target = false;
+    ECS::Entity target;
+};
+
 struct Projectile : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<Position> position;
@@ -338,6 +344,7 @@ struct Projectile : ECS::EntityData {
     std::vector<CollisionData> collision;
     std::vector<Pierce> pierce;
     std::vector<Split> split;
+    std::vector<HomingComponent> homing;
 
     std::vector<ProjectileSpawn> projectile_queue;
 
@@ -352,6 +359,7 @@ struct Projectile : ECS::EntityData {
         initialize(&collision);
         initialize(&pierce);
         initialize(&split);
+        initialize(&homing);
 
         projectile_queue.reserve(64);
     }
@@ -392,6 +400,7 @@ struct Projectile : ECS::EntityData {
 
         pierce[handle.i] = { 0, p.pierce_count };
         split[handle.i] = { p.split_count };
+        homing[handle.i] = { p.homing_radius, false };
     }
 };
 

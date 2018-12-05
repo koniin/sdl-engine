@@ -87,6 +87,7 @@ void game_area_update() {
     keep_in_bounds(game_area->players, game_area->world_bounds);
     move_forward(game_area->targets);
     keep_in_bounds(game_area->targets, game_area->world_bounds);
+    system_homing(game_area->projectiles_player, game_area->targets);
     set_last_position(game_area->projectiles_player);
     move_forward(game_area->projectiles_player);
     set_last_position(game_area->projectiles_target);

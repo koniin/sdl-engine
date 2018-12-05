@@ -102,6 +102,8 @@ namespace GameData {
                 float final_speed = t_attack.projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
                 ProjectileSpawn p(pos, final_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
                     time_to_live, t_attack.pierce_count, t_attack.split_count);
+                p.homing_radius = t_attack.homing_radius;
+                Engine::logn("homing radius %.2f", p.homing_radius);
                 projectiles_queue.push_back(p);
             }
         } 

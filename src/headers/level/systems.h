@@ -577,4 +577,56 @@ void system_shield_recharge(T &entity_data) {
     }
 }
 
+template<typename T, typename TargetT>
+void system_homing(T &homing_entities, TargetT &lookup) {
+    for(int i = 0; i < homing_entities.length; i++) {
+        HomingComponent &homing = homing_entities.homing[i];
+        const float radius = homing.radius;
+        if(radius > 0) {
+            if(!homing.has_target) {
+                // find first target in radius
+                for(int li = 0; li < lookup.length; li++) {
+                    if(Math::distance_v(homing_entities.position[i].value, lookup.position[li].value) < radius) {
+                        homing.target = lookup.entity[li];
+                        homing.has_target = true;
+                        break;
+                    }
+                }
+            }
+
+            if(homing.has_target) {
+                auto handle = lookup.get_handle(homing.target);
+                if(lookup.is_valid(handle)) {
+                    Vector2 &s = homing_entities.position[i].value;
+                    Vector2 &target = lookup.position[handle.i].value;
+
+                    /*
+                        local projectile_heading = Vector(self.collider:getLinearVelocity()):normalized()
+                        local angle = math.atan2(self.target.y - self.y, self.target.x - self.x)
+                        local to_target_heading = Vector(math.cos(angle), math.sin(angle)):normalized()
+                        local final_heading = (projectile_heading + 0.1*to_target_heading):normalized()
+                        self.collider:setLinearVelocity(self.v*final_heading.x, self.v*final_heading.y)
+                    */
+
+                    // Follow a curve
+                    auto projectile_heading = homing_entities.velocity[i].value.normal();
+                    float angle = Math::rads_between_v(s, target);
+                    auto to_target_heading = Vector2(Math::cos_f(angle), Math::sin_f(angle)).normal();
+                    auto final_heading = (projectile_heading + 0.1f * to_target_heading).normal();
+                    
+                    homing_entities.velocity[i].value = final_heading * homing_entities.velocity[i].value.length();
+
+                    
+                    // Straight to the point
+                    // auto rotation = Math::rads_between_f(s.x, s.y, target.x, target.y);
+                    // Vector2 direction_to_target = Vector2(cos(rotation), sin(rotation));
+                    // projectiles.velocity[i].value = direction_to_target * bp_spd();
+                } else {
+                    homing.has_target = false;
+                }
+            }
+        }
+    }
+}
+
 #endif
