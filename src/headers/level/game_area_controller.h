@@ -106,7 +106,7 @@ struct GameAreaController {
     }
 
     void spawn_explosion_projectile(const Vector2 pos) {
-        auto p = ProjectileSpawn(pos, 0, 0, 10, 20, 0.0166667f * 8, 20, 0);
+        auto p = ProjectileSpawn(pos, 0, 0, 10, 20, Time::delta_time_fixed * 8, 200, 0);
         game_area->projectiles_player.queue_projectile(p);
 
         spawn_explosion_effect(pos, 0, 0);
