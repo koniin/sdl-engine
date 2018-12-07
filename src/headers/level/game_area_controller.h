@@ -103,8 +103,10 @@ struct GameAreaController {
                 GameData::split_player_projectile(map_settings, split_count, collision_point, game_area->projectiles_player.projectile_queue);
             }
 
-            // Same handling as split
-            spawn_player_explosion_projectile(game_area->projectiles_player.position[handle.i].value);
+            float on_hit_explosion_radius = game_area->projectiles_player.on_hit[handle.i].explosion_radius;
+            if(on_hit_explosion_radius > 0) {
+                spawn_player_explosion_projectile(game_area->projectiles_player.position[handle.i].value);
+            }
         }
     }
 

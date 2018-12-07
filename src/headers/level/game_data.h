@@ -102,7 +102,7 @@ struct Attack_t {
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
     // sound      | cooldown  | accuracy  | knockback | ttl    | speed  | spd_mod | damage | radius | pierce | split 
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0, 0, 10, 0, 1.0f, 1.0f         }, // Basic
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0, 0, 10, 0, 0, 0         }, // Basic
     { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10, 0, 0, 0       }, // Double
     { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0, 0, 10, 0, 0, 0     }, // Triple
     { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,0, 10, 0, 0, 0   }, // Circle
