@@ -75,11 +75,12 @@ enum Attack {
     Nailgun = 11,
     Splitter = 12,
     HomingGun = 13,
-    SIZE_OF_Attacks = 14
+    Lazer = 14,
+    SIZE_OF_Attacks = 15
 };
 
-static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back", "Flamer", "Rapid", "Side", "Blast", "Boom", "Minigun", "Nailgun", "Splitter", "Homing" };
-static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back, Flamer, Rapid, Side, Blast, Boom, Minigun, Nailgun, Splitter, HomingGun };
+static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back", "Flamer", "Rapid", "Side", "Blast", "Boom", "Minigun", "Nailgun", "Splitter", "Homing", "Lazer" };
+static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back, Flamer, Rapid, Side, Blast, Boom, Minigun, Nailgun, Splitter, HomingGun, Lazer };
 
 struct Attack_t {    
     char *sound_name;
@@ -116,6 +117,7 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
     { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, 0, 10, 0, 0, 0 }, // Nailgun
     { "basic_fire", 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4, 10, 0, 0, 0 }, // Splitter
     { "basic_fire", 0.4f,      2.0f,       2.0f,       1.8f,   bp_spd(), 0,  2,          8, 0, 0, 10, 150.0f, 0, 0 }, // Homing
+    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          4,  20, 0, 10, 0, 0, 0 }, // Lazer
 };
 
 static const std::vector<float> Projectile_angles[SIZE_OF_Attacks] = { 
