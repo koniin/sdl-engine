@@ -103,7 +103,8 @@ namespace GameData {
                 ProjectileSpawn p(pos, final_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
                     time_to_live, t_attack.pierce_count, t_attack.split_count);
                 p.homing_radius = t_attack.homing_radius;
-                Engine::logn("homing radius %.2f", p.homing_radius);
+                p.explosion_on_death_radius = t_attack.projectile_death_explosion_radius;
+                p.explosion_on_hit_radius = t_attack.projectile_hit_explosion_radius;
                 projectiles_queue.push_back(p);
             }
         } 
@@ -130,6 +131,8 @@ namespace GameData {
         float time_to_live = 0.4f;
         int pierce_count = 0;
         int split_count = 0; // don't want projectiles to split recursively?
+
+        // explosions for split projectiles ? ;)
 
         size_t max_split = Math::min_i(count + p_extra_count, split_angles.size());
         for(size_t i = 0; i < max_split; i++) {

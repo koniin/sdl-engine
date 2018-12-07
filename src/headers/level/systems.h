@@ -487,9 +487,6 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         return;
     }
 
-    auto &pos_exp = get_position(projectile, entities.first);
-    game_ctrl->spawn_explosion_projectile(pos_exp.value);
-
     // Knockback
     auto &damage = get_damage(projectile, entities.first);
     auto &velocity = get_velocity(projectile, entities.first);
@@ -627,6 +624,17 @@ void system_homing(T &homing_entities, TargetT &lookup) {
                 } else {
                     homing.has_target = false;
                 }
+            }
+        }
+    }
+}
+
+template<typename T>
+void system_on_death(T &entity_data, GameAreaController *game_ctrl) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.life_time[i].marked_for_deletion) {
+            if(entity_data.on_death[i].explosion) {
+                game_ctrl->spawn_player_explosion_projectile(entity_data.position[i].value);
             }
         }
     }

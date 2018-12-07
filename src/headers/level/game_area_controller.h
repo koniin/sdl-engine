@@ -102,10 +102,13 @@ struct GameAreaController {
             if(split_count > 0) {
                 GameData::split_player_projectile(map_settings, split_count, collision_point, game_area->projectiles_player.projectile_queue);
             }
+
+            // Same handling as split
+            spawn_player_explosion_projectile(game_area->projectiles_player.position[handle.i].value);
         }
     }
 
-    void spawn_explosion_projectile(const Vector2 pos) {
+    void spawn_player_explosion_projectile(const Vector2 pos) {
         auto p = ProjectileSpawn(pos, 0, 0, 10, 20, Time::delta_time_fixed * 8, 200, 0);
         game_area->projectiles_player.queue_projectile(p);
 

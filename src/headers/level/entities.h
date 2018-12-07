@@ -335,6 +335,15 @@ struct HomingComponent {
     ECS::Entity target;
 };
 
+struct OnDeath {
+    bool explosion;
+    float explosion_radius = 0.0f;
+};
+
+struct DamageOnHit {
+    float explosion_radius = 0.0f;
+};
+
 struct Projectile : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<Position> position;
@@ -345,6 +354,8 @@ struct Projectile : ECS::EntityData {
     std::vector<Pierce> pierce;
     std::vector<Split> split;
     std::vector<HomingComponent> homing;
+    std::vector<OnDeath> on_death;
+    std::vector<DamageOnHit> on_hit;
 
     std::vector<ProjectileSpawn> projectile_queue;
 
@@ -360,6 +371,8 @@ struct Projectile : ECS::EntityData {
         initialize(&pierce);
         initialize(&split);
         initialize(&homing);
+        initialize(&on_death);
+        initialize(&on_hit);
 
         projectile_queue.reserve(64);
     }
@@ -401,6 +414,9 @@ struct Projectile : ECS::EntityData {
         pierce[handle.i] = { 0, p.pierce_count };
         split[handle.i] = { p.split_count };
         homing[handle.i] = { p.homing_radius, false };
+        on_death[handle.i] = { p.explosion_on_death_radius > 0 };
+        on_hit[handle.i] = { p.explosion_on_hit_radius };
+
     }
 };
 

@@ -126,6 +126,8 @@ void game_area_update() {
     system_update_life_time(game_area->projectiles_player);
     system_update_life_time(game_area->projectiles_target);
 
+    system_on_death(game_area->projectiles_player, game_area_controller);
+
     game_area_controller->spawn_projectiles();
     game_area_controller->spawn_effects();
     
