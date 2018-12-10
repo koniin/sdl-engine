@@ -256,7 +256,7 @@ struct ProjectileSpawn {
     float explosion_on_hit_radius;
 
     SDL_Rect test_rect;
-
+    
     ProjectileSpawn(Vector2 pos, float angle, float speed, int damage, int radius, float ttl, int pierce_count, int split_count) : 
         position(pos),
         angle(angle),

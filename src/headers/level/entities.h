@@ -411,7 +411,8 @@ struct Projectile : ECS::EntityData {
             s.w = p.test_rect.w;
             s.h = p.test_rect.h;
             s.sprite_name = "lazer";
-            s.rotation = p.angle;
+            // s.rotation = p.angle;
+            //position[handle.i].last = p.last_position;
         }
         sprite[handle.i] = s;
         damage[handle.i] = { p.damage, p.force };

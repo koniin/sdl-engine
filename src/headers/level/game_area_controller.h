@@ -95,16 +95,27 @@ struct GameAreaController {
         return GameData::trigger_projectile_fire(ammo, map_settings, angle, position, game_area->projectiles_player.projectile_queue);
     }
 
+    
+    void calc_lazer(SDL_Rect &lazer_rect, const Vector2 &start, const Vector2 &end, const int &height) {
+        float distance = Math::distance_v(start, end);
+        Vector2 difference = end - start;
+        lazer_rect.x = start.x + (difference.x / 2) - (distance / 2);
+        lazer_rect.y = start.y + (difference.y / 2) - (height / 2);
+        lazer_rect.w = distance;
+        lazer_rect.h = height;
+    }
+
     ProjectileFireResult player_projectile_line_fire(const int &ammo, const float &angle, const Vector2 &position) {
         float search_length = 200.0f;
         Vector2 line_search_end = Math::direction_from_angle(angle) * search_length;
         Vector2 end_point = position + line_search_end;
         float dist = 9000.0f;
+        
         for(int j = 0; j < game_area->targets.length; ++j) {
             const Vector2 &t_pos = game_area->targets.position[j].value;
             const float &t_radius = game_area->targets.collision[j].radius;
             Vector2 entry_point;
-            int result = Intersects::line_circle_entry(position, line_search_end, t_pos, t_radius, entry_point);
+            int result = Intersects::line_circle_entry(position, end_point, t_pos, t_radius, entry_point);
             if(result == 1 || result == 2) {
                 auto dir = Math::direction_from_angle(angle);
                 Vector2 collision_point = t_pos + (t_radius * -dir);
@@ -116,21 +127,17 @@ struct GameAreaController {
             }
         }
 
-        Vector2 start = position;
-        Vector2 end = end_point;
-        float distance = Math::distance_v(start, end);
-        Vector2 difference = end - start;
+        Vector2 start = end_point;
+        Vector2 end = position;
         SDL_Rect lazer_rect;
         float height = 8;
-        lazer_rect.x = start.x + (difference.x / 2) - (distance / 2);
-        lazer_rect.y = start.y + (difference.y / 2) - (height / 2);
-        lazer_rect.w = distance;
-        lazer_rect.h = height;
-
+        calc_lazer(lazer_rect, start, end, height);
+        
+        // Adjust for rendering at center of sprite
         lazer_rect.x = lazer_rect.x + (lazer_rect.w / 2);
         lazer_rect.y = lazer_rect.y + (lazer_rect.h / 2);
 
-        auto p = ProjectileSpawn(Vector2(lazer_rect.x, lazer_rect.y), angle, 0, 2, 4, Time::delta_time_fixed * 8, 0, 0);
+        auto p = ProjectileSpawn(Vector2(lazer_rect.x, lazer_rect.y), angle, 0, 0, 4, Time::delta_time_fixed * 8, 0, 0);
         p.test_rect = lazer_rect;
         game_area->projectiles_player.queue_projectile(p);
 
