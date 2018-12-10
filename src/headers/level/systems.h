@@ -516,6 +516,8 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         // OR DO THIS IN SPAWN EXPLOSION METHOD
         // Sound::queue(test_sound_id, 2);
 
+        game_ctrl->spawn_drop(pos.value);
+
         camera_shake(0.1f);
         
         auto &p = get_position(t, entities.second);
@@ -558,6 +560,14 @@ void system_collision_resolution(CollisionPairs &collision_pairs, First &entity_
 
         on_deal_damage(entity_first, entity_second, collision_pairs[i], game_ctrl);
         // ----
+    }
+}
+
+template<typename FirstDrop, typename Second>
+void system_collision_resolution_drops(CollisionPairs &collision_pairs, FirstDrop &entity_first, Second &entity_second, GameAreaController *game_ctrl) {
+    for(int i = 0; i < collision_pairs.count; ++i) {
+        Engine::logn("Got a drop!");
+        mark_for_deletion(entity_first, collision_pairs[i].first);
     }
 }
 

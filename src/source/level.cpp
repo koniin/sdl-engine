@@ -103,6 +103,10 @@ void game_area_update() {
     collisions.clear();
     system_collisions(collisions, game_area->projectiles_target, game_area->players);
     system_collision_resolution(collisions, game_area->projectiles_target, game_area->players, game_area_controller);
+
+    collisions.clear();
+    system_collisions(collisions, game_area->drops, game_area->players);
+    system_collision_resolution_drops(collisions, game_area->drops, game_area->players, game_area_controller);
     // ---
 
     system_player_ship_animate(game_area->players);
@@ -128,14 +132,14 @@ void game_area_update() {
 
     system_on_death(game_area->projectiles_player, game_area_controller);
 
-    game_area_controller->spawn_projectiles();
-    game_area_controller->spawn_effects();
+    game_area_controller->spawn_queued();
     
     system_remove_deleted(game_area->players);
     system_remove_deleted(game_area->projectiles_player);
     system_remove_deleted(game_area->projectiles_target);
     system_remove_deleted(game_area->targets);
     system_remove_deleted(game_area->effects);
+    system_remove_deleted(game_area->drops);
     
     Particles::update(game_area->particles, Time::delta_time);
     

@@ -290,6 +290,10 @@ void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
         export_sprite_data(_g->effects, i, sprite_data_buffer[sprite_count++]);
 	}
 
+    for(int i = 0; i < _g->drops.length; ++i) {
+        export_sprite_data(_g->drops, i, sprite_data_buffer[sprite_count++]);
+	}
+
     // Sort the render buffer by layer
     std::sort(sprite_data_buffer, sprite_data_buffer + sprite_count);
 }

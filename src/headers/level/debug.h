@@ -105,6 +105,7 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
     debug_export_render_data_circles(level->projectiles_target);
     debug_export_render_data_lines(level->projectiles_target);
     debug_export_render_data_circles(level->targets);
+    debug_export_render_data_circles(level->drops);
 }
 
 void debug_render() {

@@ -567,6 +567,42 @@ struct Effect : ECS::EntityData {
     }
 };
 
+struct Drop : ECS::EntityData {
+    std::vector<LifeTime> life_time;
+    std::vector<Position> position;
+    std::vector<Velocity> velocity;
+    std::vector<SpriteComponent> sprite;
+    std::vector<CollisionData> collision;
+    
+    void allocate(size_t n) {
+        allocate_entities(n);
+
+        initialize(&life_time);
+        initialize(&position);
+        initialize(&velocity);
+        initialize(&sprite);
+        initialize(&collision);
+    }
+
+    void clear() {
+        for(int i = 0; i < length; i++) {
+            remove(entity[i]);
+        }
+    }
+
+    void create(ECS::Entity e, const ProjectileSpawn &p, const SpriteComponent &s) {
+        add_entity(e);
+        auto handle = get_handle(e);
+        life_time[handle.i].marked_for_deletion = false;
+        life_time[handle.i].ttl = 0;
+        life_time[handle.i].time = 0;
+        position[handle.i] = { p.position, p.last_position };
+        velocity[handle.i] = Velocity(Math::direction_from_angle(p.angle) * p.speed);
+        sprite[handle.i] = s;
+        collision[handle.i] = { p.radius };
+    }
+};
+
 inline void sprite_effect(Effect &effects, const int &i, const std::string &modifier_data_s) {
     Engine::logn("sprite change");
     effects.sprite[i].sprite_name = modifier_data_s;

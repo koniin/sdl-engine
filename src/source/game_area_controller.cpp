@@ -45,7 +45,7 @@ bool GameAreaController::spawn_boss() {
     return true;
 }
 
-void GameAreaController::spawn_projectiles() {
+void GameAreaController::spawn_queued() {
     for(size_t i = 0; i < player_projectile_queue.size(); i++) {
         auto e = game_area->entity_manager.create();
         SpriteComponent s = SpriteComponent("shooter", "bullet_2");
@@ -69,9 +69,7 @@ void GameAreaController::spawn_projectiles() {
         game_area->projectiles_target.create(e, target_projectile_queue[i], s);
     }
     target_projectile_queue.clear();
-}
-
-void GameAreaController::spawn_effects() {
+    
     for(size_t i = 0; i < game_area->effects.effect_queue.size(); i++) {
         auto e = game_area->entity_manager.create();
         game_area->effects.create(e, 
@@ -81,6 +79,14 @@ void GameAreaController::spawn_effects() {
             game_area->effects.effect_queue[i].effect);
     }
     game_area->effects.effect_queue.clear();
+
+    for(size_t i = 0; i < drop_queue.size(); i++) {
+        auto e = game_area->entity_manager.create();
+        SpriteComponent s = SpriteComponent("shooter", "bullet_2");
+        Engine::logn("spawned drop at %.2f %.2f", drop_queue[i].position.x, drop_queue[i].position.y);
+        game_area->drops.create(e, drop_queue[i], s);
+    }
+    drop_queue.clear();
 }
 
 void GameAreaController::spawn_muzzle_flash_effect(Vector2 p, Vector2 local_position, ECS::Entity parent) {
@@ -278,4 +284,9 @@ void GameAreaController::ray_cast_targets_for_end_point(const Vector2 &position,
             }
         }
     }
+}
+
+void GameAreaController::spawn_drop(const Vector2 &position) {
+    ProjectileSpawn d = ProjectileSpawn(position, 0, 0, 0, 20, 2.0f, 0, 0);
+    drop_queue.push_back(d);
 }

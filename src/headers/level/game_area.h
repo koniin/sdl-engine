@@ -25,6 +25,7 @@ struct GameArea {
     Projectile projectiles_target;
     Target targets;
     Effect effects;
+    Drop drops;
     
     Particles::ParticleContainer particles;
     Particles::Emitter explosion_emitter;
@@ -39,6 +40,7 @@ struct GameArea {
         projectiles_target.allocate(256);
         targets.allocate(128);
         effects.allocate(128);
+        drops.allocate(128);
         tiles.reserve(8000);
         emitters_configure(this);
     }
@@ -49,6 +51,7 @@ struct GameArea {
         projectiles_target.clear();
         targets.clear();
         effects.clear();
+        drops.clear();
         particles.length = 0;
         tiles.clear();
     }

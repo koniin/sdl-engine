@@ -170,7 +170,7 @@ const int enemy_base_hp = 5;
 const int enemy_base_hp_max = 5;
 
 struct PlayerStats {
-    Attack attack = Attack::Lazer;
+    Attack attack = Attack::Basic;
     int collision_radius = 8;
     float max_velocity = 200.0f;
     int hp = player_start_hp;
