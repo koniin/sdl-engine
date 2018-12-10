@@ -13,13 +13,25 @@ void GameAreaController::spawn_target(const Vector2 &position, const Enemy &e) {
 void GameAreaController::spawn_projectiles() {
     for(size_t i = 0; i < player_projectile_queue.size(); i++) {
         auto e = game_area->entity_manager.create();
-        game_area->projectiles_player.create(e, player_projectile_queue[i]);
+        SpriteComponent s = SpriteComponent("shooter", "bullet_2");
+        ProjectileSpawn &p = player_projectile_queue[i];
+        if(p.line) {
+            s.line = true;
+            s.position = Vector2(p.line_rect.x, p.line_rect.y);
+            s.w = p.line_rect.w;
+            s.h = p.line_rect.h;
+            s.sprite_name = "lazer";
+            s.rotation = p.angle;
+            s.radius = p.line_rect.h / 2;
+        }
+        game_area->projectiles_player.create(e, p, s);
     }
     player_projectile_queue.clear();
 
     for(size_t i = 0; i < target_projectile_queue.size(); i++) {
         auto e = game_area->entity_manager.create();
-        game_area->projectiles_target.create(e, target_projectile_queue[i]);
+        SpriteComponent s = SpriteComponent("shooter", "bullet_2");
+        game_area->projectiles_target.create(e, target_projectile_queue[i], s);
     }
     target_projectile_queue.clear();
 }

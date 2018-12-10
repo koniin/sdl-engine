@@ -190,18 +190,20 @@ struct GameAreaController {
         int height = 8;
         calc_lazer(lazer_rect, end_point, position, height);
         
-        // Adjust for rendering at center of sprite
-        lazer_rect.x = lazer_rect.x + (lazer_rect.w / 2);
-        lazer_rect.y = lazer_rect.y + (lazer_rect.h / 2);
+        // // Adjust for rendering at center of sprite
+        // lazer_rect.x = lazer_rect.x + (lazer_rect.w / 2);
+        // lazer_rect.y = lazer_rect.y + (lazer_rect.h / 2);
 
         auto final_speed = 0.0f;
         auto ttl = Time::delta_time_fixed * 8;
-        ProjectileSpawn p(Vector2((float)lazer_rect.x, (float)lazer_rect.y), initial_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
+        ProjectileSpawn p(end_point, initial_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
                 ttl, t_attack.pierce_count, t_attack.split_count);
-            // p.homing_radius = t_attack.homing_radius;
+        p.last_position = position;
+        // p.homing_radius = t_attack.homing_radius;
         p.explosion_on_death_radius = t_attack.projectile_death_explosion_radius;
         p.explosion_on_hit_radius = t_attack.projectile_hit_explosion_radius;
-        p.test_rect = lazer_rect;
+        p.line = true;
+        p.line_rect = lazer_rect;
         player_projectile_queue.push_back(p);
     }
 

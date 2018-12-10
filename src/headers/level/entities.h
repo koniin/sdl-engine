@@ -71,6 +71,8 @@ struct SpriteComponent {
     size_t sprite_sheet_index;
     std::string sprite_name;
     int layer;
+    bool line;
+    Vector2 position;
 
     SpriteComponent() {}
 
@@ -83,6 +85,7 @@ struct SpriteComponent {
         rotation = 1.0f;
         color_r = color_g = color_b = color_a = 255;
         layer = 0;
+        line = false;
     }
 };
 
@@ -378,34 +381,23 @@ struct Projectile : ECS::EntityData {
             remove(entity[i]);
         }
     }
-    
-    void create(ECS::Entity e, ProjectileSpawn p) {
+
+    void create(ECS::Entity e, const ProjectileSpawn &p, const SpriteComponent &s) {
         add_entity(e);
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
         life_time[handle.i].ttl = p.time_to_live;
         life_time[handle.i].time = 0;
-        position[handle.i] = { p.position, p.position };
+        position[handle.i] = { p.position, p.last_position };
         velocity[handle.i] = Velocity(Math::direction_from_angle(p.angle) * p.speed);
-        SpriteComponent s = SpriteComponent("shooter", "bullet_2");
-        if(p.test_rect.x != 0 || p.test_rect.w != 0) {
-            position[handle.i].value = Vector2((float)p.test_rect.x, (float)p.test_rect.y);
-            s.w = p.test_rect.w;
-            s.h = p.test_rect.h;
-            s.sprite_name = "lazer";
-            s.rotation = p.angle;
-            s.radius = 8;
-        }
         sprite[handle.i] = s;
         damage[handle.i] = { p.damage, p.force };
         collision[handle.i] = { p.radius };
-
         pierce[handle.i] = { 0, p.pierce_count };
         split[handle.i] = { p.split_count };
         homing[handle.i] = { p.homing_radius, false };
         on_death[handle.i] = { p.explosion_on_death_radius > 0 };
         on_hit[handle.i] = { p.explosion_on_hit_radius };
-
     }
 };
 

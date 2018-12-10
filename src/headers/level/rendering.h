@@ -152,17 +152,25 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
 
     spr.tex = Resources::sprite_get(sheet.sprite_sheet_name)->image;
     spr.src = region;
-    spr.dest.x = (int16_t)(entity_data.position[i].value.x - camera.x);
-    spr.dest.y = (int16_t)(entity_data.position[i].value.y - camera.y);
-
-    spr.dest.w = entity_data.sprite[i].w;
-    spr.dest.h = entity_data.sprite[i].h;
-
-    spr.dest.x = spr.dest.x - (spr.dest.w / 2);
-    spr.dest.y = spr.dest.y - (spr.dest.h / 2);
 
     spr.angle = entity_data.sprite[i].rotation;
     spr.layer = entity_data.sprite[i].layer;
+
+    if(entity_data.sprite[i].line) {
+        spr.dest.x = (int16_t)(entity_data.sprite[i].position.x - camera.x);
+        spr.dest.y = (int16_t)(entity_data.sprite[i].position.y - camera.y);
+        spr.dest.w = entity_data.sprite[i].w;
+        spr.dest.h = entity_data.sprite[i].h;
+    } else {
+        spr.dest.x = (int16_t)(entity_data.position[i].value.x - camera.x);
+        spr.dest.y = (int16_t)(entity_data.position[i].value.y - camera.y);
+
+        spr.dest.w = entity_data.sprite[i].w;
+        spr.dest.h = entity_data.sprite[i].h;
+
+        spr.dest.x = spr.dest.x - (spr.dest.w / 2);
+        spr.dest.y = spr.dest.y - (spr.dest.h / 2);
+    }
 }
 
 template<typename T>

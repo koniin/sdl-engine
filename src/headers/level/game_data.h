@@ -248,6 +248,7 @@ struct ProjectileFireResult {
 
 struct ProjectileSpawn {
     Vector2 position;
+    Vector2 last_position;
     float angle;
     float speed;
     int damage;
@@ -261,7 +262,8 @@ struct ProjectileSpawn {
     float explosion_on_death_radius;
     float explosion_on_hit_radius;
     
-    SDL_Rect test_rect;
+    bool line = false;
+    SDL_Rect line_rect;
 
     ProjectileSpawn(Vector2 pos, float angle, float speed, int damage, int radius, float ttl, int pierce_count, int split_count) : 
         position(pos),
@@ -273,12 +275,11 @@ struct ProjectileSpawn {
         pierce_count(pierce_count),
         split_count(split_count)
     {
+        last_position = pos;
         force = 2.0f;
         homing_radius = 0.0f;
         explosion_on_death_radius = 0.0f;
         explosion_on_hit_radius = 0.0f;
-        test_rect.x = 0;
-        test_rect.w = 0;
     }
 };
 
