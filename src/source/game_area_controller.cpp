@@ -17,12 +17,12 @@ void GameAreaController::spawn_projectiles() {
         ProjectileSpawn &p = player_projectile_queue[i];
         if(p.line) {
             s.line = true;
-            s.position = Vector2(p.line_rect.x, p.line_rect.y);
+            s.position = Vector2((float)p.line_rect.x, (float)p.line_rect.y);
             s.w = p.line_rect.w;
             s.h = p.line_rect.h;
             s.sprite_name = "lazer";
             s.rotation = p.angle;
-            s.radius = p.line_rect.h / 2;
+            s.radius = (int16_t)(p.line_rect.h / 2);
         }
         game_area->projectiles_player.create(e, p, s);
     }
