@@ -402,11 +402,17 @@ struct Projectile : ECS::EntityData {
         auto handle = get_handle(e);
         life_time[handle.i].marked_for_deletion = false;
         life_time[handle.i].ttl = p.time_to_live;
-        // Engine::logn("ttl %.1f ", p_data.time_to_live);
         life_time[handle.i].time = 0;
         position[handle.i] = { p.position, p.position };
         velocity[handle.i] = Velocity(Math::direction_from_angle(p.angle) * p.speed);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2");
+        if(p.test_rect.x != 0 || p.test_rect.w != 0) {
+            position[handle.i].value = Vector2(p.test_rect.x, p.test_rect.y);
+            s.w = p.test_rect.w;
+            s.h = p.test_rect.h;
+            s.sprite_name = "lazer";
+            s.rotation = p.angle;
+        }
         sprite[handle.i] = s;
         damage[handle.i] = { p.damage, p.force };
         collision[handle.i] = { p.radius };

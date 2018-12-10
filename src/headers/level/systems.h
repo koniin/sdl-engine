@@ -68,7 +68,10 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             auto gun_exit_position = players.position[i].value + Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
             Ammunition &ammo = players.ammo[i];
-            auto fire_result = game_ctrl->player_projectile_fire(ammo.value, original_angle, gun_exit_position);
+            auto fire_result = game_ctrl->player_projectile_line_fire(ammo.value, original_angle, gun_exit_position);
+
+            // Ammunition &ammo = players.ammo[i];
+            // auto fire_result = game_ctrl->player_projectile_fire(ammo.value, original_angle, gun_exit_position);
             pi.fire_cooldown = fire_result.fire_cooldown;
 
             if(!fire_result.did_fire) {

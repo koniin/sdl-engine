@@ -362,7 +362,7 @@ void lazer() {
   	lazer_rect.w = Math::distance_f(player_x, player_y, target_x, target_y);
   	lazer_rect.h = 8;
     */
-    SDL_Rect lazer_rect;
+    //SDL_Rect lazer_rect;
     Vector2 player_pos = Vector2(player_center_x, player_center_y);
     Vector2 target_pos = Vector2(target_center_x, target_center_y);
     calc_lazer(lazer_rect, player_pos, target_pos, 8, r);
