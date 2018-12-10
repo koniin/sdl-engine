@@ -9,7 +9,19 @@ struct GameAreaController {
     std::unordered_map<std::string, Sound::SoundId> sound_map;
     MapSettings map_settings;
 
-    GameAreaController(GameArea *g) : game_area(g) {}
+    std::vector<ProjectileSpawn> player_projectile_queue;
+    std::vector<ProjectileSpawn> target_projectile_queue;
+
+    GameAreaController(GameArea *g) : game_area(g) {
+        player_projectile_queue.reserve(256);
+        target_projectile_queue.reserve(512);
+    }
+
+    void clear() {
+        game_area->clear();
+        player_projectile_queue.clear();
+        target_projectile_queue.clear();
+    }
 
     void set_world_bounds(const Rectangle &bounds) {
         game_area->world_bounds = bounds;
@@ -39,12 +51,13 @@ struct GameAreaController {
         float minimum_spawn_distance = (float)gh;
         Vector2 boss_pos;;
         int count = 0;
+        float buffer_area = 50;
         do {
             boss_pos = RNG::vector2(
-                (float)game_area->world_bounds.x, 
-                (float)game_area->world_bounds.right(), 
-                (float)game_area->world_bounds.y, 
-                (float)game_area->world_bounds.bottom());
+                (float)game_area->world_bounds.x + buffer_area, 
+                (float)game_area->world_bounds.right() - buffer_area, 
+                (float)game_area->world_bounds.y + buffer_area, 
+                (float)game_area->world_bounds.bottom()) - buffer_area;
 
             count++;
             if(count > 10) {
@@ -91,60 +104,105 @@ struct GameAreaController {
         return game_area->targets.length == 0;
     }
 
-    ProjectileFireResult player_projectile_fire(const int &ammo, const float &angle, const Vector2 &position) {
-        return GameData::trigger_projectile_fire(ammo, map_settings, angle, position, game_area->projectiles_player.projectile_queue);
+    void target_projectile_fire(const ProjectileSpawn &p) {
+        target_projectile_queue.push_back(p);
     }
 
-    
+    // Order
+    // 1. first we take the data from the attack and use as base
+    // 2. apply player upgrade modifiers to the base
+    // 3. apply map settings things to that
+    // 4. then we fire the projectiles based on those numbers
+    ProjectileFireResult player_projectile_fire(const int &ammo, const float &angle, const Vector2 &position) {
+        GameState *game_state = GameData::game_state_get();
+        const Attack &attack = game_state->player.attack;
+        Attack_t t_attack = Attacks[attack];
+
+        int p_extra_count = 0;
+        for(auto &upgrade : game_state->player_upgrades) {
+            upgrade.apply_projectile_modifiers(t_attack);
+            p_extra_count += upgrade.count_extra_projectiles();
+        }
+
+        map_settings.apply_player_projectile_modifiers(t_attack);
+        
+        char *sound_name = t_attack.sound_name;
+        auto fire_result = ProjectileFireResult(t_attack.cooldown, t_attack.knockback, sound_name);
+
+        int ammo_usage = t_attack.ammo;
+        if(ammo_usage <= ammo) {
+            fire_result.ammo_used = ammo_usage;
+            fire_result.did_fire = true;
+            
+            switch(t_attack.type) {
+                case ProjectileAttack: {
+                    const std::vector<float> &angles = GameData::get_attack_angles(attack, p_extra_count);
+                    ASSERT_WITH_MSG(angles.size() > 0, "NO ANGLES DEFINED FOR THIS ATTACK and extra count!");
+                    attack_spawn_projectiles(t_attack, position, angle, angles);
+                    break;
+                }
+                case LineAttack: {
+                    attack_spawn_line_attack(t_attack, position, angle);
+                    break;
+                }
+                default: {
+                    ASSERT_WITH_MSG(false, "No spawn defined for this attack type");
+                    break;
+                }
+            }
+        } 
+        
+        return fire_result;
+    }
+
+    void attack_spawn_projectiles(Attack_t &t_attack, const Vector2 &position, const float &initial_angle, const std::vector<float> &angles) {
+        const float &accuracy = t_attack.accuracy;
+        const float &time_to_live = t_attack.range;
+        const float &projectile_speed_mod = t_attack.projectile_speed_mod;
+
+        for(auto &angle_offset : angles) {
+            float final_angle = initial_angle + angle_offset + RNG::range_f(-accuracy, accuracy);
+            float final_speed = t_attack.projectile_speed + RNG::range_f(-projectile_speed_mod, projectile_speed_mod);
+            ProjectileSpawn p(position, final_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
+                time_to_live, t_attack.pierce_count, t_attack.split_count);
+            p.homing_radius = t_attack.homing_radius;
+            p.explosion_on_death_radius = t_attack.projectile_death_explosion_radius;
+            p.explosion_on_hit_radius = t_attack.projectile_hit_explosion_radius;
+            
+            player_projectile_queue.push_back(p);
+        }
+    }
+
     void calc_lazer(SDL_Rect &lazer_rect, const Vector2 &start, const Vector2 &end, const int &height) {
         float distance = Math::distance_v(start, end);
         Vector2 difference = end - start;
-        lazer_rect.x = start.x + (difference.x / 2) - (distance / 2);
-        lazer_rect.y = start.y + (difference.y / 2) - (height / 2);
-        lazer_rect.w = distance;
+        lazer_rect.x = (int)(start.x + (difference.x / 2) - (distance / 2));
+        lazer_rect.y = (int)(start.y + (difference.y / 2) - (height / 2));
+        lazer_rect.w = (int)distance;
         lazer_rect.h = height;
     }
 
-    ProjectileFireResult player_projectile_line_fire(const int &ammo, const float &angle, const Vector2 &position) {
-        float search_length = 200.0f;
-        Vector2 line_search_end = Math::direction_from_angle(angle) * search_length;
-        Vector2 end_point = position + line_search_end;
-        float dist = 9000.0f;
+    void attack_spawn_line_attack(Attack_t &t_attack, const Vector2 &position, const float &initial_angle) {
+        Vector2 end_point;
+        ray_cast_targets_for_end_point(position, initial_angle, 200.0f, end_point);
         
-        for(int j = 0; j < game_area->targets.length; ++j) {
-            const Vector2 &t_pos = game_area->targets.position[j].value;
-            const float &t_radius = game_area->targets.collision[j].radius;
-            Vector2 entry_point;
-            int result = Intersects::line_circle_entry(position, end_point, t_pos, t_radius, entry_point);
-            if(result == 1 || result == 2) {
-                auto dir = Math::direction_from_angle(angle);
-                Vector2 collision_point = t_pos + (t_radius * -dir);
-                float cur_dist = Math::distance_v(position, collision_point);
-                if(cur_dist < dist) {
-                    dist = cur_dist;
-                    end_point = collision_point;
-                }
-            }
-        }
-
-        Vector2 start = end_point;
-        Vector2 end = position;
         SDL_Rect lazer_rect;
-        float height = 8;
-        calc_lazer(lazer_rect, start, end, height);
+        int height = 8;
+        calc_lazer(lazer_rect, end_point, position, height);
         
         // Adjust for rendering at center of sprite
         lazer_rect.x = lazer_rect.x + (lazer_rect.w / 2);
         lazer_rect.y = lazer_rect.y + (lazer_rect.h / 2);
 
-        auto p = ProjectileSpawn(Vector2(lazer_rect.x, lazer_rect.y), angle, 0, 0, 4, Time::delta_time_fixed * 8, 0, 0);
+        auto final_speed = 0.0f;
+        auto ttl = Time::delta_time_fixed * 8;
+        ProjectileSpawn p(Vector2((float)lazer_rect.x, (float)lazer_rect.y), initial_angle, final_speed, t_attack.projectile_damage, t_attack.projectile_radius, 
+                ttl, t_attack.pierce_count, t_attack.split_count);
+            // p.homing_radius = t_attack.homing_radius;
+        p.explosion_on_death_radius = t_attack.projectile_death_explosion_radius;
+        p.explosion_on_hit_radius = t_attack.projectile_hit_explosion_radius;
         p.test_rect = lazer_rect;
-        game_area->projectiles_player.queue_projectile(p);
-
-        ProjectileFireResult f = ProjectileFireResult(0.25f, 0, "basic_fire");
-        f.did_fire = true;
-        f.ammo_used = 1;
-        return f;
+        player_projectile_queue.push_back(p);
     }
 
     void player_projectile_hit(const ECS::Entity &player_projectile, const ECS::Entity &target_entity, const Vector2 &collision_point) {
@@ -152,7 +210,7 @@ struct GameAreaController {
         if(game_area->projectiles_player.is_valid(handle)) {
             int split_count = game_area->projectiles_player.split[handle.i].count;
             if(split_count > 0) {
-                GameData::split_player_projectile(map_settings, split_count, collision_point, game_area->projectiles_player.projectile_queue);
+                split_player_projectile(map_settings, split_count, collision_point);
             }
 
             float on_hit_explosion_radius = game_area->projectiles_player.on_hit[handle.i].explosion_radius;
@@ -162,11 +220,64 @@ struct GameAreaController {
         }
     }
 
+    void split_player_projectile(const MapSettings &settings, const int &count, const Vector2 &position) {
+        GameState *game_state = GameData::game_state_get();
+        const Attack &attack = game_state->player.attack;
+        Attack_t t_attack = Attacks[attack];
+
+        int p_extra_count = 0;
+        for(auto &upgrade : game_state->player_upgrades) {
+            upgrade.apply_projectile_modifiers(t_attack);
+            p_extra_count += upgrade.count_extra_projectiles();
+        }
+
+        map_settings.apply_player_projectile_modifiers(t_attack);
+    
+        float angle = RNG::range_f(0, 360);
+        float final_speed = bp_spd();
+        int damage = 2;
+        int radius = 8;
+        float time_to_live = 0.4f;
+        int pierce_count = 0;
+        int split_count = 0; // don't want projectiles to split recursively?
+
+        // explosions for split projectiles ? ;)
+
+        size_t max_split = Math::min_i(count + p_extra_count, split_angles.size());
+        for(size_t i = 0; i < max_split; i++) {
+            float final_angle = angle + split_angles[i];
+            ProjectileSpawn p(position, final_angle, final_speed, damage, radius, time_to_live, pierce_count, split_count);
+            player_projectile_queue.push_back(p);
+        }
+    }
+
     void spawn_player_explosion_projectile(const Vector2 pos) {
         auto p = ProjectileSpawn(pos, 0, 0, 10, 20, Time::delta_time_fixed * 8, 200, 0);
-        game_area->projectiles_player.queue_projectile(p);
+        player_projectile_queue.push_back(p);
 
         spawn_explosion_effect(pos, 0, 0);
+    }
+
+    void ray_cast_targets_for_end_point(const Vector2 &position, const float &angle, const float &search_length, Vector2 &target_point) {
+        Vector2 line_search_end = Math::direction_from_angle(angle) * search_length;
+        Vector2 end_point = position + line_search_end;
+        target_point = end_point;
+        float dist = 9000.0f;
+        for(int j = 0; j < game_area->targets.length; ++j) {
+            const Vector2 &t_pos = game_area->targets.position[j].value;
+            const float &t_radius = (float)game_area->targets.collision[j].radius;
+            Vector2 entry_point;
+            int result = Intersects::line_circle_entry(position, end_point, t_pos, t_radius, entry_point);
+            if(result == 1 || result == 2) {
+                auto dir = Math::direction_from_angle(angle);
+                Vector2 collision_point = t_pos + (t_radius * -dir);
+                float cur_dist = Math::distance_v(position, collision_point);
+                if(cur_dist < dist) {
+                    dist = cur_dist;
+                    target_point = collision_point;
+                }
+            }
+        }
     }
 };
 

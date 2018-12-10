@@ -58,7 +58,7 @@ void level_init() {
 }
 
 void level_clean() {
-    game_area->clear();
+    game_area_controller->clear();
     render_buffer.clear();
     GameEvents::clear();
 }
@@ -78,7 +78,7 @@ void game_area_input() {
         // Input
     system_player_get_input(game_area->players);
     system_player_handle_input(game_area->players, game_area_controller);
-    system_ai_input(game_area->targets, game_area->players, game_area->projectiles_target);
+    system_ai_input(game_area->targets, game_area->players, game_area->projectiles_target, game_area_controller);
 }
 
 void game_area_update() {
@@ -261,8 +261,6 @@ void level_render() {
 
     Particles::render_circles_filled(game_area->particles);
     debug_render();
-
-    lazer();
 }
 
 void level_render_ui() {

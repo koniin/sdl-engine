@@ -357,8 +357,6 @@ struct Projectile : ECS::EntityData {
     std::vector<OnDeath> on_death;
     std::vector<DamageOnHit> on_hit;
 
-    std::vector<ProjectileSpawn> projectile_queue;
-
     void allocate(size_t n) {
         allocate_entities(n);
 
@@ -373,30 +371,14 @@ struct Projectile : ECS::EntityData {
         initialize(&homing);
         initialize(&on_death);
         initialize(&on_hit);
-
-        projectile_queue.reserve(64);
     }
 
     void clear() {
-        projectile_queue.clear();
-
         for(int i = 0; i < length; i++) {
             remove(entity[i]);
         }
     }
-
-    void queue_projectile(ProjectileSpawn p) {
-        projectile_queue.push_back(p);
-    }
-
-    void spawn_queued(ECS::EntityManager *entity_manager) {
-        for(size_t i = 0; i < projectile_queue.size(); i++) {
-            auto e = entity_manager->create();
-            create(e, projectile_queue[i]);
-        }
-        projectile_queue.clear();
-    }
-
+    
     void create(ECS::Entity e, ProjectileSpawn p) {
         add_entity(e);
         auto handle = get_handle(e);
@@ -407,12 +389,12 @@ struct Projectile : ECS::EntityData {
         velocity[handle.i] = Velocity(Math::direction_from_angle(p.angle) * p.speed);
         SpriteComponent s = SpriteComponent("shooter", "bullet_2");
         if(p.test_rect.x != 0 || p.test_rect.w != 0) {
-            position[handle.i].value = Vector2(p.test_rect.x, p.test_rect.y);
+            position[handle.i].value = Vector2((float)p.test_rect.x, (float)p.test_rect.y);
             s.w = p.test_rect.w;
             s.h = p.test_rect.h;
             s.sprite_name = "lazer";
-            // s.rotation = p.angle;
-            //position[handle.i].last = p.last_position;
+            s.rotation = p.angle;
+            s.radius = 8;
         }
         sprite[handle.i] = s;
         damage[handle.i] = { p.damage, p.force };

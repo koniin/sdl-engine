@@ -82,8 +82,14 @@ enum Attack {
 static const char* AttackNames[SIZE_OF_Attacks] = { "Basic", "Double", "Triple", "Circle", "Back", "Flamer", "Rapid", "Side", "Blast", "Boom", "Minigun", "Nailgun", "Splitter", "Homing", "Lazer" };
 static const Attack AttackIds[SIZE_OF_Attacks] = { Basic, Double, Triple, Circle, Back, Flamer, Rapid, Side, Blast, Boom, Minigun, Nailgun, Splitter, HomingGun, Lazer };
 
+enum AttackType {
+    ProjectileAttack = 0,
+    LineAttack = 1
+};
+
 struct Attack_t {    
     char *sound_name;
+    AttackType type;
     float cooldown; // how much time between projectiles
     float accuracy; // how much the projectile can go of the straight line when fired (spreads in -angle to angle from initial angle)
     
@@ -103,21 +109,21 @@ struct Attack_t {
 
 static const Attack_t Attacks[SIZE_OF_Attacks] = {
     // sound      | cooldown  | accuracy  | knockback | ttl    | speed  | spd_mod | damage | radius | pierce | split 
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0, 0, 10, 0, 0, 0         }, // Basic
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10, 0, 0, 0       }, // Double
-    { "basic_fire", 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0, 0, 10, 0, 0, 0     }, // Triple
-    { "basic_fire", 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,0, 10, 0, 0, 0   }, // Circle
-    { "basic_fire", 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,0, 10, 0, 0, 0       }, // Back
-    { "basic_fire", 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,8,0,0, 10, 0, 0, 0 }, // Flamer
-    { "basic_fire", 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,0, 0, 10, 0, 0, 0       }, // Rapid
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,0, 0, 10, 0, 0, 0        }, // Side
-    { "basic_fire", 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8, 0,0, 10, 0, 0, 0 }, // Blast
-    { "basic_fire", 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0,0, 10, 0, 0, 0 }, // Boom
-    { "basic_fire", 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10, 0, 0, 0     }, // Minigun
-    { "basic_fire", 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, 0, 10, 0, 0, 0 }, // Nailgun
-    { "basic_fire", 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4, 10, 0, 0, 0 }, // Splitter
-    { "basic_fire", 0.4f,      2.0f,       2.0f,       1.8f,   bp_spd(), 0,  2,          8, 0, 0, 10, 150.0f, 0, 0 }, // Homing
-    { "basic_fire", 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          4,  20, 0, 10, 0, 0, 0 }, // Lazer
+    { "basic_fire", ProjectileAttack, 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8,  0, 0, 10, 0, 0, 0         }, // Basic
+    { "basic_fire", ProjectileAttack, 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10, 0, 0, 0       }, // Double
+    { "basic_fire", ProjectileAttack, 0.35f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,   3,          8, 0, 0, 10, 0, 0, 0     }, // Triple
+    { "basic_fire", ProjectileAttack, 0.55f,      2.0f,       2.0f,       0.3f,   bp_spd() / 2, 0,   3,          8,0,0, 10, 0, 0, 0   }, // Circle
+    { "basic_fire", ProjectileAttack, 0.3f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8, 0,0, 10, 0, 0, 0       }, // Back
+    { "basic_fire", ProjectileAttack, 0.08f,      2.0f,       0.0f,       0.25f,   bp_spd(), bp_spd_mod(),  2,8,0,0, 10, 0, 0, 0 }, // Flamer
+    { "basic_fire", ProjectileAttack, 0.15f,      4.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8,0, 0, 10, 0, 0, 0       }, // Rapid
+    { "basic_fire", ProjectileAttack, 0.25f,      8.0f,       2.0f,       0.8f,   bp_spd(), 0,  3,          8,0, 0, 10, 0, 0, 0        }, // Side
+    { "basic_fire", ProjectileAttack, 0.5f,     4.0f,       2.0f,       0.3f,   bp_spd(), bp_spd_mod(),  3,          8, 0,0, 10, 0, 0, 0 }, // Blast
+    { "basic_fire", ProjectileAttack, 0.7f,      1.0f,       10.0f,       3.0f,   bp_spd() * 0.3f, 0,  9,          16, 0,0, 10, 0, 0, 0 }, // Boom
+    { "basic_fire", ProjectileAttack, 0.08f,      12.0f,       1.0f,       0.8f,   bp_spd(), 0,  3,          8, 0, 0, 10, 0, 0, 0     }, // Minigun
+    { "basic_fire", ProjectileAttack, 0.14f,      6.0f,       0.0f,       0.8f,   bp_spd(), bp_spd_mod(),  2,          6, 1, 0, 10, 0, 0, 0 }, // Nailgun
+    { "basic_fire", ProjectileAttack, 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4, 10, 0, 0, 0 }, // Splitter
+    { "basic_fire", ProjectileAttack, 0.4f,      2.0f,       2.0f,       1.8f,   bp_spd(), 0,  2,          8, 0, 0, 10, 150.0f, 0, 0 }, // Homing
+    { "basic_fire", LineAttack, 0.25f,      0.0f,       2.0f,       0.8f,   0, 0,   3,  4,  0, 0, 10, 0, 0, 0 }, // Lazer
 };
 
 static const std::vector<float> Projectile_angles[SIZE_OF_Attacks] = { 
@@ -164,7 +170,7 @@ const int enemy_base_hp = 5;
 const int enemy_base_hp_max = 5;
 
 struct PlayerStats {
-    Attack attack = Attack::Basic;
+    Attack attack = Attack::Lazer;
     int collision_radius = 8;
     float max_velocity = 200.0f;
     int hp = player_start_hp;
@@ -254,9 +260,9 @@ struct ProjectileSpawn {
     float force;
     float explosion_on_death_radius;
     float explosion_on_hit_radius;
-
-    SDL_Rect test_rect;
     
+    SDL_Rect test_rect;
+
     ProjectileSpawn(Vector2 pos, float angle, float speed, int damage, int radius, float ttl, int pierce_count, int split_count) : 
         position(pos),
         angle(angle),
@@ -416,7 +422,7 @@ namespace GameData {
     std::vector<MapModifier> &get_map_modifiers();
     void set_attack(const Attack &attack);
     void add_upgrade(const Upgrade &u);
-    ProjectileFireResult trigger_projectile_fire(const int &ammo, const MapSettings &settings, float angle, Vector2 pos, std::vector<ProjectileSpawn> &projectiles_queue);
+    const std::vector<float> &get_attack_angles(const Attack &attack, const int &projectile_extra_count);
     void split_player_projectile(const MapSettings &settings, const int &count, const Vector2 &position, std::vector<ProjectileSpawn> &projectiles_queue);
     /*
     // Create enemy by type and then alter it with current map and gamestate

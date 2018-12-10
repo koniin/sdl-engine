@@ -11,8 +11,17 @@ void GameAreaController::spawn_target(const Vector2 &position, const Enemy &e) {
 }
 
 void GameAreaController::spawn_projectiles() {
-    game_area->projectiles_player.spawn_queued(&game_area->entity_manager);
-    game_area->projectiles_target.spawn_queued(&game_area->entity_manager);
+    for(size_t i = 0; i < player_projectile_queue.size(); i++) {
+        auto e = game_area->entity_manager.create();
+        game_area->projectiles_player.create(e, player_projectile_queue[i]);
+    }
+    player_projectile_queue.clear();
+
+    for(size_t i = 0; i < target_projectile_queue.size(); i++) {
+        auto e = game_area->entity_manager.create();
+        game_area->projectiles_target.create(e, target_projectile_queue[i]);
+    }
+    target_projectile_queue.clear();
 }
 
 void GameAreaController::spawn_effects() {

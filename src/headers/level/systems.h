@@ -68,10 +68,8 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
             auto gun_exit_position = players.position[i].value + Math::direction_from_angle(original_angle) * gun_barrel_distance;
             
             Ammunition &ammo = players.ammo[i];
-            auto fire_result = game_ctrl->player_projectile_line_fire(ammo.value, original_angle, gun_exit_position);
+            auto fire_result = game_ctrl->player_projectile_fire(ammo.value, original_angle, gun_exit_position);
 
-            // Ammunition &ammo = players.ammo[i];
-            // auto fire_result = game_ctrl->player_projectile_fire(ammo.value, original_angle, gun_exit_position);
             pi.fire_cooldown = fire_result.fire_cooldown;
 
             if(!fire_result.did_fire) {
@@ -394,7 +392,7 @@ void system_remove_no_health_left(T &entity_data) {
 }
 
 template<typename AI, typename Enemy>
-void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &projectiles) {
+void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &projectiles, GameAreaController *ga_ctrl) {
     for(int i = 0; i < entity_data.length; i++) {
         entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
 
@@ -414,7 +412,7 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 //Vector2 projectile_velocity = direction * entity_data.weapon[i].projectile_speed;                
 
                 ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f, 0, 0);
-                projectiles.queue_projectile(p);
+                ga_ctrl->target_projectile_fire(p);
                 continue; // only fire at one target
             }
         }
@@ -494,10 +492,11 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
     auto &damage = get_damage(projectile, entities.first);
     auto &velocity = get_velocity(projectile, entities.first);
     auto &second_pos = get_position(t, entities.second);
-    Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
-    second_pos.value.x += dir.x * damage.force;
-    second_pos.value.y += dir.y * damage.force;
-
+    if(velocity.value != Vector2::Zero) {
+        Vector2 dir = Math::normalize(Vector2(velocity.value.x, velocity.value.y));
+        second_pos.value.x += dir.x * damage.force;
+        second_pos.value.y += dir.y * damage.force;
+    }
     int amount_dealt = deal_damage(projectile, entities.first, t, entities.second);
     
     Engine::pause(0.03f);
