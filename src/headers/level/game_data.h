@@ -177,6 +177,7 @@ struct PlayerStats {
     int max_hp = player_start_hp_max;
     float move_acceleration = player_move_acceleration();
     float rotation_speed = player_move_rotation(); // degrees
+    float brake_speed = player_drag();
     int ammo_max = 100; // - how much ammo you can maximally have (also start ammo at each level)
     int ammo_recharge = 10; // - how much you recharge every tick
     float ammo_recharge_time = 0.25f; // - how often a tick is

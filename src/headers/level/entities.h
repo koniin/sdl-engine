@@ -207,6 +207,7 @@ struct PlayerConfiguration {
 	float rotation_speed; // degrees
 	float move_acceleration;
 	float max_velocity;
+    float brake_speed;
 };
 
 struct Player : ECS::EntityData {
@@ -264,6 +265,7 @@ struct Player : ECS::EntityData {
         pcfg.max_velocity = game_state->player.max_velocity;
         pcfg.move_acceleration = game_state->player.move_acceleration;
         pcfg.rotation_speed = game_state->player.rotation_speed;
+        pcfg.brake_speed = game_state->player.brake_speed;
 
         config[handle.i] = pcfg;
         position[handle.i] = { p };

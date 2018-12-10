@@ -45,7 +45,11 @@ inline void system_player_handle_input(Player &players, GameAreaController *game
 
         direction.value = Math::direction_from_angle(direction.angle);
         
-        velocity.value += direction.value * pi.move.y * player_config.move_acceleration * Time::delta_time;
+        if(pi.move.y >= 0) {
+            velocity.value += direction.value * pi.move.y * player_config.move_acceleration * Time::delta_time;
+        } else {
+            velocity.value = velocity.value - velocity.value * player_config.brake_speed * Time::delta_time;
+        }
         
         float max = player_config.max_velocity;
         float min = -player_config.max_velocity;
