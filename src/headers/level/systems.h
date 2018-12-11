@@ -407,7 +407,7 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
         for(int t_i = 0; t_i < entity_search_targets.length; t_i++) {
             const Vector2 &ai_position = entity_data.position[i].value;
             const Vector2 &target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]).value;
-            if(entity_data.ai[i].search_area > Math::distance_v(ai_position, target_position)) {
+            if(entity_data.ai[i].fire_range > Math::distance_v(ai_position, target_position)) {
                 entity_data.ai[i].fire_cooldown = entity_data.weapon[i].fire_cooldown;;
 
                 // const Vector2 direction = Math::direction(target_position, ai_position);
@@ -418,6 +418,35 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
                 ProjectileSpawn p = ProjectileSpawn(ai_position, angle, entity_data.weapon[i].projectile_speed, 1, 8, 1.0f, 0, 0);
                 ga_ctrl->target_projectile_fire(p);
                 continue; // only fire at one target
+            }
+        }
+    }
+}
+
+template<typename AIEntity, typename EnemyEntity>
+void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_targets, const Rectangle &world_bounds) {
+    for(int i = 0; i < entity_data.length; i++) {
+        // entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
+
+        // if(entity_data.ai[i].fire_cooldown > 0.0f) {
+        //     continue;
+        // }
+
+        float acceleration = 5.0f;
+        const Vector2 &ai_position = entity_data.position[i].value;
+        AIComponent &ai = entity_data.ai[i];
+
+        for(int t_i = 0; t_i < entity_search_targets.length; t_i++) {
+            
+            const Vector2 &target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]).value;
+            if(ai.activated || ai.engagement_range > Math::distance_v(ai_position, target_position)) {
+                ai.activated = true;
+                Vector2 dist = target_position - ai_position;
+                entity_data.velocity[i].value += Math::scale_to(dist, acceleration);
+                // if (Velocity != Vector2::Zero)
+                //     Entity.Transform.Rotation = Velocity.ToAngle();
+                
+                continue;
             }
         }
     }

@@ -102,12 +102,6 @@ struct BlinkEffect {
     std::string white_sprite;
 };
 
-struct AI {
-    float search_area = 0.0f;
-    bool has_target = false;
-    float fire_cooldown = 0.0f;
-};
-
 struct Animation {
     float timer = 0;
     float duration = 0;
@@ -403,6 +397,14 @@ struct Projectile : ECS::EntityData {
     }
 };
 
+struct AIComponent {
+    float fire_range = 0.0f;
+    float engagement_range = 0.0f;
+    bool has_target = false;
+    float fire_cooldown = 0.0f;
+    bool activated = false;
+};
+
 struct Target : ECS::EntityData {
     std::vector<LifeTime> life_time;
     std::vector<TargetConfiguration> config;
@@ -413,7 +415,7 @@ struct Target : ECS::EntityData {
     std::vector<BlinkEffect> blink;
     std::vector<Health> health;
     std::vector<CollisionData> collision;
-    std::vector<AI> ai;
+    std::vector<AIComponent> ai;
     std::vector<TargetWeaponConfiguration> weapon;
 
     ChildSprite child_sprites;
@@ -461,7 +463,7 @@ struct Target : ECS::EntityData {
         blink[handle.i] = BlinkEffect();
         health[handle.i] = { enemy.hp, enemy.max_hp };
         collision[handle.i] = { enemy.collision_radius };
-        ai[handle.i] = { enemy.activation_radius };
+        ai[handle.i] = { enemy.activation_radius, 400.0f };
         weapon[handle.i] = enemy.weapon;
 
         SpriteComponent shadow = SpriteComponent("shooter", "enemy_1_b");

@@ -465,6 +465,10 @@ namespace Math {
 		return direction;
 	}
 
+	inline float angle_from_direction(const Vector2 &vector) {
+        return (float)atan2(vector.y, vector.x) * RAD_TO_DEGREE;
+	}
+
 	inline float degrees_between_v(const Vector2 &a, const Vector2 &b) {
     	return atan2(b.y - a.y, b.x - a.x) * RAD_TO_DEGREE;
 	}
@@ -480,6 +484,10 @@ namespace Math {
 	inline float rads_to_degrees(float rads) {
 		return rads * RAD_TO_DEGREE;
 	}
+
+	inline Vector2 scale_to(const Vector2 &vector, const float &length) {
+        return vector * (length / vector.length());
+    }
 
 	inline bool intersect_circles(float c1X, float c1Y, float c1Radius, float c2X, float c2Y, float c2Radius) {
 		float distanceX = c2X - c1X;
