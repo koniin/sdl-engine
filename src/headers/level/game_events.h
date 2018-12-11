@@ -37,6 +37,10 @@ struct PlayerFireBullet : GEvent {
 	int test = 21;
 };
 
+struct TargetKilled : GEvent {
+	int test = 21;
+};
+
 namespace GameEvents {
 	struct BaseContainer {
 	};
@@ -61,6 +65,7 @@ namespace GameEvents {
 		event_queue.reserve(sz);
 
 		init_stack<PlayerFireBullet>(sz);
+		init_stack<TargetKilled>(sz);
 	}
 
 	template<typename T>
@@ -99,6 +104,8 @@ namespace GameEvents {
 		for(auto e : event_queue) {
 			if(e->is<PlayerFireBullet>()) {
 				GameEvents::return_event(e->get<PlayerFireBullet>());
+			} else if(e->is<TargetKilled>()) {
+				GameEvents::return_event(e->get<TargetKilled>());
 			} else {
 				Engine::logn("Event not returned!");
 				ASSERT_WITH_MSG(false, "Forgot to return the event");

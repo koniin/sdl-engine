@@ -516,6 +516,10 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         // OR DO THIS IN SPAWN EXPLOSION METHOD
         // Sound::queue(test_sound_id, 2);
 
+        auto target_killed_event = GameEvents::get_event<TargetKilled>();
+        target_killed_event->test = 44;
+        GameEvents::queue(target_killed_event);
+
         game_ctrl->spawn_drop(pos.value);
 
         camera_shake(0.1f);

@@ -11,6 +11,7 @@
 #include "level\game_area_controller.h"
 #include "level\ui.h"
 #include "level\game_data.h"
+#include "level\generator.h"
 #include "particles.h"
 
 static GameArea *game_area;
@@ -68,6 +69,9 @@ void handle_events(std::vector<GEvent*> &events) {
         if(e->is<PlayerFireBullet>()) {
             auto ev = e->get<PlayerFireBullet>();
             Engine::logn("player fired bullet -> %d", ev->test);
+        } else if(e->is<TargetKilled>()) {
+            auto ev = e->get<TargetKilled>();
+            Engine::logn("target killed -> %d", ev->test);
         } else {
             Engine::logn("got an event but not what we wanted");
         }

@@ -116,9 +116,9 @@ static void add_map_modifiers_to_list(std::vector<MapModifier> &modifiers) {
         modifiers.push_back(m);
     }
     {
-        MapModifier m = { "Weakness", "Less player damage" };
+        MapModifier m = { "Weakness", "Less player accuracy" };
         ProjectileStatModifier pm;
-        pm.projectile_damage = -1;
+        pm.accuracy = 2.0f;
         m.player_proj_m.push_back(pm);
         modifiers.push_back(m);
     }
