@@ -400,6 +400,7 @@ struct Projectile : ECS::EntityData {
 struct AIComponent {
     float fire_range = 0.0f;
     float engagement_range = 0.0f;
+    float target_min_range = 0.0f;
     bool has_target = false;
     float fire_cooldown = 0.0f;
     bool activated = false;
@@ -463,7 +464,7 @@ struct Target : ECS::EntityData {
         blink[handle.i] = BlinkEffect();
         health[handle.i] = { enemy.hp, enemy.max_hp };
         collision[handle.i] = { enemy.collision_radius };
-        ai[handle.i] = { enemy.activation_radius, 400.0f };
+        ai[handle.i] = { enemy.activation_radius, 400.0f, 30.0f };
         weapon[handle.i] = enemy.weapon;
 
         SpriteComponent shadow = SpriteComponent("shooter", "enemy_1_b");

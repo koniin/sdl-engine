@@ -97,7 +97,7 @@ void game_area_update() {
     move_forward(game_area->projectiles_player);
     set_last_position(game_area->projectiles_target);
     move_forward(game_area->projectiles_target);
-    system_drag(game_area->targets, player_drag() * 0.2f);
+    system_drag(game_area->targets, enemy_drag());
     system_drag(game_area->players, player_drag() * 0.2f);
     // ----
 

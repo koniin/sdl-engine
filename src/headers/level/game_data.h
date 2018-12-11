@@ -25,6 +25,11 @@ constexpr float player_drag() {
     return 0.04f / 0.016667f;
 }
 
+// pixels per frame
+constexpr float enemy_drag() {
+    return 0.08f / 0.016667f;
+}
+
 inline float per_frame_calculation(float s) {
     return s / 0.016667f;
 }

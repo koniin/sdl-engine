@@ -28,7 +28,7 @@ bool GameAreaController::spawn_boss() {
             (float)game_area->world_bounds.x + buffer_area, 
             (float)game_area->world_bounds.right() - buffer_area, 
             (float)game_area->world_bounds.y + buffer_area, 
-            (float)game_area->world_bounds.bottom()) - buffer_area;
+            (float)game_area->world_bounds.bottom() - buffer_area);
 
         count++;
         if(count > 10) {

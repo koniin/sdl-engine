@@ -6,7 +6,6 @@
 #include "game_area_controller.h"
 #include "game_events.h"
 
-
 inline void system_player_get_input(Player &players) {
     for(int i = 0; i < players.length; i++) {
         PlayerInput &pi = players.input[i];
@@ -425,6 +424,14 @@ void system_ai_input(AI &entity_data, Enemy &entity_search_targets, Projectile &
 
 template<typename AIEntity, typename EnemyEntity>
 void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_targets, const Rectangle &world_bounds) {
+    int buffer_area = 32;
+    Rectangle inflated_world_bounds = Rectangle(
+        buffer_area, 
+        buffer_area, 
+        world_bounds.w - buffer_area * 2, 
+        world_bounds.h - buffer_area * 2
+    );
+
     for(int i = 0; i < entity_data.length; i++) {
         // entity_data.ai[i].fire_cooldown = Math::max_f(0.0f, entity_data.ai[i].fire_cooldown - Time::delta_time);
 
@@ -432,20 +439,64 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
         //     continue;
         // }
 
-        float acceleration = 5.0f;
+        float acceleration = 10.0f;
         const Vector2 &ai_position = entity_data.position[i].value;
         AIComponent &ai = entity_data.ai[i];
 
         for(int t_i = 0; t_i < entity_search_targets.length; t_i++) {
-            
             const Vector2 &target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]).value;
-            if(ai.activated || ai.engagement_range > Math::distance_v(ai_position, target_position)) {
+            const float distance_to_player = Math::distance_v(ai_position, target_position);
+            if(ai.activated || ai.engagement_range > distance_to_player) {
                 ai.activated = true;
-                Vector2 dist = target_position - ai_position;
-                entity_data.velocity[i].value += Math::scale_to(dist, acceleration);
-                // if (Velocity != Vector2::Zero)
-                //     Entity.Transform.Rotation = Velocity.ToAngle();
+
+                bool target_finder = true;
+                if(target_finder && distance_to_player > ai.target_min_range) {
+                    Vector2 dist = target_position - ai_position;
+    
+                    if(!inflated_world_bounds.contains(ai_position.to_point())) {
+                        dist = inflated_world_bounds.center() - ai_position;
+                    }
+
+                    entity_data.velocity[i].value += Math::scale_to(dist, acceleration);
+                    
+
+                    // if (Velocity != Vector2::Zero)
+                    //     Entity.Transform.Rotation = Velocity.ToAngle();
+                } else {
+                    // move x times in a general direction
+                    // then get a new random direction to move in
+                    // when close to bounds move away
+
+                    // float direction = RNG.Range(0, MathHelper.TwoPi);
+                    // while (true) {
+                    //     direction += RNG.Range(-0.1f, 0.1f);
+                    //     direction = MathHelper.WrapAngle(direction);
+
+                    //     for (int i = 0; i < 6; i++) {
+                    //         Velocity += Mathf.FromPolar(direction, 0.4f);
+                    //         Entity.Transform.Rotation -= 0.05f;
+
+                            
+                    //         var bounds = EngineCore.VirtualSize;
+                    //         bounds.Inflate(-image.Width, -image.Height);
+                            
+                    //         // if the enemy is outside the bounds, make it move away from the edge
+                    //         if (!bounds.Contains(Position.ToPoint()))
+                    //             direction = (EngineCore.VirtualSize.Size.ToVector2() / 2 - Position).ToAngle() + RNG.Range(-MathHelper.PiOver2, MathHelper.PiOver2);
+
+                    //         yield return 0;
+                    //     }
+                    // }
+                }
                 
+                Direction &direction = entity_data.direction[i];
+                direction.angle = Math::angle_from_direction(entity_data.velocity[i].value);
+                if(direction.angle < 0) {
+                    direction.angle = 360 - (-direction.angle);
+                } else if(direction.angle > 360.0f) {
+                    direction.angle = direction.angle - 360.0f;
+                }
+
                 continue;
             }
         }
