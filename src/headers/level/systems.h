@@ -457,8 +457,6 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
 
                     entity_data.velocity[i].value += Math::scale_to(dist, ai.acceleration);
                     
-                    // if (Velocity != Vector2::Zero)
-                    //     Entity.Transform.Rotation = Velocity.ToAngle();
                 } else {
                     static int times_run;
                     int times_to_run = 6;
@@ -476,7 +474,7 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
                     }
                     times_run++;
                     
-                    entity_data.velocity[i].value += Math::polar_coords_to_vector(direction, 5.4f);
+                    entity_data.velocity[i].value += Math::polar_coords_to_vector(direction, ai.acceleration);
 
                     if(!inflated_world_bounds.contains(ai_position.to_point())) {
                         auto ang = Math::angle_from_direction(inflated_world_bounds.center() - ai_position);
