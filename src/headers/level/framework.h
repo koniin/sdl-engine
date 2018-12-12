@@ -266,7 +266,7 @@ namespace ECS {
             for(size_t i = 0; i < sz; ++i) {
                 c->items.emplace_back();
             }
-            Engine::logn("This should match: %d , %d", containers.size(), temp);
+            Engine::logn("This should match: %d == %d", containers.size(), temp);
             containers.push_back(c);
         }
 

@@ -15,32 +15,57 @@
 		- we could also init sound at this screen somehow so init is faster and no white screen
 */ 
 
+#include "level\framework.h"
+
 struct Position_T { int x; };
 struct Velocity_T { int v; };
+struct Health_T { int h; };
+struct AI_T { int a; };
+struct Damage_T { int d; };
 
-#include "level\framework.h"
+// Dont know if we need this to be inherited
 struct Target_Test : ECS::EntityDataDynamic {};
+struct Player_Test : ECS::EntityDataDynamic {};
+struct Projectile_Test : ECS::EntityDataDynamic {};
 
 // ugly shit
-// should be in framework.cpp
+// should be in framework.cpp,
+THIS DOES NOT NEED TO BE STATIC, CAN JUST BE COUNTER IN THE DYNAMICCONTAINER I THINK
 size_t ECS::EntityDataDynamic::TypeID::counter = 0;
 
-inline void test_dynamic() {
-	ECS::EntityManager em;
-	Target_Test tt;
-	tt.allocate_entities<Position_T, Velocity_T>(23);
+ECS::EntityManager em;
+Player_Test players;
+Target_Test targets;
+Projectile_Test projectiles;
+
+void spawn_player(int p) {
+
+}
+
+void spawn_target(int p) {
 	auto ent = em.create();
-	tt.add_entity(ent);
-	auto handle = tt.get_handle(ent);
-	Position_T &pos = tt.get<Position_T>(handle);
-	pos.x = 23;
+	targets.add_entity(ent);
+	auto handle = targets.get_handle(ent);
+	Position_T &pos = targets.get<Position_T>(handle);
+	pos.x = p;
 
-	auto handle2 = tt.get_handle(ent);
-	const Position_T pos2 = tt.get<Position_T>(handle);
-
+	auto handle2 = targets.get_handle(ent);
+	const Position_T pos2 = targets.get<Position_T>(handle);
 	Engine::logn("%d", pos2.x);
-	// tt.containers[0]
-	//tt.init(23);
+}
+
+inline void test_dynamic() {
+	Engine::logn(" ---  ECS TEST  --- ");
+	
+	players.allocate_entities<Position_T, Velocity_T, Health_T>(23);
+	targets.allocate_entities<Position_T, Velocity_T, Health_T, AI_T>(23);
+	projectiles.allocate_entities<Position_T, Velocity_T, Damage_T>(23);
+
+	spawn_player(555);
+	spawn_target(33);
+	
+
+	Engine::logn(" ---  ECS TEST END  --- ");
 }
 
 
