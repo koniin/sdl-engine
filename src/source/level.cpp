@@ -19,7 +19,7 @@ static GameAreaController *game_area_controller;
 static CollisionPairs collisions;
 static RenderBuffer render_buffer;
 
-enum State { SettingsSelection, Loading, Play, End } level_state;
+enum State { SettingsSelection, Loading, Play, PlayEnd, End } level_state;
 
 void level_load() {
 	Resources::font_load("gameover", "pixeltype.ttf", 85);
@@ -97,6 +97,8 @@ void game_area_update() {
     move_forward(game_area->projectiles_player);
     set_last_position(game_area->projectiles_target);
     move_forward(game_area->projectiles_target);
+    system_velocity_increase(game_area->projectiles_player);
+    system_velocity_increase(game_area->projectiles_target);
     system_drag(game_area->targets, enemy_drag());
     system_drag(game_area->players, player_drag() * 0.2f);
     // ----
@@ -158,17 +160,12 @@ void game_area_update() {
         arrow.enabled = true;
     }
 
-    if(game_area_controller->game_over() || game_area_controller->game_win()) {
-        level_state = End;
-        Particles::clear(game_area->particles);
-    } 
-
     export_render_info(render_buffer, game_area);
 
     debug(render_buffer, game_area);
 }
 
-void start_test() {
+void start_play() {
     level_state = Play;
     
     float camera_gutter = 16.0f;
@@ -178,6 +175,11 @@ void start_test() {
         -camera_gutter, 
         (float)(game_area->world_bounds.h - gh + camera_gutter)
     );
+}
+
+void end_play() {
+    Particles::clear(game_area->particles);
+    level_state = End;
 }
 
 void level_update() {
@@ -190,16 +192,26 @@ void level_update() {
             if(ui_has_settings_selection(s)) {
                 // then after loading screen and selection we do this
                 generate_level(s, game_area_controller);
-                Timing::add_timer(1.0f, start_test);
+                Timing::add_timer(1.0f, start_play);
                 level_state = Loading;
             }
             break;
         }
         case Loading:
             break;
-        case Play:
+        case Play:         
             game_area_input();
             game_area_update();
+            if(game_area_controller->game_over() || game_area_controller->game_win()) {
+                level_state = PlayEnd;
+            }
+            break;
+        case PlayEnd: 
+            game_area_input();
+            game_area_update();
+            if(GInput::pressed(GInput::Action::Start)) {
+                end_play();
+            }
             break;
         case End: {
             Upgrade u;
@@ -244,14 +256,14 @@ void level_render() {
             // draw_background();
             draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
             break;
+        case PlayEnd:
+            draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
+            draw_text_centered((int)gw / 2, (int)gh - 32, Colors::white, "Press Start to Continue");
+            break;
         case End:
-            if(game_area->players.length > 0) {
-                ui_render_upgrade_selection();
-                // draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-                // draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "WIN!"); 
-            } else {
+            if(game_area->players.length == 0) {
                 draw_buffer(render_buffer.sprite_data_buffer, render_buffer.sprite_count);
-                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "DEAD! - no implementation of restart etc");
+                draw_text_centered((int)gw / 2, (int)gh / 2, Colors::white, "Press Start to restart");
             }
             break;
     }
@@ -267,6 +279,7 @@ void level_render_ui() {
         case Loading:
             break;
         case Play:
+        case PlayEnd:
             if(game_area->players.length > 0) {
                 render_health_bar(10, 10, 100, 15, (float)game_area->players.health[0].hp, (float)game_area->players.health[0].hp_max);
             }
@@ -280,7 +293,10 @@ void level_render_ui() {
             }
             break;
         case End:
-            draw_text_centered((int)gw / 2, (int)gh - 20, Colors::white, "Press Start to restart level");
+            if(game_area->players.length > 0) {
+                ui_render_upgrade_selection();
+            }
+            //draw_text_centered((int)gw / 2, (int)gh - 20, Colors::white, "Press Start to restart level");
             break;
     }
 }

@@ -181,6 +181,7 @@ void camera_displace(Vector2 displacement);
 void camera_shake(float t);
 void camera_update();
 void camera_set_clamp_area(float x_min, float x_max, float y_min, float y_max);
+void camera_reset_clamp_area();
 
 
 #endif

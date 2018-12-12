@@ -27,6 +27,7 @@ struct Position {
 
 struct Velocity {
     Vector2 value;
+    float change;
 
     Velocity(): value(Vector2()) {}
     Velocity(Vector2 v): value(v) {}
@@ -386,6 +387,7 @@ struct Projectile : ECS::EntityData {
         life_time[handle.i].time = 0;
         position[handle.i] = { p.position, p.last_position };
         velocity[handle.i] = Velocity(Math::direction_from_angle(p.angle) * p.speed);
+        velocity[handle.i].change = p.speed_increase;
         sprite[handle.i] = s;
         damage[handle.i] = { p.damage, p.force };
         collision[handle.i] = { p.radius };

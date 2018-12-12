@@ -179,7 +179,7 @@ void GameAreaController::attack_spawn_projectiles(Attack_t &t_attack, const Vect
         p.homing_radius = t_attack.homing_radius;
         p.explosion_on_death_radius = t_attack.projectile_death_explosion_radius;
         p.explosion_on_hit_radius = t_attack.projectile_hit_explosion_radius;
-        
+        p.speed_increase = t_attack.projectile_speed_increase;
         player_projectile_queue.push_back(p);
     }
 }

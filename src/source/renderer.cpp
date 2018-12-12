@@ -972,6 +972,13 @@ void camera_displace(Vector2 displacement) {
 	camera.y += displacement.y;
 }
 
+void camera_reset_clamp_area() {
+	camera.x_min = -900000.0f;
+    camera.x_max = 900000.0f;
+    camera.y_min = -900000.0f;
+    camera.y_max = 900000.0f;
+}
+
 void camera_set_clamp_area(float x_min, float x_max, float y_min, float y_max) {
 	camera.x_min = x_min;
 	camera.x_max = x_max;

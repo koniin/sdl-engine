@@ -59,6 +59,8 @@ void clean_room(const Rooms room) {
 
 void room_update() {
     if(current_room != next_room) {
+        camera_reset_clamp_area();
+        
         init_room(next_room);
         clean_room(current_room);
         last_room = current_room;

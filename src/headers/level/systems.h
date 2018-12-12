@@ -750,6 +750,15 @@ void system_homing(T &homing_entities, TargetT &lookup) {
 }
 
 template<typename T>
+void system_velocity_increase(T &entity_data) {
+    for(int i = 0; i < entity_data.length; i++) {
+        if(entity_data.velocity[i].change != 0) {
+            entity_data.velocity[i].value *= entity_data.velocity[i].change;
+        }
+    }
+}
+
+template<typename T>
 void system_on_death(T &entity_data, GameAreaController *game_ctrl) {
     for(int i = 0; i < entity_data.length; i++) {
         if(entity_data.life_time[i].marked_for_deletion) {
