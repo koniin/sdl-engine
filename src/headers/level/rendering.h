@@ -270,14 +270,20 @@ void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
     }
 
     for(int i = 0; i < _g->projectiles_player.length; ++i) {
+        // Direction &d = _g->projectiles_player.direction[i];
+        // _g->projectiles_player.sprite[i].rotation = d.angle + 90;
         export_sprite_data(_g->projectiles_player, i, sprite_data_buffer[sprite_count++]);
 	}
 
     for(int i = 0; i < _g->projectiles_target.length; ++i) {
+        // Direction &d = _g->projectiles_target.direction[i];
+        // _g->projectiles_target.sprite[i].rotation = d.angle + 90;
         export_sprite_data(_g->projectiles_target, i, sprite_data_buffer[sprite_count++]);
 	}
 
     for(int i = 0; i < _g->targets.length; ++i) {
+        Direction &d = _g->targets.direction[i];
+        _g->targets.sprite[i].rotation = d.angle + 90;
         export_sprite_data(_g->targets, i, sprite_data_buffer[sprite_count++]);
 	}
     

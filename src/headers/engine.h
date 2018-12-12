@@ -327,7 +327,9 @@ namespace Scenes {
 }
 
 namespace Math {
-	static const float Pi = 3.14159265358979323846f;
+	static const float Pi = 3.14159265358979323846f; // 180 degrees
+	static constexpr float TwoPi = 3.14159265358979323846f * 2; // 360 degrees
+	static constexpr float PiOver2 = 3.14159265358979323846f / 2.0f;
 	static const float RAD_TO_DEGREE = 180.0f / (float)M_PI;
 	static const float DEGREE_TO_RAD = (float)M_PI / 180.0f;
 	
@@ -487,6 +489,26 @@ namespace Math {
 
 	inline Vector2 scale_to(const Vector2 &vector, const float &length) {
         return vector * (length / vector.length());
+    }
+
+	inline float IEEERemainder(float dividend, float divisor) {
+		return dividend - (divisor * Math::round(dividend / divisor));
+	}
+
+	inline float wrap_angle(float angle) {
+        angle = IEEERemainder(angle, 6.2831854820251465);
+	    if (angle <= -3.14159274f) {
+			angle += 6.28318548f;
+	    }
+	    else if (angle > 3.14159274f) {
+			angle -= 6.28318548f;
+	    }
+	    return angle;
+	}
+
+	// You can define a vector as a radius and an angle - the polar coordinates.
+	inline Vector2 polar_coords_to_vector(float angle, float magnitude) {
+        return magnitude * Vector2(Math::cos_f(angle), Math::sin_f(angle));
     }
 
 	inline bool intersect_circles(float c1X, float c1Y, float c1Radius, float c2X, float c2Y, float c2Radius) {

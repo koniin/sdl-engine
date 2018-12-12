@@ -265,7 +265,7 @@ void system_collisions(CollisionPairs &collision_pairs, First &entity_first, Sec
                 // Collision point is the point on the target circle 
                 // that is on the edge in the direction of the projectiles 
                 // reverse velocity
-                Engine::logn("circle intersect");
+                // Engine::logn("circle intersect");
                 Vector2 collision_point = t_pos + (t_radius * -entity_first.velocity[i].value.normal());
                 collision_pairs.push(entity_first.entity[i], entity_second.entity[j], dist, collision_point);
                 continue;
@@ -439,7 +439,6 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
         //     continue;
         // }
 
-        float acceleration = 10.0f;
         const Vector2 &ai_position = entity_data.position[i].value;
         AIComponent &ai = entity_data.ai[i];
 
@@ -449,20 +448,42 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
             if(ai.activated || ai.engagement_range > distance_to_player) {
                 ai.activated = true;
 
-                bool target_finder = true;
-                if(target_finder && distance_to_player > ai.target_min_range) {
+                if(distance_to_player > ai.target_min_range) {
                     Vector2 dist = target_position - ai_position;
     
                     if(!inflated_world_bounds.contains(ai_position.to_point())) {
                         dist = inflated_world_bounds.center() - ai_position;
                     }
 
-                    entity_data.velocity[i].value += Math::scale_to(dist, acceleration);
+                    entity_data.velocity[i].value += Math::scale_to(dist, ai.acceleration);
                     
-
                     // if (Velocity != Vector2::Zero)
                     //     Entity.Transform.Rotation = Velocity.ToAngle();
                 } else {
+                    static int times_run;
+                    int times_to_run = 6;
+                    static bool initialized = false;
+                    static float direction = 0;
+                    if(!initialized) {
+                        initialized = true;
+                        direction = RNG::range_f(0, Math::TwoPi);
+                    }
+
+                    if(times_run > times_to_run) {
+                        times_run = 0;
+                        direction += RNG::range_f(-0.1f, 0.1f);
+                        direction = Math::wrap_angle(direction);
+                    }
+                    times_run++;
+                    
+                    entity_data.velocity[i].value += Math::polar_coords_to_vector(direction, 5.4f);
+
+                    if(!inflated_world_bounds.contains(ai_position.to_point())) {
+                        auto ang = Math::angle_from_direction(inflated_world_bounds.center() - ai_position);
+                        direction = ang + RNG::range_f(-Math::PiOver2, Math::PiOver2);
+                    }
+
+
                     // move x times in a general direction
                     // then get a new random direction to move in
                     // when close to bounds move away
@@ -489,6 +510,7 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
                     // }
                 }
                 
+                
                 Direction &direction = entity_data.direction[i];
                 direction.angle = Math::angle_from_direction(entity_data.velocity[i].value);
                 if(direction.angle < 0) {
@@ -496,7 +518,7 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
                 } else if(direction.angle > 360.0f) {
                     direction.angle = direction.angle - 360.0f;
                 }
-
+                
                 continue;
             }
         }
