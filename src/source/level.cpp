@@ -170,32 +170,19 @@ void game_area_update() {
 
 void start_test() {
     level_state = Play;
+    
+    float camera_gutter = 16.0f;
+    camera_set_clamp_area(
+        -camera_gutter, 
+        (float)(game_area->world_bounds.w - gw + camera_gutter), 
+        -camera_gutter, 
+        (float)(game_area->world_bounds.h - gh + camera_gutter)
+    );
 }
-
-static int some_y = 0;
-static int some_x = 0;
-static double some_r = 0;
 
 void level_update() {
     Timing::update_timers();
     ui_update(game_area);
-
-    if(Input::key_pressed(SDLK_UP)) {
-        some_y -= 5;
-    }
-    if(Input::key_pressed(SDLK_DOWN)) {
-        some_y += 5;
-    }
-    if(Input::key_pressed(SDLK_LEFT)) {
-        some_x -= 5;
-    }
-    if(Input::key_pressed(SDLK_RIGHT)) {
-        some_x += 5;
-    }
-
-    if(Input::key_pressed(SDLK_g)) {
-        some_r -= 5;
-    }
 
     switch(level_state) {
         case SettingsSelection: {
@@ -203,7 +190,7 @@ void level_update() {
             if(ui_has_settings_selection(s)) {
                 // then after loading screen and selection we do this
                 generate_level(s, game_area_controller);
-                Timing::add_timer(1.0f, start_test);    
+                Timing::add_timer(1.0f, start_test);
                 level_state = Loading;
             }
             break;

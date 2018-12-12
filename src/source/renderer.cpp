@@ -972,18 +972,26 @@ void camera_displace(Vector2 displacement) {
 	camera.y += displacement.y;
 }
 
+void camera_set_clamp_area(float x_min, float x_max, float y_min, float y_max) {
+	camera.x_min = x_min;
+	camera.x_max = x_max;
+	camera.y_min = y_min;
+	camera.y_max = y_max;
+}
+
 static const float traumaDropOff = 0.8f; // trauma reduction per 60 frames
 static const float maxAngle = 5; // degrees // maxAngle might be something like 5 or 10 degrees
 static const float maxOffsetX = 10; // pixels
 static const float maxOffsetY = 10; // pixels
 
-static float camera_speed = 0.2f;
-
 void camera_update() {
-	float interpolation = camera_speed * Time::delta_time;
+	float interpolation = camera.speed * Time::delta_time;
 	camera.x = Math::lerp(camera.x, camera.follow_x, interpolation);
 	camera.y = Math::lerp(camera.y, camera.follow_y, interpolation);
 	
+	camera.x = Math::clamp_f(camera.x, camera.x_min, camera.x_max);
+    camera.y = Math::clamp_f(camera.y, camera.y_min, camera.y_max);
+
 	// Following method is better if we are moving too fast?
 	// this is a pretty fast camera to move to follow point
 	// camera.x = 0.99f * camera.x + 0.01f * camera.follow_x;

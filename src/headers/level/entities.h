@@ -465,7 +465,9 @@ struct Target : ECS::EntityData {
         blink[handle.i] = BlinkEffect();
         health[handle.i] = { enemy.hp, enemy.max_hp };
         collision[handle.i] = { enemy.collision_radius };
-        ai[handle.i] = { enemy.activation_radius, 400.0f, 60000.0f, 10.0f }; // 10 acceleration is kind ok sluggish
+        // { 100.0f, 100.0f, 200.0f, 10.0f }; => activates at short range, follows player, if too close it moves in random dir
+        // { 100.0f, 300.0f, 600000.0f, 10.0f }; => activates at "normal" range, always moves in random dir
+        ai[handle.i] = { enemy.fire_range, enemy.activation_radius, 600000.0f, 10.0f }; // 10 acceleration is kind ok sluggish
         weapon[handle.i] = enemy.weapon;
 
         SpriteComponent shadow = SpriteComponent("shooter", "enemy_1_b");

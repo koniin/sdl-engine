@@ -76,6 +76,10 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
         debug_config.enable_render = !debug_config.enable_render;
     }
 
+    auto camera = get_camera();
+    auto cs = Text::format("Camera: %.2f, %.2f", camera.x, camera.y);
+    FrameLog::log(cs);
+
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Press F8 to toggle debug render");
     FrameLog::log("Player ammo: " + std::to_string(level->players.ammo[0].value));

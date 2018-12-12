@@ -204,7 +204,8 @@ struct Enemy {
     int hp = enemy_base_hp;
     int max_hp = enemy_base_hp_max;
     int collision_radius = 8;
-    float activation_radius = 100.0f;
+    float activation_radius = 300.0f;
+    float fire_range = 100.0f;
 
     TargetWeaponConfiguration weapon;
 };
@@ -214,12 +215,14 @@ struct EnemyModifier {
     int max_hp = 0;
     int collision_radius = 0;
     float activation_radius = 0;
+    float fire_range = 0;
     
     void apply(Enemy &enemy) const {
         enemy.hp += hp;
         enemy.max_hp += max_hp;
         enemy.collision_radius += collision_radius;
         enemy.activation_radius += activation_radius;
+        enemy.fire_range += fire_range;
     }
 };
 

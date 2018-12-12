@@ -32,6 +32,14 @@ struct Camera {
 	float offset_y = 0;
     float follow_x = 0;
     float follow_y = 0;
+    float speed = 0.2f;
+
+    // initialize with really large values
+    // used to clamp the camera at edges of level
+    float x_min = -900000.0f;
+    float x_max = 900000.0f;
+    float y_min = -900000.0f;
+    float y_max = 900000.0f;
 };
 
 struct Sprite {
@@ -172,6 +180,7 @@ void camera_displace(Vector2 displacement);
 /*! Trauma should be between 0 and 1. */
 void camera_shake(float t);
 void camera_update();
+void camera_set_clamp_area(float x_min, float x_max, float y_min, float y_max);
 
 
 #endif
