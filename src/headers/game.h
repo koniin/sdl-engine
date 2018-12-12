@@ -15,7 +15,38 @@
 		- we could also init sound at this screen somehow so init is faster and no white screen
 */ 
 
+struct Position_T { int x; };
+struct Velocity_T { int v; };
+
+#include "level\framework.h"
+struct Target_Test : ECS::EntityDataDynamic {};
+
+// ugly shit
+// should be in framework.cpp
+size_t ECS::EntityDataDynamic::TypeID::counter = 0;
+
+inline void test_dynamic() {
+	ECS::EntityManager em;
+	Target_Test tt;
+	tt.allocate_entities<Position_T, Velocity_T>(23);
+	auto ent = em.create();
+	tt.add_entity(ent);
+	auto handle = tt.get_handle(ent);
+	Position_T &pos = tt.get<Position_T>(handle);
+	pos.x = 23;
+
+	auto handle2 = tt.get_handle(ent);
+	const Position_T pos2 = tt.get<Position_T>(handle);
+
+	Engine::logn("%d", pos2.x);
+	// tt.containers[0]
+	//tt.init(23);
+}
+
+
 inline void game_load() {
+	test_dynamic();
+
 	// Allocate memory and load resources
 	Engine::set_base_data_folder("data");
 	Font *font = Resources::font_load("normal", "pixeltype.ttf", 15);

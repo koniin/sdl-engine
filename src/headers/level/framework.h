@@ -215,6 +215,153 @@ namespace ECS {
             }
         }
     };
+
+    struct EntityDataDynamic {
+        struct BaseContainer {
+            virtual void move(int index, int last_index) = 0;
+        };
+
+        template<typename T>
+        struct ComponentContainer : BaseContainer {
+            std::vector<T> items;
+
+            void move(int index, int last_index) override {
+                items.at(index) = items.at(last_index);
+            }
+        };
+
+        
+        class TypeID
+        {
+            static size_t counter;
+        public:
+            template<typename T>
+            static size_t value()
+            {
+                static size_t id = counter++;
+                return id;
+            }
+        };
+        
+        std::vector<Entity> entity;
+        std::unordered_map<EntityId, unsigned> _map;
+        std::vector<BaseContainer*> containers;
+        
+        size_t size = 0;
+        int length = 0;
+        template <typename ... Components>
+        void allocate_entities(size_t sz) {
+            size = sz;
+            containers.reserve(512);
+            entity.reserve(size);
+            init<Components...>(sz);
+        }
+
+        template <typename C>
+        void init(size_t sz) {
+            auto temp = TypeID::value<C>();
+            auto c = new ComponentContainer<C>();
+            // This only works if you want to have components without constructors
+            c->items.reserve(sz);
+            for(size_t i = 0; i < sz; ++i) {
+                c->items.emplace_back();
+            }
+            Engine::logn("This should match: %d , %d", containers.size(), temp);
+            containers.push_back(c);
+        }
+
+        template <typename C1, typename C2, typename ... Components>
+        void init(size_t sz) {
+            init<C1>(sz);
+            init<C2, Components ...>(sz);
+        }
+
+        static const int invalid_handle = -1;
+
+        struct Handle {
+            int i = -1;
+        };
+        
+        void add_entity(Entity e) {
+            ASSERT_WITH_MSG(entity.size() <= size, "Component storage is full, n:" + std::to_string(entity.size()));
+            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
+            
+            unsigned int index = entity.size();
+            _map[e.id] = index;
+            entity.push_back(e);
+
+            ++length;
+        }
+
+        Handle get_handle(Entity e) {
+            auto a = _map.find(e.id);
+            if(a != _map.end()) {
+                return { (int)a->second };
+            }
+            return { invalid_handle };
+        }
+
+        const Handle get_handle(Entity e) const {
+            auto a = _map.find(e.id);
+            if(a != _map.end()) {
+                return { (int)a->second };
+            }
+            return { invalid_handle };
+        }
+
+        bool contains(Entity e) {
+            auto a = _map.find(e.id);
+            return a != _map.end();
+        }
+
+        const bool contains(Entity e) const {
+            auto a = _map.find(e.id);
+            return a != _map.end();
+        }
+
+        bool is_valid(Handle h) {
+            return h.i != invalid_handle;
+        }
+
+        void remove(Entity e) {
+            if(!contains(e))
+                return;
+
+            auto a = _map.find(e.id);
+            const int index = a->second;
+            const int lastIndex = entity.size() - 1;
+
+            if (lastIndex >= 0) {
+                // Get the entity at the index to destroy
+                Entity entityToDestroy = entity[index];
+                // Get the entity at the end of the array
+                Entity lastEntity = entity[lastIndex];
+
+                // Move last entity's data
+                entity[index] = entity[lastIndex];
+
+                for(size_t i = 0; i < containers.size(); i++) {
+                    containers[i]->move(index, lastIndex);
+                }
+
+                // Update map entry for the swapped entity
+                _map[lastEntity.id] = index;
+                // Remove the map entry for the destroyed entity
+                _map.erase(entityToDestroy.id);
+
+                // Decrease count
+                entity.pop_back();
+
+                --length;
+            }
+        }
+
+        template <typename C>
+        C &get(const Handle &handle) {
+            auto t_id = TypeID::value<C>();
+            return static_cast<ComponentContainer<C>*>(containers[t_id])->items[handle.i];
+        }
+    };
 };
 
 namespace Intersects {
