@@ -612,7 +612,7 @@ struct Drop : ECS::EntityData {
 };
 
 inline void sprite_effect(Effect &effects, const int &i, const std::string &modifier_data_s) {
-    Engine::logn("sprite change");
+    // Engine::logn("sprite change");
     effects.sprite[i].sprite_name = modifier_data_s;
 }
 
