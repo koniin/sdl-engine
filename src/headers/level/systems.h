@@ -443,7 +443,8 @@ void system_ai_movement(AIEntity &entity_data, EnemyEntity &entity_search_target
         AIComponent &ai = entity_data.ai[i];
 
         for(int t_i = 0; t_i < entity_search_targets.length; t_i++) {
-            const Vector2 &target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]).value;
+            const Vector2 &target_position = entity_search_targets.position[t_i].value;
+            // const Vector2 &target_position = get_position(entity_search_targets, entity_search_targets.entity[t_i]).value;
             const float distance_to_player = Math::distance_v(ai_position, target_position);
             if(ai.activated || ai.engagement_range > distance_to_player) {
                 ai.activated = true;

@@ -131,7 +131,7 @@ static const Attack_t Attacks[SIZE_OF_Attacks] = {
     { "basic_fire", ProjectileAttack, 0.25f,      7.0f,       2.0f,       0.8f,   bp_spd(), 0,  2,          8, 0, 4, 10, 0, 0, 0, 0 }, // Splitter
     { "basic_fire", ProjectileAttack, 0.4f,      2.0f,       2.0f,       1.8f,   bp_spd(), 0,  2,          8, 0, 0, 10, 150.0f, 0, 0, 0 }, // Homing
     { "basic_fire", LineAttack, 0.25f,      0.0f,       2.0f,       0.8f,   0, 0,   3,  4,  0, 0, 10, 0, 0, 0, 0 }, // Lazer
-    { "basic_fire", ProjectileAttack, 0.15f,      0.0f,       2.0f,       1.0f,   bp_spd() * 0.1f, 0,   3,  8,  0, 0, 10, 0, 0, 8, 1.051f }, // Rockets
+    { "basic_fire", ProjectileAttack, 0.15f,      0.0f,       2.0f,       1.0f,   bp_spd() * 0.1f, bp_spd_mod() * 0.1f,   3,  8,  0, 0, 10, 0, 0, 8, 1.051f }, // Rockets
 };
 
 static const std::vector<float> Projectile_angles[SIZE_OF_Attacks] = { 

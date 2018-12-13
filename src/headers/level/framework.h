@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include <stack>
+#include <bitset>
 
 namespace Timing {
     typedef void (*timer_complete_func)();
@@ -56,6 +57,16 @@ namespace ECS {
 
         unsigned index() const { return id & ENTITY_INDEX_MASK; }
         unsigned generation() const { return (id >> ENTITY_INDEX_BITS) & ENTITY_GENERATION_MASK; }
+    };
+
+    class ComponentID {
+        static size_t counter;
+        public:
+            template<typename T>
+            static size_t value() {
+                static size_t id = counter++;
+                return id;
+            }
     };
 
     const unsigned MINIMUM_FREE_INDICES = 1024;
@@ -216,150 +227,270 @@ namespace ECS {
         }
     };
 
-    struct EntityDataDynamic {
-        struct BaseContainer {
-            virtual void move(int index, int last_index) = 0;
+    typedef std::bitset<512> ComponentMask;
+
+    class EntityDataDynamic {
+        public:
+            ComponentMask mask;
+            int length = 0;
+            std::vector<Entity> entity;
+            struct Handle {
+                int i = -1;
+            };
+
+            template <typename ... Components>
+            void allocate_entities(size_t sz) {
+                size = sz;
+
+                size_t max_components_total = 512;
+
+                containers.reserve(max_components_total);
+                for(size_t i = 0; i < max_components_total; ++i) {
+                    containers.emplace_back();
+                }
+                has_component.reserve(max_components_total);
+                for(size_t i = 0; i < max_components_total; ++i) {
+                    has_component.emplace_back(false);
+                }
+                entity.reserve(size);
+                init<Components...>(sz);
+            }
+        
+            void add_entity(Entity e) {
+                ASSERT_WITH_MSG(entity.size() <= size, "Component storage is full, n:" + std::to_string(entity.size()));
+                ASSERT_WITH_MSG(!contains(e), "Entity already has component");
+                
+                unsigned int index = entity.size();
+                _map[e.id] = index;
+                entity.push_back(e);
+
+                ++length;
+            }
+
+            void remove(Entity e) {
+                if(!contains(e))
+                    return;
+
+                auto a = _map.find(e.id);
+                const int index = a->second;
+                const int lastIndex = entity.size() - 1;
+
+                if (lastIndex >= 0) {
+                    // Get the entity at the index to destroy
+                    Entity entityToDestroy = entity[index];
+                    // Get the entity at the end of the array
+                    Entity lastEntity = entity[lastIndex];
+
+                    // Move last entity's data
+                    entity[index] = entity[lastIndex];
+
+                    for(size_t &i : container_indexes) {
+                        containers[i]->move(index, lastIndex);
+                    }
+
+                    /*
+                    for(size_t i = 0; i < container_indexes.size(); i++) {
+                        containers[i]->move(index, lastIndex);
+                    }
+                    */
+
+                    // Update map entry for the swapped entity
+                    _map[lastEntity.id] = index;
+                    // Remove the map entry for the destroyed entity
+                    _map.erase(entityToDestroy.id);
+
+                    // Decrease count
+                    entity.pop_back();
+
+                    --length;
+                }
+            }
+
+            Handle get_handle(Entity e) {
+                auto a = _map.find(e.id);
+                if(a != _map.end()) {
+                    return { (int)a->second };
+                }
+                return { invalid_handle };
+            }
+
+            const Handle get_handle(Entity e) const {
+                auto a = _map.find(e.id);
+                if(a != _map.end()) {
+                    return { (int)a->second };
+                }
+                return { invalid_handle };
+            }
+
+            bool is_valid_handle(Handle h) {
+                return h.i != invalid_handle;
+            }
+
+            template <typename C>
+            C &get(const Handle &handle) {
+                auto container_index = ComponentID::value<C>();
+                return static_cast<ComponentContainer<C>*>(containers[container_index])->items[handle.i];
+            }
+
+            template <typename C>
+            void set(const Handle &handle, const C &component) {
+                auto container_index = ComponentID::value<C>();
+                static_cast<ComponentContainer<C>*>(containers[container_index])->items[handle.i] = component;
+            }
+
+            template <typename C>
+            C &index(const int index) {
+                auto container_index = ComponentID::value<C>();
+                return static_cast<ComponentContainer<C>*>(containers[container_index])->items[index];
+            }
+
+            template <typename C>
+            bool match() {
+                auto container_index = ComponentID::value<C>();
+                return has_component[container_index];
+            }
+
+            template <typename C1, typename C2, typename ... Components>
+            bool match() {
+                return match<C1>() && match<C2, Components ...>();
+            }
+
+        private:
+            
+            struct BaseContainer {
+                virtual void move(int index, int last_index) = 0;
+            };
+
+            static const int invalid_handle = -1;
+            std::unordered_map<EntityId, unsigned> _map;
+            std::vector<size_t> container_indexes;
+            std::vector<bool> has_component;
+            std::vector<BaseContainer*> containers;
+            size_t size = 0;
+
+            template<typename T>
+            struct ComponentContainer : BaseContainer {
+                std::vector<T> items;
+
+                void move(int index, int last_index) override {
+                    items.at(index) = items.at(last_index);
+                }
+            };
+            
+            template <typename C>
+            void init(size_t sz) {
+                auto c = new ComponentContainer<C>();
+                // This only works if you want to have components without constructors
+                c->items.reserve(sz);
+                for(size_t i = 0; i < sz; ++i) {
+                    c->items.emplace_back();
+                }
+                auto container_index = ComponentID::value<C>();
+                container_indexes.push_back(container_index);
+                has_component[container_index] = true;
+                containers[container_index] = c;
+            }
+
+            template <typename C1, typename C2, typename ... Components>
+            void init(size_t sz) {
+                init<C1>(sz);
+                init<C2, Components ...>(sz);
+            }
+            
+            bool contains(Entity e) {
+                auto a = _map.find(e.id);
+                return a != _map.end();
+            }
+    };
+
+    struct ArcheType {
+        ComponentMask _mask;
+    };
+
+    template <typename C>
+    ComponentMask create_mask() {
+        ComponentMask mask;
+        mask.set(ComponentID::value<C>());
+        return mask;
+    }
+
+    template <typename C1, typename C2, typename ... Components>
+    ComponentMask create_mask() {
+        return create_mask<C1>() | create_mask<C2, Components ...>();
+    }
+
+    struct ArchetypeManager {
+        EntityManager em;
+        std::vector<EntityDataDynamic*> archetypes;
+        std::unordered_map<ComponentMask, int> archetype_map;
+
+
+        template <typename ... Components>
+        ArcheType create_archetype(size_t sz) {
+            EntityDataDynamic *container = new EntityDataDynamic();
+            container->allocate_entities<Components...>(sz);
+            archetypes.push_back(container);
+            ArcheType a;
+            a._mask = create_mask<Components...>();
+            archetype_map[a._mask] = archetypes.size() - 1;
+            container->mask = a._mask;
+            return a;
+        }
+
+        struct ContainerIterator {
+            std::vector<EntityDataDynamic*> containers;
+            // std::vector<ArcheType> archetypes;
         };
+
+        template <typename ... Components>
+        ContainerIterator get_containers() {
+            ContainerIterator it;
+            for(auto c : archetypes) {
+                if(c->match<Components...>()) {
+                    it.containers.push_back(c);
+                    // ArcheType a;
+                    // a._mask = c->mask;
+                    // it.archetypes.push_back(a);
+                }
+            }
+            return it;
+        }
+
+        Entity create_entity(const ArcheType &a) {
+            auto entity = em.create();
+            archetypes[archetype_map[a._mask]]->add_entity(entity);
+            return entity;
+        }
+
+        void remove_entity(const ArcheType &a, Entity entity) {
+            archetypes[archetype_map[a._mask]]->remove(entity);
+        }
+
+        EntityDataDynamic::Handle get_handle(const ArcheType &a, Entity entity) {
+            EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
+            auto handle = data->get_handle(entity);
+            return handle;
+        }
+
+        bool is_valid_handle(const ArcheType &a, EntityDataDynamic::Handle handle) {
+            EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
+            return data->is_valid_handle(handle);
+        }
 
         template<typename T>
-        struct ComponentContainer : BaseContainer {
-            std::vector<T> items;
-
-            void move(int index, int last_index) override {
-                items.at(index) = items.at(last_index);
-            }
-        };
-
-        
-        class TypeID
-        {
-            static size_t counter;
-        public:
-            template<typename T>
-            static size_t value()
-            {
-                static size_t id = counter++;
-                return id;
-            }
-        };
-        
-        std::vector<Entity> entity;
-        std::unordered_map<EntityId, unsigned> _map;
-        std::vector<BaseContainer*> containers;
-        
-        size_t size = 0;
-        int length = 0;
-        template <typename ... Components>
-        void allocate_entities(size_t sz) {
-            size = sz;
-            containers.reserve(512);
-            entity.reserve(size);
-            init<Components...>(sz);
+        void set_component(const ArcheType &a, EntityDataDynamic::Handle handle, const T &component) {
+            // auto handle = players->get_handle(ent);
+            // Position_T &pos = players->get<Position_T>(handle);
+            EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
+            data->set(handle, component);
         }
 
-        template <typename C>
-        void init(size_t sz) {
-            auto temp = TypeID::value<C>();
-            auto c = new ComponentContainer<C>();
-            // This only works if you want to have components without constructors
-            c->items.reserve(sz);
-            for(size_t i = 0; i < sz; ++i) {
-                c->items.emplace_back();
-            }
-            Engine::logn("This should match: %d == %d", containers.size(), temp);
-            containers.push_back(c);
-        }
-
-        template <typename C1, typename C2, typename ... Components>
-        void init(size_t sz) {
-            init<C1>(sz);
-            init<C2, Components ...>(sz);
-        }
-
-        static const int invalid_handle = -1;
-
-        struct Handle {
-            int i = -1;
-        };
-        
-        void add_entity(Entity e) {
-            ASSERT_WITH_MSG(entity.size() <= size, "Component storage is full, n:" + std::to_string(entity.size()));
-            ASSERT_WITH_MSG(!contains(e), "Entity already has component");
-            
-            unsigned int index = entity.size();
-            _map[e.id] = index;
-            entity.push_back(e);
-
-            ++length;
-        }
-
-        Handle get_handle(Entity e) {
-            auto a = _map.find(e.id);
-            if(a != _map.end()) {
-                return { (int)a->second };
-            }
-            return { invalid_handle };
-        }
-
-        const Handle get_handle(Entity e) const {
-            auto a = _map.find(e.id);
-            if(a != _map.end()) {
-                return { (int)a->second };
-            }
-            return { invalid_handle };
-        }
-
-        bool contains(Entity e) {
-            auto a = _map.find(e.id);
-            return a != _map.end();
-        }
-
-        const bool contains(Entity e) const {
-            auto a = _map.find(e.id);
-            return a != _map.end();
-        }
-
-        bool is_valid(Handle h) {
-            return h.i != invalid_handle;
-        }
-
-        void remove(Entity e) {
-            if(!contains(e))
-                return;
-
-            auto a = _map.find(e.id);
-            const int index = a->second;
-            const int lastIndex = entity.size() - 1;
-
-            if (lastIndex >= 0) {
-                // Get the entity at the index to destroy
-                Entity entityToDestroy = entity[index];
-                // Get the entity at the end of the array
-                Entity lastEntity = entity[lastIndex];
-
-                // Move last entity's data
-                entity[index] = entity[lastIndex];
-
-                for(size_t i = 0; i < containers.size(); i++) {
-                    containers[i]->move(index, lastIndex);
-                }
-
-                // Update map entry for the swapped entity
-                _map[lastEntity.id] = index;
-                // Remove the map entry for the destroyed entity
-                _map.erase(entityToDestroy.id);
-
-                // Decrease count
-                entity.pop_back();
-
-                --length;
-            }
-        }
-
-        template <typename C>
-        C &get(const Handle &handle) {
-            auto t_id = TypeID::value<C>();
-            return static_cast<ComponentContainer<C>*>(containers[t_id])->items[handle.i];
+        template<typename T>
+        T &get_component(const ArcheType &a, EntityDataDynamic::Handle handle) {
+            // auto handle = players->get_handle(ent);
+            // Position_T &pos = players->get<Position_T>(handle);
+            EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
+            return data->get<T>(handle);
         }
     };
 };

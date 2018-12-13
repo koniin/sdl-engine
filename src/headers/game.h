@@ -23,51 +23,123 @@ struct Health_T { int h; };
 struct AI_T { int a; };
 struct Damage_T { int d; };
 
-// Dont know if we need this to be inherited
-struct Target_Test : ECS::EntityDataDynamic {};
-struct Player_Test : ECS::EntityDataDynamic {};
-struct Projectile_Test : ECS::EntityDataDynamic {};
+// Mål
+// 1. Ersätta Player, Target, Projectiles etc i entities.h med ett enkelt dynamiskt API
+//	- auto c = create_container<Position, Velocity>();
+// 2. Enkelt skapa entity? 
+//	- create_entity(c);
+// 2. Enkelt få alla som har en viss uppsättning komponenter
+//  - container_iterator = get_containers<Position, Velocity>();
+//  - for(int i = 0; i < container_iterator.length; i++) {
+// 			container_iterator.get<Position>(i).value = 
+//    }
 
-// ugly shit
-// should be in framework.cpp,
-THIS DOES NOT NEED TO BE STATIC, CAN JUST BE COUNTER IN THE DYNAMICCONTAINER I THINK
-size_t ECS::EntityDataDynamic::TypeID::counter = 0;
 
-ECS::EntityManager em;
-Player_Test players;
-Target_Test targets;
-Projectile_Test projectiles;
+// Fix later
+size_t ECS::ComponentID::counter = 0;
+
+ECS::ArchetypeManager em;
+ECS::ArcheType players;
+ECS::ArcheType targets;
+ECS::ArcheType projectiles;
 
 void spawn_player(int p) {
+	auto ent = em.create_entity(players);
+	auto handle = em.get_handle(players, ent);
 
+	Position_T pos = { 66 };
+	em.set_component(players, handle, pos);
+	Position_T &pos_get = em.get_component<Position_T>(players, handle);
+	Engine::logn("pos_get: %d", pos_get.x);
+	// players->add_entity(ent);
+
+	// auto handle = players->get_handle(ent);
+	// Position_T &pos = players->get<Position_T>(handle);
+	// pos.x = p;
+
+	// auto handle2 = players->get_handle(ent);
+	// const Position_T pos2 = players->get<Position_T>(handle);
+	// Engine::logn("%d", pos2.x);
 }
 
 void spawn_target(int p) {
-	auto ent = em.create();
-	targets.add_entity(ent);
-	auto handle = targets.get_handle(ent);
-	Position_T &pos = targets.get<Position_T>(handle);
-	pos.x = p;
+	auto ent = em.create_entity(targets);
+	auto handle = em.get_handle(targets, ent);
+	Position_T pos = { 789 };
+	em.set_component(targets, handle, pos);
 
-	auto handle2 = targets.get_handle(ent);
-	const Position_T pos2 = targets.get<Position_T>(handle);
-	Engine::logn("%d", pos2.x);
+	em.remove_entity(targets, ent);
 }
+// 	auto ent = em.create();
+// 	targets->add_entity(ent);
+// 	auto handle = targets->get_handle(ent);
+// 	targets->set<Position_T>(handle, { p });
+	
+// 	auto handle2 = targets->get_handle(ent);
+// 	const Position_T pos2 = targets->get<Position_T>(handle);
+// 	Engine::logn("%d", pos2.x);
+
+// 	auto h3 = players->get_handle(ent);
+// 	if(targets->is_valid_handle(h3)) {
+// 		Engine::logn("This is not what you want");
+// 	} else {
+// 		Engine::logn("handle is invalid = OK");
+// 	}
+// }
+
+// void remove_target() {
+// 	Engine::logn("-- Remove entity test");
+// 	Engine::logn("target count: %d", targets->length);
+// 	auto entity = targets->entity[0];
+// 	targets->remove(entity);
+
+// 	auto h = targets->get_handle(entity);
+// 	if(targets->is_valid_handle(h)) {
+// 		Engine::logn("This is wrong");
+// 	} else {
+// 		Engine::logn("Handle is invalid - good shit");
+// 	}
+// }
 
 inline void test_dynamic() {
 	Engine::logn(" ---  ECS TEST  --- ");
 	
-	players.allocate_entities<Position_T, Velocity_T, Health_T>(23);
-	targets.allocate_entities<Position_T, Velocity_T, Health_T, AI_T>(23);
-	projectiles.allocate_entities<Position_T, Velocity_T, Damage_T>(23);
+	Engine::logn(" init players ");
+	players = em.create_archetype<Position_T, Velocity_T, Health_T>(23);
+	//players.allocate_entities<Position_T, Velocity_T, Health_T>(23);
+	Engine::logn(" init targets ");
+	targets = em.create_archetype<Position_T, Velocity_T, Health_T, AI_T>(23);
+	Engine::logn(" init projectiles ");
+	projectiles = em.create_archetype<Position_T, Velocity_T, Damage_T>(23);
 
 	spawn_player(555);
 	spawn_target(33);
-	
+	// remove_target();
+	// spawn_target(77);
+
+	auto ci = em.get_containers<Velocity_T, Health_T, Position_T>();
+	for(auto c : ci.containers) {
+		if(c->length == 0) {
+			// Just for test
+			continue;
+		}
+
+		Engine::logn("length: %d", c->length);
+		for(int i = 0; i < c->length; i++) {
+			Position_T &p = c->index<Position_T>(i);
+			Engine::logn("x: %d", p.x);
+		}
+		
+		auto a = c->entity[0];
+		auto h = c->get_handle(a);
+		if(c->is_valid_handle(h)) {
+			auto pos2 = c->get<Position_T>(h);
+			Engine::logn("x2: %d", pos2.x);
+		}
+	}
 
 	Engine::logn(" ---  ECS TEST END  --- ");
 }
-
 
 inline void game_load() {
 	test_dynamic();

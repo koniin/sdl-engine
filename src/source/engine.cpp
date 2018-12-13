@@ -351,7 +351,7 @@ namespace Noise {
 	void set_seed(int seed) {
 		m_seed = seed;
 
-		std::mt19937_64 gen(seed);
+		std::mt19937 gen(seed);
 
 		for (int i = 0; i < 256; i++)
 			m_perm[i] = (unsigned char)i;

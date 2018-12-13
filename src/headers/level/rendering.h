@@ -20,7 +20,7 @@
 
 struct SpriteData {
     SDL_Texture *tex;
-    SDL_Rect *src;
+    SDL_Rect src;
     SDL_Rect dest;
     float angle;
     int layer;
@@ -148,7 +148,7 @@ void export_sprite_data(const T &entity_data, const int i, SpriteData &spr) {
     const auto &camera = get_camera();
 
     auto &sheet = sprite_sheets->at(entity_data.sprite[i].sprite_sheet_index);
-    auto *region = &sheet.sheet_sprites[sheet.sprites_by_name.at(entity_data.sprite[i].sprite_name)].region;
+    auto &region = sheet.sheet_sprites[sheet.sprites_by_name.at(entity_data.sprite[i].sprite_name)].region;
 
     spr.tex = Resources::sprite_get(sheet.sprite_sheet_name)->image;
     spr.src = region;
@@ -234,7 +234,7 @@ bool export_sprite_data_values_cull(const Vector2 &position, const T &sprite, co
 
 void draw_buffer(const SpriteData *spr, const int length) {
     for(int i = 0; i < length; i++) {    
-        SDL_RenderCopyEx(renderer.renderer, spr[i].tex, spr[i].src, &spr[i].dest, spr[i].angle, NULL, SDL_FLIP_NONE);
+        SDL_RenderCopyEx(renderer.renderer, spr[i].tex, &spr[i].src, &spr[i].dest, spr[i].angle, NULL, SDL_FLIP_NONE);
     }
 }
 
@@ -246,17 +246,131 @@ void draw_buffer(const SpriteData *spr, const int length) {
 //     }
 // }
 
+static SDL_Rect reg = { 0, 0, 16, 16 };
+
+void export_background(RenderBuffer &render_buffer, GameArea *_g) {
+
+    
+    int tile_size = 16;
+    // Add one to width and height since we draw from center and we want edges to be filled with sprites
+    int w = (_g->world_bounds.w / tile_size) + 1;
+    int h = (_g->world_bounds.h / tile_size) + 1;
+    auto camera = get_camera();
+    int start_x = Math::max_i(0, camera.x / tile_size);
+    int start_y = Math::max_i(0, camera.y / tile_size);
+    
+    auto index = Resources::sprite_sheet_index("deserts");
+    auto s = sprite_sheets->at(index);
+    // lets say we are at camera 0,0
+    // we want to know which x, y pairs are in view
+    // w = number of tiles total in x, h = number of tiles total in y
+
+    int end_x = Math::min_i(start_x + (gw / 16) + 1, w);
+    int end_y = Math::min_i(start_y + (gh / 16) + 1, h);
+    
+    auto sprite_data_buffer = render_buffer.sprite_data_buffer;
+    auto &sprite_count = render_buffer.sprite_count;
+
+    for(int x = start_x; x <= end_x; x++) {
+        for(int y = start_y; y <= end_y; y++) {
+            SpriteData &spr = sprite_data_buffer[sprite_count++];
+            spr.dest.x = x * tile_size - camera.x;
+            spr.dest.y = y * tile_size - camera.y;
+            spr.dest.w = tile_size;
+            spr.dest.h = tile_size;
+            
+            spr.tex = Resources::sprite_get(s.sprite_sheet_name)->image;
+
+            spr.angle = 0;
+            spr.layer = 0;
+
+            float n = Noise::perlin(x, y);
+            if(n < 0) {
+                n = -n;
+            }
+
+            if(n <= 0.2f) {
+                spr.src = s.sheet_sprites[0].region;
+            } else if(n <= 0.4f) {
+                spr.src = s.sheet_sprites[1].region;
+            } else if(n <= 0.6f) {
+                spr.src = s.sheet_sprites[2].region;
+            } else if(n <= 0.8f) {
+                spr.src = s.sheet_sprites[3].region;
+            } else {
+                spr.src = s.sheet_sprites[4].region;
+            }
+
+            // spr.src = &sf->region;
+            // spr.tex = Resources::sprite_get(s.sprite_sheet_name)->image;
+
+            // spr.angle = 0;
+            // spr.layer = 0;
+
+        }
+    }
+
+    /*
+    for(int i = start_x; i <= end_x; i++) {
+        for(int j = start_y; j <= end_y; j++) {
+            SpriteData &spr = sprite_data_buffer[sprite_count++];
+
+            spr.dest.x = i * tile_size - camera.x;
+            spr.dest.y = j * tile_size - camera.y;
+            spr.dest.w = tile_size;
+            spr.dest.h = tile_size;
+
+            float n = Noise::perlin(i, j);
+            if(n < 0) {
+                n = -n;
+            }
+
+            SpriteFrame *sf;
+            if(n <= 0.2f) {
+                sf = &s.sheet_sprites[0];
+            } else if(n <= 0.4f) {
+                sf = &s.sheet_sprites[1];
+            } else if(n <= 0.6f) {
+                sf = &s.sheet_sprites[2];
+            } else if(n <= 0.8f) {
+                sf = &s.sheet_sprites[3];
+            } else {
+                sf = &s.sheet_sprites[4];
+            }
+
+            spr.src = &sf->region;
+            spr.tex = Resources::sprite_get(s.sprite_sheet_name)->image;
+
+            spr.angle = 0;
+            spr.layer = 0;
+        }
+    }
+*/
+    // for(int i = 0; i < w; i++) {
+    //     for(int j = 0; j < h; j++) {
+    //         int sprite = RNG::range_i(0, s.sheet_sprites.size() - 1);
+    //         SpriteComponent sc = SpriteComponent("deserts", s.sheet_sprites[sprite].name);
+            
+
+    //         // game_area_controller->add_static_tile(Vector2((float)(i *tile_size), (float)(j * tile_size)), sc);
+    //     }
+    // }
+}
+
 void export_render_info(RenderBuffer &render_buffer, GameArea *_g) {
     render_buffer.prepare();
     auto sprite_data_buffer = render_buffer.sprite_data_buffer;
     auto &sprite_count = render_buffer.sprite_count;
 
+    export_background(render_buffer, _g);
+
+    /*
     auto &tiles = _g->tiles;
     for(size_t i = 0; i < tiles.size(); i++) {
         if(export_sprite_data_values_cull(tiles[i].position, tiles[i].sprite, i, sprite_data_buffer[sprite_count])) {
             sprite_count++;
         }
-    }
+    }*/
 
     for(int i = 0; i < _g->players.length; i++) {
         Direction &d = _g->players.direction[i];
