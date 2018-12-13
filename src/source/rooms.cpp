@@ -71,10 +71,13 @@ void room_update() {
         case MainMenu:
             menu_update();
             break;
-        case NewGame:
-            GameData::game_state_new(1338, Difficulty::Normal);
+        case NewGame: {
+            int new_game_seed = 23489;
+            GameData::game_state_new(new_game_seed, Difficulty::Normal);
+            Noise::set_seed(new_game_seed);
             room_goto(Rooms::Game);
             break;
+        }
         case Game:
             level_update();
             break;
