@@ -76,9 +76,9 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
         debug_config.enable_render = !debug_config.enable_render;
     }
 
-    auto camera = get_camera();
-    auto cs = Text::format("Camera: %.2f, %.2f", camera.x, camera.y);
-    FrameLog::log(cs);
+    // auto camera = get_camera();
+    // auto cs = Text::format("Camera: %.2f, %.2f", camera.x, camera.y);
+    // FrameLog::log(cs);
 
     FrameLog::log("FPS: " + std::to_string(Engine::current_fps));
     FrameLog::log("Press F8 to toggle debug render");
@@ -91,7 +91,6 @@ void debug(RenderBuffer &render_buffer, GameArea *level) {
     // FrameLog::log("projectile speed (UP to change): " + std::to_string(projectile_speed));
 
     FrameLog::log("Render buffer count: " + std::to_string(render_buffer.sprite_count));
-    FrameLog::log("Tile count: " + std::to_string(level->tiles.size()));
     //auto &camera = get_camera();
     //FrameLog::log("Camera x: " + std::to_string(camera.x) + ", y: " + std::to_string(camera.y));
     // FrameLog::log("Target knockback (L to change): " + std::to_string(target_config.knockback_on_hit));

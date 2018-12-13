@@ -8,17 +8,10 @@
 #include "emitter_config.h"
 #include "game_events.h"
 
-struct Tile {
-    Vector2 position;
-    SpriteComponent sprite;
-};
-
 struct GameArea {
     Rectangle world_bounds;
     SDL_Color background_color;
     
-    std::vector<Tile> tiles;
-
     ECS::EntityManager entity_manager;
     Player players;
     Projectile projectiles_player;
@@ -41,7 +34,6 @@ struct GameArea {
         targets.allocate(128);
         effects.allocate(128);
         drops.allocate(128);
-        tiles.reserve(8000);
         emitters_configure(this);
     }
 
@@ -53,7 +45,6 @@ struct GameArea {
         effects.clear();
         drops.clear();
         particles.length = 0;
-        tiles.clear();
     }
 	// WorldBounds bounds;
 	// std::vector<AvoidThis> avoidThis;
