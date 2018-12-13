@@ -420,11 +420,13 @@ namespace ECS {
     }
 
     struct ArchetypeManager {
+        private:
         EntityManager em;
         std::vector<EntityDataDynamic*> archetypes;
         std::unordered_map<ComponentMask, int> archetype_map;
+        std::unordered_map<EntityId, ComponentMask> entity_to_archetype;
 
-
+        public:
         template <typename ... Components>
         ArcheType create_archetype(size_t sz) {
             EntityDataDynamic *container = new EntityDataDynamic();
@@ -459,37 +461,39 @@ namespace ECS {
         Entity create_entity(const ArcheType &a) {
             auto entity = em.create();
             archetypes[archetype_map[a._mask]]->add_entity(entity);
+            entity_to_archetype[entity.id] = a._mask;
             return entity;
         }
 
         void remove_entity(const ArcheType &a, Entity entity) {
             archetypes[archetype_map[a._mask]]->remove(entity);
+            entity_to_archetype.erase(entity.id);
         }
 
-        EntityDataDynamic::Handle get_handle(const ArcheType &a, Entity entity) {
+        bool is_alive(const ArcheType &a, Entity entity) {
             EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
             auto handle = data->get_handle(entity);
-            return handle;
-        }
-
-        bool is_valid_handle(const ArcheType &a, EntityDataDynamic::Handle handle) {
-            EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
             return data->is_valid_handle(handle);
         }
 
+        ArcheType get_archetype(Entity entity) {
+            ASSERT_WITH_MSG(entity_to_archetype.find(entity.id) != entity_to_archetype.end(), "Entity is not in any archetype");
+            return { entity_to_archetype[entity.id] };
+        }
+
         template<typename T>
-        void set_component(const ArcheType &a, EntityDataDynamic::Handle handle, const T &component) {
-            // auto handle = players->get_handle(ent);
-            // Position_T &pos = players->get<Position_T>(handle);
+        void set_component(const ArcheType &a, Entity entity, const T &component) {
             EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
+            auto handle = data->get_handle(entity);
+            ASSERT_WITH_MSG(data->is_valid_handle(handle), "set_component: Invalid entity handle! Check if entity is alive first!?");
             data->set(handle, component);
         }
 
         template<typename T>
-        T &get_component(const ArcheType &a, EntityDataDynamic::Handle handle) {
-            // auto handle = players->get_handle(ent);
-            // Position_T &pos = players->get<Position_T>(handle);
+        T &get_component(const ArcheType &a, Entity entity) {
             EntityDataDynamic *data = archetypes[archetype_map[a._mask]];
+            auto handle = data->get_handle(entity);
+            ASSERT_WITH_MSG(data->is_valid_handle(handle), "get_component: Invalid entity handle! Check if entity is alive first!?");
             return data->get<T>(handle);
         }
     };

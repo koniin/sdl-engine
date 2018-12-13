@@ -45,12 +45,12 @@ ECS::ArcheType projectiles;
 
 void spawn_player(int p) {
 	auto ent = em.create_entity(players);
-	auto handle = em.get_handle(players, ent);
-
-	Position_T pos = { 66 };
-	em.set_component(players, handle, pos);
-	Position_T &pos_get = em.get_component<Position_T>(players, handle);
-	Engine::logn("pos_get: %d", pos_get.x);
+	if(em.is_alive(players, ent)) {
+		Position_T pos = { 66 };
+		em.set_component(players, ent, pos);
+		Position_T &pos_get = em.get_component<Position_T>(players, ent);
+		Engine::logn("pos_get: %d", pos_get.x);
+	}
 	// players->add_entity(ent);
 
 	// auto handle = players->get_handle(ent);
@@ -64,10 +64,10 @@ void spawn_player(int p) {
 
 void spawn_target(int p) {
 	auto ent = em.create_entity(targets);
-	auto handle = em.get_handle(targets, ent);
-	Position_T pos = { 789 };
-	em.set_component(targets, handle, pos);
-
+	if(em.is_alive(players, ent)) {
+		Position_T pos = { 789 };
+		em.set_component(targets, ent, pos);
+	}
 	em.remove_entity(targets, ent);
 }
 // 	auto ent = em.create();
@@ -135,6 +135,15 @@ inline void test_dynamic() {
 		if(c->is_valid_handle(h)) {
 			auto pos2 = c->get<Position_T>(h);
 			Engine::logn("x2: %d", pos2.x);
+		}
+	}
+
+	auto ci2 = em.get_containers<Position_T>();
+	for(auto c : ci2.containers) {
+		for(int i = 0; i < c->length; i++) {
+			auto archetype = em.get_archetype(c->entity[i]);
+			auto &pos = em.get_component<Position_T>(archetype, c->entity[i]);
+			Engine::logn("archpos: %d", pos.x);
 		}
 	}
 
