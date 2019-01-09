@@ -228,6 +228,19 @@ namespace ECS {
     };
 
     typedef std::bitset<512> ComponentMask;
+        
+    struct BaseContainer {
+        virtual void move(int index, int last_index) = 0;
+    };
+
+    template<typename T>
+    struct ComponentContainer : BaseContainer {
+        std::vector<T> items;
+
+        void move(int index, int last_index) override {
+            items.at(index) = items.at(last_index);
+        }
+    };
 
     class EntityDataDynamic {
         public:
@@ -345,6 +358,12 @@ namespace ECS {
             }
 
             template <typename C>
+            std::vector<C> &get_components_by_type() {
+                auto container_index = ComponentID::value<C>();
+                return static_cast<ComponentContainer<C>*>(containers[container_index])->items;
+            }
+
+            template <typename C>
             bool match() {
                 auto container_index = ComponentID::value<C>();
                 return has_component[container_index];
@@ -356,11 +375,6 @@ namespace ECS {
             }
 
         private:
-            
-            struct BaseContainer {
-                virtual void move(int index, int last_index) = 0;
-            };
-
             static const int invalid_handle = -1;
             std::unordered_map<EntityId, unsigned> _map;
             std::vector<size_t> container_indexes;
@@ -368,15 +382,6 @@ namespace ECS {
             std::vector<BaseContainer*> containers;
             size_t size = 0;
 
-            template<typename T>
-            struct ComponentContainer : BaseContainer {
-                std::vector<T> items;
-
-                void move(int index, int last_index) override {
-                    items.at(index) = items.at(last_index);
-                }
-            };
-            
             template <typename C>
             void init(size_t sz) {
                 auto c = new ComponentContainer<C>();
@@ -445,7 +450,7 @@ namespace ECS {
         };
 
         template <typename ... Components>
-        ContainerIterator get_containers() {
+        ContainerIterator get_iterator() {
             ContainerIterator it;
             for(auto c : archetypes) {
                 if(c->match<Components...>()) {

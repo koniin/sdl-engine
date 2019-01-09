@@ -117,11 +117,17 @@ inline void test_dynamic() {
 	// remove_target();
 	// spawn_target(77);
 
-	auto ci = em.get_containers<Velocity_T, Health_T, Position_T>();
+	auto ci = em.get_iterator<Velocity_T, Health_T, Position_T>();
+	// containers is a collection of 
 	for(auto c : ci.containers) {
 		if(c->length == 0) {
 			// Just for test
 			continue;
+		}
+
+		auto &positions = c->get_components_by_type<Position_T>();
+		for(int i = 0; i < c->length; i++) {
+			Engine::logn("x type: %d", positions[i].x);
 		}
 
 		Engine::logn("length: %d", c->length);
@@ -138,7 +144,7 @@ inline void test_dynamic() {
 		}
 	}
 
-	auto ci2 = em.get_containers<Position_T>();
+	auto ci2 = em.get_iterator<Position_T>();
 	for(auto c : ci2.containers) {
 		for(int i = 0; i < c->length; i++) {
 			auto archetype = em.get_archetype(c->entity[i]);
