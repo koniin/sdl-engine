@@ -245,9 +245,7 @@ struct Player : ECS::EntityData {
         child_sprites.clear();
         child_map.clear();
 
-        for(int i = 0; i < length; i++) {
-            remove(entity[i]);
-        }
+        clear_all_entities();
     }
 
     void create(const ECS::Entity &e, const Vector2 &p) {
@@ -374,9 +372,7 @@ struct Projectile : ECS::EntityData {
     }
 
     void clear() {
-        for(int i = 0; i < length; i++) {
-            remove(entity[i]);
-        }
+        clear_all_entities();
     }
 
     void create(ECS::Entity e, const ProjectileSpawn &p, const SpriteComponent &s) {
@@ -447,9 +443,7 @@ struct Target : ECS::EntityData {
         child_sprites.clear();
         child_map.clear();
 
-        for(int i = 0; i < length; i++) {
-            remove(entity[i]);
-        }
+        clear_all_entities();
     }
 
     void create(const ECS::Entity &e, const Vector2 &p, const Enemy &enemy) {
@@ -558,9 +552,7 @@ struct Effect : ECS::EntityData {
     void clear() {
         effect_queue.clear();
 
-        for(int i = 0; i < length; i++) {
-            remove(entity[i]);
-        }
+        clear_all_entities();
     }
 
     void create(ECS::Entity &e, const Position &p, const Velocity &v, const SpriteComponent &s, const EffectData &ef) {
@@ -593,9 +585,7 @@ struct Drop : ECS::EntityData {
     }
 
     void clear() {
-        for(int i = 0; i < length; i++) {
-            remove(entity[i]);
-        }
+        clear_all_entities();
     }
 
     void create(ECS::Entity e, const ProjectileSpawn &p, const SpriteComponent &s) {

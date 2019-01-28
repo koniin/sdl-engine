@@ -193,6 +193,12 @@ namespace ECS {
             return h.i != invalid_handle;
         }
 
+        void clear_all_entities() {
+            for(int i = length - 1; i >= 0; i--) {
+                remove(entity[i]);
+            }
+        }
+
         void remove(Entity e) {
             if(!contains(e))
                 return;

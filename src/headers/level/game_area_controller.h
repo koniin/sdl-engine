@@ -24,6 +24,7 @@ struct GameAreaController {
         player_projectile_queue.clear();
         target_projectile_queue.clear();
         drop_queue.clear();
+        Engine::logn("GameAreaController clear");
     }
 
     void set_world_bounds(const Rectangle &bounds) {

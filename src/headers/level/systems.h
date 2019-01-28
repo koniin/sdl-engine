@@ -611,11 +611,15 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
     float angle = Math::degrees_between_v(pos.last, entities.collision_point);
     game_ctrl->spawn_hit_effect(entities.collision_point, angle);
     
+    // 6 frames because that is so cool
+    float invulnerability_time = 6 * Time::delta_time_fixed;
+
     auto &health = get_health(t, entities.second);
     if(health.hp <= 0) {
         // play explosion sound / death sound
         // OR DO THIS IN SPAWN EXPLOSION METHOD
         // Sound::queue(test_sound_id, 2);
+        set_invulnerable(health, invulnerability_time);
 
         auto target_killed_event = GameEvents::get_event<TargetKilled>();
         target_killed_event->test = 44;
@@ -633,8 +637,6 @@ inline void on_deal_damage(Projectile &projectile, Target &t, const CollisionPai
         
         Engine::logn("hp %d", health.hp);
 
-        // 6 frames because that is so cool
-        float invulnerability_time = 6 * Time::delta_time_fixed;
         set_invulnerable(health, invulnerability_time);
         blink_sprite(t, entities.second, invulnerability_time, 3 * Time::delta_time_fixed);
     } else {
