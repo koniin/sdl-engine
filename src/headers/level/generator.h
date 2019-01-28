@@ -103,13 +103,22 @@ struct EnemySpawn {
 };
 static std::vector<EnemySpawn> generated_enemies(64);
 
+static const std::vector<Enemy> enemy_types = { 
+    { 5, 5, 8, 100.0f, 100.0f, 200.0f, 10.0f }, // => activates at short range, follows player, if too close it moves in random dir
+    { 5, 5, 8, 100.0f, 300.0f, 600000.0f, 10.0f } // => activates at "normal" range, always moves in random dir
+};
+
+static const std::vector<Enemy> boss_types = { 
+    { 10, 10, 8, 100.0f, 300.0f, 200.0f, 10.0f }, // => activates at short range, follows player, if too close it moves in random dir
+};
+
 void generate_enemies(const MapSettings &settings, Rectangle &world_bounds) {
     // GameState *game_state = GameData::game_state_get();
     // game_state->difficulty
     // game_state->level
     int enemies_to_generate = 1;
     for(int i = 0; i < enemies_to_generate; i++) {
-        Enemy enemy;
+        Enemy enemy = enemy_types[0];
         
         settings.apply_enemy_modifiers(enemy);
 
@@ -123,7 +132,7 @@ void generate_enemies(const MapSettings &settings, Rectangle &world_bounds) {
 }
 
 Enemy generate_boss(const MapSettings &settings) {
-    Enemy enemy;
+    Enemy enemy = boss_types[0];
     settings.apply_enemy_modifiers(enemy);
     return enemy;
 }

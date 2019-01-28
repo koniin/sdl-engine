@@ -244,8 +244,8 @@ void export_background(RenderBuffer &render_buffer, GameArea *_g) {
     int w = (_g->world_bounds.w / tile_size) - 1;
     int h = (_g->world_bounds.h / tile_size) - 1;
     auto camera = get_camera();
-    int start_x = Math::max_i(0, camera.x / tile_size);
-    int start_y = Math::max_i(0, camera.y / tile_size);
+    int start_x = Math::max_i(0, (int)camera.x / tile_size);
+    int start_y = Math::max_i(0, (int)camera.y / tile_size);
     
     auto index = Resources::sprite_sheet_index("deserts");
     auto s = sprite_sheets->at(index);
@@ -259,8 +259,8 @@ void export_background(RenderBuffer &render_buffer, GameArea *_g) {
     for(int x = start_x; x <= end_x; x++) {
         for(int y = start_y; y <= end_y; y++) {
             SpriteData &spr = sprite_data_buffer[sprite_count++];
-            spr.dest.x = x * tile_size - camera.x;
-            spr.dest.y = y * tile_size - camera.y;
+            spr.dest.x = x * tile_size - (int)camera.x;
+            spr.dest.y = y * tile_size - (int)camera.y;
             spr.dest.w = tile_size;
             spr.dest.h = tile_size;
             
@@ -269,7 +269,7 @@ void export_background(RenderBuffer &render_buffer, GameArea *_g) {
             spr.angle = 0;
             spr.layer = 0;
 
-            float n = Noise::perlin(x, y);
+            float n = Noise::perlin((float)x, (float)y);
             if(n < 0) {
                 n = -n;
             }
