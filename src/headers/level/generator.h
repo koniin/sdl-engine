@@ -112,6 +112,55 @@ static const std::vector<Enemy> boss_types = {
     { 10, 10, 8, 100.0f, 300.0f, 200.0f, 10.0f }, // => activates at short range, follows player, if too close it moves in random dir
 };
 
+void generate_group() {
+    /*
+
+struct GenRoom {
+	SDL_Rect rect;
+};
+
+static const int r_width = 20;
+static const int r_height = 15;
+static std::vector<GenRoom> rooms;
+static const std::vector<Engine::Point> directions = {
+	{ r_width, 0},
+	{ 0, r_height},
+	{ -r_width, 0},
+	{ 0, -r_height}
+};
+
+static void add_room() {
+	GenRoom nr = {{gw / 2, gh / 2, r_width, r_height}};
+
+	bool generate = true;
+	while(generate) {
+		generate = false;
+		for(auto &r : rooms) {
+			if(r.rect.x == nr.rect.x && r.rect.y == nr.rect.y) {
+				auto& dir = directions[RNG::range(0, directions.size())];
+				nr.rect.x += dir.x;
+				nr.rect.y += dir.y;
+				// save r.rect as last neighbour to generate a connection between them
+				generate = true;
+				break;
+			}
+		}
+	}	
+	// make connection here to last rect
+	rooms.push_back(nr);
+}
+
+static void generate_rooms() {
+	GenRoom nr = {{gw / 2, gh / 2, r_width, r_height}};
+	rooms.push_back(nr);
+
+	for(int i = 0; i < 20; i++) {
+		add_room();
+	}
+}
+    */
+}
+
 void generate_enemies(const MapSettings &settings, Rectangle &world_bounds) {
     // GameState *game_state = GameData::game_state_get();
     // game_state->difficulty
